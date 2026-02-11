@@ -72,3 +72,170 @@ body,
 .content {
   flex: 1; /* esto empuja el footer hacia abajo */
 }
+
+/* Estilos para la página de Contacto */
+.contacto-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.contacto-title {
+  text-align: center;
+  font-size: 2.8rem;
+  font-weight: bold;
+  color: #1a5f3e;
+  margin-bottom: 2rem;
+}
+
+.contacto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.contacto-card {
+  background-color: #f5f5f5;
+  padding: 2rem;
+  border-radius: 8px;
+  border-left: 5px solid #1a5f3e;
+}
+
+.contacto-card h3 {
+  font-size: 1.3rem;
+  color: #1a5f3e;
+  margin-bottom: 1rem;
+}
+
+.contacto-card p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+.contacto-card a {
+  color: #1a5f3e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.contacto-card a:hover {
+  text-decoration: underline;
+}
+
+.contacto-phone {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 2px solid #1a5f3e;
+  margin-bottom: 2rem;
+}
+
+.contacto-phone h3 {
+  font-size: 1.3rem;
+  color: #1a5f3e;
+  margin-bottom: 1rem;
+}
+
+.contacto-phone p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+.contacto-cta {
+  background-color: #1a5f3e;
+  color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.contacto-cta h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.contacto-cta p {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.contacto-button {
+  background-color: #ffd700;
+  color: #1a5f3e;
+  border: none;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.contacto-button:hover {
+  background-color: #ffed4e;
+  transform: scale(1.05);
+}
+
+/* Responsive para tablets y móviles */
+@media (max-width: 768px) {
+  .contacto-container {
+    padding: 1rem;
+  }
+
+  .contacto-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .contacto-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .contacto-card,
+  .contacto-phone {
+    padding: 1.5rem;
+  }
+
+  .contacto-cta {
+    padding: 1.5rem;
+  }
+
+  .contacto-button {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .contacto-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .contacto-title {
+    font-size: 1.6rem;
+  }
+
+  .contacto-card h3,
+  .contacto-phone h3,
+  .contacto-cta h3 {
+    font-size: 1.1rem;
+  }
+
+  .contacto-card p,
+  .contacto-phone p,
+  .contacto-cta p {
+    font-size: 0.9rem;
+  }
+
+  .contacto-button {
+    width: 100%;
+  }
+}
