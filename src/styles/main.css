@@ -177,7 +177,7 @@ body,
   cursor: pointer;
   transition: all 0.3s ease;
 }
-
+ 
 .contacto-button:hover {
   background-color: #ffed4e;
   transform: scale(1.05);

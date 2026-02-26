@@ -32,15 +32,7 @@ function Contacto() {
         </p>
       </div>
 
-      <div className="contacto-cta">
-        <h3>¿Tienes una consulta?</h3>
-        <p>
-          Nos encantaría escuchar tus comentarios, sugerencias o preguntas sobre el patrimonio cultural de Sonora.
-        </p>
-        <button className="contacto-button">
-          Enviar mensaje
-        </button>
-      </div>
+   
     </section>
   );
 }

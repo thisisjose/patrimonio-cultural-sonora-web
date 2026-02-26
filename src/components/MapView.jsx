@@ -14,39 +14,14 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function MapView() {
+function MapView({ patrimonios }) {
   const navigate = useNavigate();
-
-  // Datos simulados (luego vendrán de la API)
-  const patrimonios = [
-    {
-      id: 1,
-      nombre: "Catedral de Hermosillo",
-      descripcion: "Uno de los principales monumentos históricos del estado.",
-      lat: 29.0729,
-      lng: -110.9559,
-    },
-    {
-      id: 2,
-      nombre: "Cerro de la Campana",
-      descripcion: "Mirador emblemático de Hermosillo.",
-      lat: 29.0817,
-      lng: -110.9614,
-    },
-    {
-      id: 3,
-      nombre: "Fiestas del Pitic",
-      descripcion: "Festival cultural anual en Hermosillo.",
-      lat: 29.075,
-      lng: -110.96,
-    },
-  ];
 
   return (
     <MapContainer
       center={[29.0729, -110.9559]}
       zoom={7}
-      style={{ height: "100%", width: "100%", borderRadius: "8px" }}
+      style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
