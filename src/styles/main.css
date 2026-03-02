@@ -15,11 +15,6 @@ a {
   color: inherit;
 }
 
-header {
-  background-color: #8b1e1e; /* rojo Sonora */
-  color: white;
-  padding: 1rem 2rem;
-}
 
 header h2 {
   font-size: 1.5rem;
