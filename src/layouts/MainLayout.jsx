@@ -1,101 +1,58 @@
 import { Outlet, Link } from "react-router-dom";
+import { useState } from "react";
 
 function MainLayout() {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="app-container">
-      <header style={{
-        backgroundColor: "#1a5f3e",
-        padding: "1.5rem 2rem",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        marginBottom: "2rem"
-      }}>
-        <h2 style={{
-          color: "#fff",
-          margin: "0 0 1rem 0",
-          fontSize: "2rem",
-          fontWeight: "bold"
-        }}>
-          Redescubramos Sonora
-        </h2>
-        <nav style={{
-          display: "flex",
-          gap: "2.5rem",
-          alignItems: "center"
-        }}>
-          <Link to="/" style={{
-            color: "#fff",
-            textDecoration: "none",
-            fontSize: "1.05rem",
-            fontWeight: "600",
-            padding: "0.5rem 0",
-            borderBottom: "3px solid transparent",
-            transition: "all 0.3s ease",
-            cursor: "pointer"
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.borderBottomColor = "#ffd700";
-            e.target.style.color = "#ffd700";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.borderBottomColor = "transparent";
-            e.target.style.color = "#fff";
-          }}
+      <header className="site-header">
+        <div className="container">
+          <div className="logo">
+            <div className="mark">RS</div>
+            <div>
+              <div>Redescubramos</div>
+              <div style={{ fontSize: "0.85rem", opacity: 0.9 }}>Sonora</div>
+            </div>
+          </div>
+
+          <nav className="nav-links" role="navigation" aria-label="Main">
+            <Link to="/">Mapa</Link>
+            <Link to="/acerca">Acerca</Link>
+            <Link to="/contacto">Contacto</Link>
+          </nav>
+
+          <button
+            className="mobile-toggle"
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Abrir menú"
           >
-            Mapa
-          </Link>
-          <Link to="/acerca" style={{
-            color: "#fff",
-            textDecoration: "none",
-            fontSize: "1.05rem",
-            fontWeight: "600",
-            padding: "0.5rem 0",
-            borderBottom: "3px solid transparent",
-            transition: "all 0.3s ease",
-            cursor: "pointer"
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.borderBottomColor = "#ffd700";
-            e.target.style.color = "#ffd700";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.borderBottomColor = "transparent";
-            e.target.style.color = "#fff";
-          }}
-          >
-            Acerca del proyecto
-          </Link>
-          <Link to="/contacto" style={{
-            color: "#fff",
-            textDecoration: "none",
-            fontSize: "1.05rem",
-            fontWeight: "600",
-            padding: "0.5rem 0",
-            borderBottom: "3px solid transparent",
-            transition: "all 0.3s ease",
-            cursor: "pointer"
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.borderBottomColor = "#ffd700";
-            e.target.style.color = "#ffd700";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.borderBottomColor = "transparent";
-            e.target.style.color = "#fff";
-          }}
-          >
-            Contáctanos
-          </Link>
-        </nav>
+            ☰
+          </button>
+        </div>
+
+        {open && (
+          <div style={{ background: "rgba(0,0,0,0.04)" }}>
+            <div className="container" style={{ padding: "0.75rem 1rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <Link to="/" onClick={() => setOpen(false)}>Mapa</Link>
+                <Link to="/acerca" onClick={() => setOpen(false)}>Acerca</Link>
+                <Link to="/contacto" onClick={() => setOpen(false)}>Contacto</Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="content">
-        <Outlet />
+        <div className="container">
+          <Outlet />
+        </div>
       </main>
 
       <footer>
-        <small>
-          Diseño y desarrollo de un sitio web de patrimonio cultural de Sonora
-        </small>
+        <small>Diseño y desarrollo — patrimonio cultural de Sonora</small>
       </footer>
     </div>
   );

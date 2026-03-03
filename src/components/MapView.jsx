@@ -18,11 +18,7 @@ function MapView({ patrimonios }) {
   const navigate = useNavigate();
 
   return (
-    <MapContainer
-      center={[29.0729, -110.9559]}
-      zoom={7}
-      style={{ height: "100%", width: "100%" }}
-    >
+    <MapContainer center={[29.0729, -110.9559]} zoom={7}>
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -35,18 +31,7 @@ function MapView({ patrimonios }) {
             <br />
             {item.descripcion}
             <br />
-            <button
-              style={{
-                marginTop: "8px",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "none",
-                backgroundColor: "#1a5f3e",
-                color: "white",
-                cursor: "pointer",
-              }}
-              onClick={() => navigate(`/patrimonio/${item.id}`)}
-            >
+            <button className="popup-cta" onClick={() => navigate(`/patrimonio/${item.id}`)}>
               Ver detalles
             </button>
           </Popup>

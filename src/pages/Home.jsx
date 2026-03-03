@@ -29,82 +29,42 @@ function Home() {
 
   return (
     <section>
-      <h1
-        style={{
-          marginBottom: "1rem",
-          textAlign: "center",
-          fontSize: "3rem",
-          fontWeight: "bold",
-          color: "#1a5f3e",
-        }}
-      >
-        Patrimonio cultural del estado de Sonora
-      </h1>
+      <div className="page-hero">
+        <h1 className="hero-title">Patrimonio cultural del estado de Sonora</h1>
+        <p className="hero-sub">Descubre monumentos, festividades y elementos culturales del estado a través de un mapa interactivo que concentra información histórica y visual.</p>
+      </div>
 
-      <p
-        style={{
-          maxWidth: "700px",
-          margin: "0 auto 2rem auto",
-          textAlign: "center",
-          fontSize: "1.1rem",
-          lineHeight: "1.6",
-          color: "#333",
-        }}
-      >
-        Descubre monumentos, festividades y elementos culturales del estado a
-        través de un mapa interactivo que concentra información histórica y
-        visual.
-      </p>
+      <div className="features-grid">
+        <div className="feature-card">
+          <div className="feature-icon">🗺️</div>
+          <div>
+            <div className="feature-title">Explora el mapa</div>
+            <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
+          </div>
+        </div>
 
-     {/* CONTENEDOR DE ESTADÍSTICA */}
-<div
-  style={{
-    maxWidth: "900px",
-    margin: "0 auto 2.5rem auto",
-    padding: "2.5rem 1.5rem",
-    borderRadius: "18px",
-    background: "linear-gradient(135deg, #f8fbf9, #eef5f1)",
-    boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
-    textAlign: "center",
-  }}
->
-  <div
-    style={{
-      fontSize: "3rem",
-      fontWeight: "700",
-      letterSpacing: "1px",
-      color: "#0f3d29",
-      marginBottom: "1rem",
-      lineHeight: "1.2",
-    }}
-  >
-    Sitios registrados en el mapa
-  </div>
+        <div className="feature-card">
+          <div className="feature-icon">📚</div>
+          <div>
+            <div className="feature-title">Aprende sobre la historia</div>
+            <div className="feature-desc">Cada punto incluye contexto histórico breve y referencias para profundizar en el patrimonio.</div>
+          </div>
+        </div>
 
-  <div
-    style={{
-      fontSize: "2.4rem",
-      fontWeight: "600",
-      color: "#1a5f3e",
-    }}
-  >
-    {patrimonios.length}
-  </div>
-</div>
+        <div className="feature-card">
+          <div className="feature-icon">🎯</div>
+          <div>
+            <div className="feature-title">Información accesible</div>
+            <div className="feature-desc">Datos completos y verificados de cada sitio: ubicación, horarios y referencias para planificar visitas.</div>
+          </div>
+        </div>
+      </div>
 
-      {/* CONTENEDOR MAPA */}
-      <div
-        style={{
-          maxWidth: "900px",
-          height: "500px",
-          margin: "0 auto",
-          borderRadius: "12px",
-          overflow: "hidden",
-          boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
-        }}
-      >
+      <div className="map-wrapper">
         <MapView patrimonios={patrimonios} />
       </div>
+
+
     </section>
   );
 }

@@ -34,41 +34,18 @@ function Detail() {
   const patrimonio = patrimonios.find((p) => p.id === id);
 
   if (!patrimonio) {
-    return <h2>Patrimonio no encontrado</h2>;
+    return <h2 className="heading-2">Patrimonio no encontrado</h2>;
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-      <h2 style={{ color: "#1a5f3e", marginBottom: "1rem" }}>
-        {patrimonio.nombre}
-      </h2>
+    <div className="page-inner">
+      <h2 className="heading-2">{patrimonio.nombre}</h2>
 
-      <img
-        src={patrimonio.imagen}
-        alt={patrimonio.nombre}
-        style={{
-          width: "100%",
-          maxHeight: "400px",
-          objectFit: "cover",
-          borderRadius: "8px",
-          marginBottom: "1rem",
-        }}
-      />
+      <img src={patrimonio.imagen} alt={patrimonio.nombre} className="image-card" />
 
-      <p style={{ lineHeight: "1.6", fontSize: "1.1rem" }}>
-        {patrimonio.descripcion}
-      </p>
+      <p className="lead">{patrimonio.descripcion}</p>
 
-      <Link
-        to="/"
-        style={{
-          display: "inline-block",
-          marginTop: "1.5rem",
-          color: "#1a5f3e",
-          textDecoration: "none",
-          fontWeight: "bold",
-        }}
-      >
+      <Link to="/" className="muted" style={{ display: "inline-block", marginTop: "1.25rem", fontWeight: 600 }}>
         ← Volver al mapa
       </Link>
     </div>
