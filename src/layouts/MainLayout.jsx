@@ -1,5 +1,6 @@
 import { Outlet, Link } from "react-router-dom";
 import { useState } from "react";
+import RSicono from "../Icons/RSicono.png";
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
@@ -9,7 +10,7 @@ function MainLayout() {
       <header className="site-header">
         <div className="container">
           <div className="logo">
-            <div className="mark">RS</div>
+            <img src={RSicono} alt="Redescubramos Sonora" style={{ width: "44px", height: "44px", objectFit: "contain", filter: "invert(1)" }} />
             <div>
               <div>Redescubramos</div>
               <div style={{ fontSize: "0.85rem", opacity: 0.9 }}>Sonora</div>

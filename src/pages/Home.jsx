@@ -1,4 +1,7 @@
 import MapView from "../components/MapView";
+import mapaIcon from "../Icons/mapa.png";
+import historiaIcon from "../Icons/historia.png";
+import infoIcon from "../Icons/info.png";
 
 function Home() {
 
@@ -36,7 +39,7 @@ function Home() {
 
       <div className="features-grid">
         <div className="feature-card">
-          <div className="feature-icon">🗺️</div>
+          <div className="feature-icon"><img src={mapaIcon} alt="Explorar mapa" /></div>
           <div>
             <div className="feature-title">Explora el mapa</div>
             <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
@@ -44,7 +47,7 @@ function Home() {
         </div>
 
         <div className="feature-card">
-          <div className="feature-icon">📚</div>
+          <div className="feature-icon"><img src={historiaIcon} alt="Aprender historia" /></div>
           <div>
             <div className="feature-title">Aprende sobre la historia</div>
             <div className="feature-desc">Cada punto incluye contexto histórico breve y referencias para profundizar en el patrimonio.</div>
@@ -52,10 +55,10 @@ function Home() {
         </div>
 
         <div className="feature-card">
-          <div className="feature-icon">🎯</div>
+          <div className="feature-icon"><img src={infoIcon} alt="Información accesible" /></div>
           <div>
             <div className="feature-title">Información accesible</div>
-            <div className="feature-desc">Datos completos y verificados de cada sitio: ubicación, horarios y referencias para planificar visitas.</div>
+            <div className="feature-desc">Datos completos y verificados de cada sitio: Nombre, ubicación y descripción.</div>
           </div>
         </div>
       </div>

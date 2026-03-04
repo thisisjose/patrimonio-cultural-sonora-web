@@ -22,9 +22,7 @@ function Acerca() {
         </ul>
       </div>
 
-      <p style={{ marginTop: '1.25rem', fontSize: '0.95rem', color: 'var(--muted)', textAlign: 'center' }}>
-        Si deseas colaborar, contáctanos y comparte nuevos lugares o correcciones — tu aporte ayuda a preservar la memoria colectiva.
-      </p>
+     
     </section>
   );
 }

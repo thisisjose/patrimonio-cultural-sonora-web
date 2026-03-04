@@ -1,3 +1,7 @@
+import ubicacionIcon from "../Icons/ubicaciontelefono.png";
+import emailIcon from "../Icons/gmailcirculo.png";
+import telefonoIcon from "../Icons/telefonocirculo.png";
+
 function Contacto() {
   return (
     <section className="contacto-container">
@@ -5,23 +9,38 @@ function Contacto() {
 
       <div className="contacto-grid">
         <div className="contacto-card">
-          <h3>📍 Ubicación</h3>
-          <p>C.d Obregón, Sonora<br />Estado de Sonora, México</p>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <img src={ubicacionIcon} alt="Ubicación" style={{ width: '32px', height: '32px', flexShrink: 0 }} />
+            <div>
+              <h3>Ubicación</h3>
+              <p>C.d Obregón, Sonora<br />Estado de Sonora, México</p>
+            </div>
+          </div>
         </div>
 
         <div className="contacto-card">
-          <h3>📧 Email</h3>
-          <p>
-            <a href="mailto:info@redescubrarossonora.mx">info@redescubrarossonora.mx</a>
-          </p>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <img src={emailIcon} alt="Email" style={{ width: '32px', height: '32px', flexShrink: 0 }} />
+            <div>
+              <h3>Email</h3>
+              <p>
+                <a href="mailto:info@redescubrarossonora.mx">info@redescubrarossonora.mx</a>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="contacto-phone">
-        <h3>📞 Teléfono</h3>
-        <p>
-          <strong>+52 (662) 123-4567</strong><br />Disponible de lunes a viernes, 9:00 AM - 5:00 PM
-        </p>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+          <img src={telefonoIcon} alt="Teléfono" style={{ width: '32px', height: '32px', flexShrink: 0 }} />
+          <div>
+            <h3>Teléfono</h3>
+            <p>
+              <strong>+52 6441-00-59-80</strong><br />Disponible de lunes a viernes, 9:00 AM - 5:00 PM
+            </p>
+          </div>
+        </div>
       </div>
 
       <div style={{ marginTop: '1.75rem', padding: '1.5rem', background: 'linear-gradient(180deg, rgba(26,95,62,0.04), rgba(216,155,58,0.03))', borderRadius: '10px' }}>

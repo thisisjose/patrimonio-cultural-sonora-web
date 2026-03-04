@@ -9,25 +9,25 @@ function Detail() {
       id: "1",
       nombre: "Catedral de Hermosillo",
       descripcion:
-        "La Catedral Metropolitana de Hermosillo es uno de los principales monumentos históricos y religiosos del estado de Sonora.",
+        "La Catedral Metropolitana de Hermosillo, oficialmente conocida como Catedral de la Asunción, es uno de los principales monumentos históricos y religiosos del estado de Sonora. Construida en el siglo XVII, esta majestuosa estructura religiosa se destaca por su arquitectura colonial con elementos neoclásicos. La fachada presenta un hermoso trabajo en cantera rosa, mientras que su interior alberga valiosas obras de arte sacro. Ubicada en el corazón del centro histórico de Hermosillo, la Catedral es un lugar de gran importancia espiritual y cultural que atrae tanto a devotos como a turistas interesados en la historia arquitectónica y religiosa de la región.",
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/6/6c/Catedral_de_Hermosillo.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG/640px-Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG",
     },
     {
       id: "2",
       nombre: "Cerro de la Campana",
       descripcion:
-        "El Cerro de la Campana es un mirador natural que ofrece una vista panorámica de la ciudad de Hermosillo.",
+        "El Cerro de la Campana es un mirador natural emblemático que ofrece una vista panorámica de la ciudad de Hermosillo. Esta elevación geográfica se ha convertido en uno de los símbolos más reconocibles de la capital sonorense. El sitio es popular entre turistas y residentes locales que buscan disfrutar de vistas espectaculares especialmente al atardecer, cuando la ciudad se tiñe con tonos dorados y anaranjados. El acceso al mirador es relativamente fácil y seguro, con áreas habilitadas para que los visitantes puedan contemplar el paisaje urbano desde diversas perspectivas. Además de su valor turístico, el Cerro de la Campana tiene importancia histórica y representa un punto de referencia geográfica y cultural para los hermosillenses.",
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/e/e7/Cerro_de_la_Campana.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Cerro_de_la_Campana_HMO_2.JPG/640px-Cerro_de_la_Campana_HMO_2.JPG",
     },
     {
       id: "3",
       nombre: "Fiestas del Pitic",
       descripcion:
-        "Festival cultural anual que celebra la fundación de Hermosillo con eventos artísticos y culturales.",
+        "Las Fiestas del Pitic son un festival cultural anual que celebra la fundación de Hermosillo con una serie de eventos artísticos, musicales y culturales. Pitic fue el nombre prehispánico de Hermosillo, y estas festividades honran la rica herencia cultural y las tradiciones de la región. Durante estos días, la ciudad se llena de vida con conciertos, exposiciones de arte, actividades para la familia, danzas tradicionales y gastronomía típica de Sonora. El festival es una oportunidad para que residentes y visitantes compartan un espíritu de celebración y reconozcan la importancia histórica del territorio. Las Fiestas del Pitic representan un puente entre el pasado prehispánico y la modernidad, mostrando la identidad cultural vibrante de Hermosillo.",
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/0/0c/Fiestas_del_Pitic.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
     },
   ];
 
@@ -38,14 +38,21 @@ function Detail() {
   }
 
   return (
-    <div className="page-inner">
-      <h2 className="heading-2">{patrimonio.nombre}</h2>
+    <div className="page-inner detail-page">
+      <div className="detail-header">
+        <h1 className="detail-title">{patrimonio.nombre}</h1>
+      </div>
 
-      <img src={patrimonio.imagen} alt={patrimonio.nombre} className="image-card" />
+      <div className="detail-card">
+        <div className="detail-content">
+          <img src={patrimonio.imagen} alt={patrimonio.nombre} className="detail-image" />
+          <div className="detail-text">
+            <p className="detail-description">{patrimonio.descripcion}</p>
+          </div>
+        </div>
+      </div>
 
-      <p className="lead">{patrimonio.descripcion}</p>
-
-      <Link to="/" className="muted" style={{ display: "inline-block", marginTop: "1.25rem", fontWeight: 600 }}>
+      <Link to="/" className="detail-link">
         ← Volver al mapa
       </Link>
     </div>
