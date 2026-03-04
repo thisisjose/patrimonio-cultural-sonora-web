@@ -2,6 +2,36 @@ import { Outlet, Link } from "react-router-dom";
 import { useState } from "react";
 import RSicono from "../Icons/RSicono.png";
 
+const linkStyle = {
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: "1.05rem",
+  fontWeight: "600",
+  padding: "0.5rem 0",
+  borderBottom: "3px solid transparent",
+  transition: "all 0.3s ease",
+  cursor: "pointer"
+};
+
+function NavLinkItem({ to, children }) {
+  return (
+    <Link
+      to={to}
+      style={linkStyle}
+      onMouseEnter={(e) => {
+        e.target.style.borderBottomColor = "#ffd700";
+        e.target.style.color = "#ffd700";
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.borderBottomColor = "transparent";
+        e.target.style.color = "#fff";
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function MainLayout() {
   const [open, setOpen] = useState(false);
 
