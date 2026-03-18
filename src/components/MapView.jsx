@@ -33,8 +33,8 @@ function MapView({ patrimonios }) {
   return (
     <MapContainer center={[29.0729, -110.9559]} zoom={7}>
       <TileLayer
-        attribution='&copy; OpenStreetMap contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; OpenStreetMap contributors, &copy; Carto'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
       />
 
       {patrimonios.map((item) => (
