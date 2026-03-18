@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +17,19 @@ L.Icon.Default.mergeOptions({
 function MapView({ patrimonios }) {
   const navigate = useNavigate();
 
+  const getCircleColor = (categoria) => {
+    switch (categoria) {
+      case "material":
+        return "#e74c3c";
+      case "inmaterial":
+        return "#3498db";
+      case "biocultural":
+        return "#27ae60";
+      default:
+        return "#8e44ad";
+    }
+  };
+
   return (
     <MapContainer center={[29.0729, -110.9559]} zoom={7}>
       <TileLayer
@@ -25,7 +38,18 @@ function MapView({ patrimonios }) {
       />
 
       {patrimonios.map((item) => (
-        <Marker key={item.id} position={[item.lat, item.lng]}>
+        <CircleMarker
+          key={item.id}
+          center={[item.lat, item.lng]}
+          radius={7}
+          className={`patrimonio-dot ${item.categoria}`}
+          pathOptions={{
+            color: "#ffffff",
+            fillColor: getCircleColor(item.categoria),
+            fillOpacity: 0.95,
+            weight: 2,
+          }}
+        >
           <Popup>
             <strong>{item.nombre}</strong>
             <br />
@@ -35,7 +59,7 @@ function MapView({ patrimonios }) {
               Ver detalles
             </button>
           </Popup>
-        </Marker>
+        </CircleMarker>
       ))}
     </MapContainer>
   );

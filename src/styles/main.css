@@ -59,6 +59,18 @@ header a{text-decoration:none}
 .map-wrapper{max-width:900px;height:540px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(12,45,28,0.09);position:relative;z-index:1}
 .leaflet-container{height:100%;width:100%;position:relative}
 
+/* Map marker glow */
+.patrimonio-dot{
+  filter:drop-shadow(0 0 9px rgba(0,0,0,0.24));
+  transition:filter .18s ease;
+}
+.patrimonio-dot:hover{
+  filter:drop-shadow(0 0 18px rgba(0,0,0,0.32));
+}
+.patrimonio-dot.material{filter:drop-shadow(0 0 10px rgba(231,76,60,0.7));}
+.patrimonio-dot.inmaterial{filter:drop-shadow(0 0 10px rgba(52,152,219,0.7));}
+.patrimonio-dot.biocultural{filter:drop-shadow(0 0 10px rgba(39,174,96,0.7));}
+
 /* Card common */
 .card{background:var(--card);border-radius:12px;padding:1rem;box-shadow:var(--shadow)}
 
