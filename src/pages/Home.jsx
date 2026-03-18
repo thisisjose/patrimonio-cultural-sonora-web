@@ -41,7 +41,7 @@ function Home() {
         <div className="feature-card">
           <div className="feature-icon"><img src={mapaIcon} alt="Explorar mapa" /></div>
           <div>
-            <div className="feature-title">Explora el mapa</div>
+            <div className="feature-title">Explora el   mapa</div>
             <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
           </div>
         </div>

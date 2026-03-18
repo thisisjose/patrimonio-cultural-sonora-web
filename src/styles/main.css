@@ -80,6 +80,9 @@ header a{text-decoration:none}
 .detail-text::-webkit-scrollbar-thumb{background:var(--green-500);border-radius:3px}
 .detail-text::-webkit-scrollbar-thumb:hover{background:var(--green-700)}
 .detail-description{line-height:1.8;font-size:1.05rem;color:#333;margin:0}
+.detail-category{margin-top:1rem;font-size:0.95rem;color:#555}
+.category-badge{display:inline-block;padding:3px 8px;border-radius:6px;background:var(--green-100);color:var(--green-700);text-transform:capitalize;font-weight:600}
+.detail-category-below{margin-top:1.5rem;font-size:1rem;color:#555;text-align:center}
 .detail-link{display:inline-block;margin-top:1.75rem;font-weight:600;color:var(--green-500);text-decoration:none;transition:all .2s ease;padding:0.5rem 0}
 .detail-link:hover{color:var(--green-700);transform:translateX(-4px)}
 .heading-2{color:var(--green-500);margin-bottom:1rem}
