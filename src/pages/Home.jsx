@@ -37,6 +37,36 @@ function Home() {
       imagen:
         "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
     },
+    {
+      id: 4,
+      nombre: "Museo de Sonora",
+      descripcion: "Un vistazo completo a la historia natural y cultural del estado.",
+      categoria: "material",
+      lat: 29.079,
+      lng: -110.955,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Museo_de_Sonora.jpg/640px-Museo_de_Sonora.jpg",
+    },
+    {
+      id: 5,
+      nombre: "Danza del Venado",
+      descripcion: "Tradición indígena de los yaquis que mezcla rito y danza.",
+      categoria: "inmaterial",
+      lat: 29.070,
+      lng: -110.950,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Danza_del_venado.jpg/640px-Danza_del_venado.jpg",
+    },
+    {
+      id: 6,
+      nombre: "Ruta del Adobe",
+      descripcion: "Pueblos tradicionales que conservan la construcción en adobe.",
+      categoria: "biocultural",
+      lat: 29.082,
+      lng: -110.965,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Adobe_houses.jpg/640px-Adobe_houses.jpg",
+    },
   ];
 
   return (
@@ -76,7 +106,23 @@ function Home() {
         <MapView patrimonios={patrimonios} />
       </div>
 
-
+      <section className="popular-section">
+        <h2 className="section-title">Lo más popular</h2>
+        <div className="popular-row">
+          {patrimonios.map((item) => (
+            <article key={item.id} className="popular-card">
+              <div className="popular-content">
+                <h3 className="popular-name">{item.nombre}</h3>
+                <p className="popular-meta">{item.descripcion}</p>
+              </div>
+              <div className="popular-thumb">
+                <img src={item.imagen} alt={item.nombre} />
+                <span className={`category-badge popular-badge ${item.categoria}`}>{item.categoria}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }
