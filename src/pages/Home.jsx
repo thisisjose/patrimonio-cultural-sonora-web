@@ -14,6 +14,8 @@ function Home() {
       categoria: "material",
       lat: 29.0729,
       lng: -110.9559,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG/1280px-Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG?_=20120911015059",
     },
     {
       id: 2,
@@ -22,6 +24,8 @@ function Home() {
       categoria: "material",
       lat: 29.0817,
       lng: -110.9614,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Cerro_de_la_Campana_HMO.jpg/640px-Cerro_de_la_Campana_HMO.jpg",
     },
     {
       id: 3,
@@ -30,6 +34,8 @@ function Home() {
       categoria: "inmaterial",
       lat: 29.075,
       lng: -110.96,
+      imagen:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
     },
   ];
 

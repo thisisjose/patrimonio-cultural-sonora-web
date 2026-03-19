@@ -17,6 +17,11 @@ L.Icon.Default.mergeOptions({
 function MapView({ patrimonios }) {
   const navigate = useNavigate();
 
+  const truncateText = (text = "", max = 90) => {
+    if (typeof text !== "string") return "";
+    return text.length <= max ? text : text.slice(0, max).trimEnd() + "...";
+  };
+
   const getCircleColor = (categoria) => {
     switch (categoria) {
       case "material":
@@ -50,11 +55,17 @@ function MapView({ patrimonios }) {
             weight: 2,
           }}
         >
-          <Popup>
+          <Popup className="patrimonio-popup">
+            {item.imagen && (
+              <img
+                src={item.imagen}
+                alt={item.nombre}
+                className="popup-thumb"
+                loading="lazy"
+              />
+            )}
             <strong>{item.nombre}</strong>
-            <br />
-            {item.descripcion}
-            <br />
+            <p className="popup-desc">{truncateText(item.descripcion)}</p>
             <button className="popup-cta" onClick={() => navigate(`/patrimonio/${item.id}`)}>
               Ver detalles
             </button>

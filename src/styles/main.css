@@ -78,6 +78,11 @@ header a{text-decoration:none}
 .popup-cta{display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;border:0;background:var(--green-500);color:#fff;font-weight:600;cursor:pointer;transition:transform .14s ease}
 .popup-cta:hover{transform:translateY(-2px)}
 
+/* Popup content (Leaflet) */
+.patrimonio-popup .popup-thumb{width:100%;height:auto;border-radius:10px;margin-bottom:0.6rem;display:block}
+.patrimonio-popup .popup-desc{margin:0.45rem 0 0.75rem;color:var(--muted);font-size:0.95rem;line-height:1.4}
+.leaflet-popup-content-wrapper{max-width:260px}
+
 /* Detail & content helpers */
 .page-inner{max-width:900px;margin:0 auto}
 .detail-page{padding:1.5rem 0}
