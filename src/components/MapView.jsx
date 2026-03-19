@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function MapView({ patrimonios }) {
+function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7 }) {
   const navigate = useNavigate();
 
   const truncateText = (text = "", max = 90) => {
@@ -36,7 +36,7 @@ function MapView({ patrimonios }) {
   };
 
   return (
-    <MapContainer center={[29.0729, -110.9559]} zoom={7}>
+    <MapContainer center={center} zoom={zoom}>
       <TileLayer
         attribution='&copy; OpenStreetMap contributors, &copy; Carto'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
