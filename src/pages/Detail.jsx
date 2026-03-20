@@ -90,7 +90,7 @@ function Detail() {
             </div>
           </div>
         </section>
-g
+
         <aside className="detail-location">
           <h2 className="section-title">Ubicación</h2>
           <div className="detail-map">
