@@ -1,9 +1,11 @@
+import { useState } from "react";
 import MapView from "../components/MapView";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
 
 function Home() {
+  const [mapExpanded, setMapExpanded] = useState(false);
 
   // Datos simulados (luego vendrán de la API)
   const patrimonios = [
@@ -35,7 +37,7 @@ function Home() {
       lat: 29.075,
       lng: -110.96,
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
+        "https://tse4.mm.bing.net/th/id/OIP.YRv7bOEVflxxpRpZI6h6cwHaE8?rs=1&pid=ImgDetMain&o=7&rm=3",
     },
     {
       id: 4,
@@ -66,6 +68,69 @@ function Home() {
       lng: -110.965,
       imagen:
         "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Im%C3%A1genes_de_Catamarca_2023_06.jpg/640px-Im%C3%A1genes_de_Catamarca_2023_06.jpg",
+    },
+    {
+      id: 7,
+      nombre: "Punto de relleno - Puerto Peñasco",
+      descripcion: "Ubicación de ejemplo en la costa de Sonora.",
+      categoria: "material",
+      lat: 31.307,
+      lng: -113.555,
+      imagen: null,
+    },
+    {
+      id: 8,
+      nombre: "Punto de relleno - Guaymas",
+      descripcion: "Ubicación de ejemplo en el Golfo de California.",
+      categoria: "material",
+      lat: 27.918,
+      lng: -110.874,
+      imagen: null,
+    },
+    {
+      id: 9,
+      nombre: "Punto de relleno - Álamos",
+      descripcion: "Ubicación de ejemplo en el sur de Sonora.",
+      categoria: "biocultural",
+      lat: 27.018,
+      lng: -109.879,
+      imagen: null,
+    },
+    {
+      id: 10,
+      nombre: "Punto de relleno - Caborca",
+      descripcion: "Ubicación de ejemplo en el noroeste de Sonora.",
+      categoria: "material",
+      lat: 30.716,
+      lng: -112.158,
+      imagen: null,
+    },
+    {
+      id: 11,
+      nombre: "Punto de relleno - Nogales",
+      descripcion: "Ubicación de ejemplo en la frontera norte.",
+      categoria: "inmaterial",
+      lat: 31.332,
+      lng: -110.941,
+      imagen: null,
+    },
+    {
+      id: 12,
+      nombre: "Punto de relleno - Ciudad Obregón",
+      descripcion: "Ubicación de ejemplo en el centro-sur del estado.",
+      categoria: "material",
+      lat: 27.483,
+      lng: -109.930,
+      imagen: null,
+    },
+    {
+      id: 14,
+      nombre: "Punto de relleno - San Carlos",
+      descripcion: "Ubicación de ejemplo en la bahía de San Carlos.",
+      categoria: "material",
+      lat: 27.981,
+      lng: -111.049,
+      imagen: null,
     },
   ];
 
@@ -102,14 +167,20 @@ function Home() {
         </div>
       </div>
 
-      <div className="map-wrapper">
-        <MapView patrimonios={patrimonios} />
+      <div className={`map-wrapper ${mapExpanded ? "map-expanded" : ""}`}>
+        <button
+          className="map-expand-btn"
+          onClick={() => setMapExpanded((prev) => !prev)}
+          type="button"
+        >
+        </button>
+        <MapView patrimonios={patrimonios} expanded={mapExpanded} />
       </div>
 
       <section className="popular-section">
         <h2 className="section-title">Lo más popular</h2>
         <div className="popular-row">
-          {patrimonios.map((item) => (
+          {patrimonios.slice(0, 6).map((item) => (
             <article key={item.id} className="popular-card">
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>

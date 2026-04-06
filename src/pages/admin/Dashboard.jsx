@@ -43,7 +43,7 @@ export default function AdminDashboard() {
       estado: "Pendiente",
       fechaRegistro: "07-07-2025",
       fechaActualizacion: "28-12-2025",
-      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
+      imagen: "https://tse4.mm.bing.net/th/id/OIP.YRv7bOEVflxxpRpZI6h6cwHaE8?rs=1&pid=ImgDetMain&o=7&rm=3",
       descripcion: "Las Fiestas del Pitic son una celebración popular que conmemora la fundación de Hermosillo, con actividades culturales, artísticas y gastronómicas que reflejan la identidad sonorense.",
     },
     {
