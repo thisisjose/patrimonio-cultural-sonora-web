@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap');
 
 :root{
-  --bg: #fbfdfb;
+  --bg: #e9f1ea; /* tono claro y equilibrado para mejor contraste del mapa */
   --card: #ffffff;
   --muted: #6b6b6b;
   --green-700: #0f3d29;
@@ -13,7 +13,7 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body,#root{height:100%}
-body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial; background:linear-gradient(180deg,var(--bg),#f3f6f2); color:#111;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial; background:linear-gradient(180deg,var(--bg),#e6f0e8); color:#111;-webkit-font-smoothing:antialiased}
 
 .app-container{min-height:100vh;display:flex;flex-direction:column}
 .content{flex:1;padding:2.25rem 1rem}

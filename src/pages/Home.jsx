@@ -45,7 +45,7 @@ function Home() {
       lat: 29.079,
       lng: -110.955,
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Museo_de_Sonora.jpg/640px-Museo_de_Sonora.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Museo_Costumbrista_de_Sonora03.JPG/640px-Museo_Costumbrista_de_Sonora03.JPG",
     },
     {
       id: 5,
@@ -55,7 +55,7 @@ function Home() {
       lat: 29.070,
       lng: -110.950,
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Danza_del_venado.jpg/640px-Danza_del_venado.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Danza_del_venado-02.jpg/640px-Danza_del_venado-02.jpg",
     },
     {
       id: 6,
@@ -65,7 +65,7 @@ function Home() {
       lat: 29.082,
       lng: -110.965,
       imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Adobe_houses.jpg/640px-Adobe_houses.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Im%C3%A1genes_de_Catamarca_2023_06.jpg/640px-Im%C3%A1genes_de_Catamarca_2023_06.jpg",
     },
   ];
 
