@@ -1,51 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
 
 function Detail() {
   const { id } = useParams();
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const [patrimonio, setPatrimonio] = useState();
 
-  // Datos simulados (luego vendrán desde la API)
-  const patrimonios = [
-    {
-      id: "1",
-      nombre: "Catedral de Hermosillo",
-      descripcion:
-        "La Catedral Metropolitana de Hermosillo, oficialmente conocida como Catedral de la Asunción, es uno de los principales monumentos históricos y religiosos del estado de Sonora. Construida en el siglo XVII, esta majestuosa estructura religiosa se destaca por su arquitectura colonial con elementos neoclásicos. La fachada presenta un hermoso trabajo en cantera rosa, mientras que su interior alberga valiosas obras de arte sacro. Ubicada en el corazón del centro histórico de Hermosillo, la Catedral es un lugar de gran importancia espiritual y cultural que atrae tanto a devotos como a turistas interesados en la historia arquitectónica y religiosa de la región.",
-      imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG/1280px-Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG?_=20120911015059",
-      categoria: "material",
-      lat: 29.0729,
-      lng: -110.9559,
-    },
-    {
-      id: "2",
-      nombre: "Cerro de la Campana",
-      descripcion:
-        "El Cerro de la Campana es un mirador natural emblemático que ofrece una vista panorámica de la ciudad de Hermosillo. Esta elevación geográfica se ha convertido en uno de los símbolos más reconocibles de la capital sonorense. El sitio es popular entre turistas y residentes locales que buscan disfrutar de vistas espectaculares especialmente al atardecer, cuando la ciudad se tiñe con tonos dorados y anaranjados. El acceso al mirador es relativamente fácil y seguro, con áreas habilitadas para que los visitantes puedan contemplar el paisaje urbano desde diversas perspectivas. Además de su valor turístico, el Cerro de la Campana tiene importance histórica y representa un punto de referencia geográfica y cultural para los hermosillenses.",
-      imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Cerro_de_la_Campana_HMO_2.JPG/640px-Cerro_de_la_Campana_HMO_2.JPG",
-      categoria: "material",
-      lat: 29.0817,
-      lng: -110.9614,
-    },
-    {
-      id: "3",
-      nombre: "Fiestas del Pitic",
-      descripcion:
-        "Las Fiestas del Pitic son un festival cultural anual que celebra la fundación de Hermosillo con una serie de eventos artísticos, musicales y culturales. Pitic fue el nombre prehispánico de Hermosillo, y estas festividades honran la rica herencia cultural y las tradiciones de la región. Durante estos días, la ciudad se llena de vida con conciertos, exposiciones de arte, actividades para la familia, danzas tradicionales y gastronomía típica de Sonora. El festival es una oportunidad para que residentes y visitantes compartan un espíritu de celebración y reconozcan la importancia histórica del territorio. Las Fiestas del Pitic representan un puente entre el pasado prehispánico y la modernidad, mostrando la identidad cultural vibrante de Hermosillo.",
-      imagen:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Fiestas_del_Pitic.jpg/640px-Fiestas_del_Pitic.jpg",
-      categoria: "inmaterial",
-      lat: 29.075,
-      lng: -110.96,
-    },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
 
-  const patrimonio = patrimonios.find((p) => p.id === id);
+    fetch("http://localhost:3000/api/patrimonios", {
+      signal: controller.signal,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
 
-  if (!patrimonio) {
+        const found = data
+          .map((item) => ({
+            ...item,
+            lat: item.latitud,
+            lng: item.longitud,
+            imagen: item.imagen_url ?? item.imagen,
+          }))
+          .find((item) => String(item.id) === id);
+
+        setPatrimonio(found ?? null);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error("Error fetching patrimonio:", error);
+        }
+      });
+
+    return () => controller.abort();
+  }, [id]);
+
+  if (patrimonio === undefined) {
+    return null;
+  }
+
+  if (patrimonio === null) {
     return <h2 className="heading-2">Patrimonio no encontrado</h2>;
   }
 

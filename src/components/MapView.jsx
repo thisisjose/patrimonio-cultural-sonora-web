@@ -89,7 +89,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7 }) {
   };
 
   const getCircleColor = (categoria) => {
-    switch (categoria) {
+    switch (categoria?.toLowerCase()) {
       case "material":
         return "#e74c3c";
       case "inmaterial":
