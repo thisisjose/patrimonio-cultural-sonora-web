@@ -3,38 +3,66 @@ import MapView from "../components/MapView";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
+import { getPatrimonios, getMunicipios } from "../services/patrimonioService";
 
 function Home() {
   const [mapExpanded, setMapExpanded] = useState(false);
   const [patrimonios, setPatrimonios] = useState([]);
+  const [municipios, setMunicipios] = useState([]);
+  const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
+  const [todosPatrimonios, setTodosPatrimonios] = useState([]);
 
+  const API_BASE = "http://localhost:3000";
+
+  // Cargar municipios y todos los patrimonios al montar el componente
   useEffect(() => {
-    const controller = new AbortController();
+    const cargarDatos = async () => {
+      try {
+        const [municipiosData, patrimoniosData] = await Promise.all([
+          getMunicipios(),
+          getPatrimonios()
+        ]);
 
-    fetch("http://localhost:3000/api/patrimonios", {
-      signal: controller.signal,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (!Array.isArray(data)) return;
+        if (Array.isArray(municipiosData)) {
+          setMunicipios(municipiosData);
+        }
 
-        setPatrimonios(
-          data.map((item) => ({
+        if (Array.isArray(patrimoniosData)) {
+          // Procesar patrimonios igual que en Dashboard
+          const procesados = patrimoniosData.map((item) => ({
             ...item,
             lat: item.latitud,
             lng: item.longitud,
-            imagen: item.imagen_url ?? item.imagen,
-          }))
-        );
-      })
-      .catch((error) => {
-        if (error.name !== "AbortError") {
-          console.error("Error fetching patrimonios:", error);
+            imagen: item.imagen_url
+              ? item.imagen_url.startsWith("http")
+                ? item.imagen_url
+                : `${API_BASE}${item.imagen_url}`
+              : "https://placehold.co/600x400?text=Sin+imagen",
+          }));
+          setTodosPatrimonios(procesados);
         }
-      });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
 
-    return () => controller.abort();
+    cargarDatos();
   }, []);
+
+  // Filtrar patrimonios cuando se selecciona un municipio
+  useEffect(() => {
+    if (!municipioSeleccionado) {
+      setPatrimonios([]);
+      return;
+    }
+
+    // Convertir a string para comparación segura
+    const filtered = todosPatrimonios.filter(
+      (item) => String(item.municipioId) === String(municipioSeleccionado)
+    );
+
+    setPatrimonios(filtered);
+  }, [municipioSeleccionado, todosPatrimonios]);
 
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
@@ -72,6 +100,27 @@ function Home() {
         </div>
       </div>
 
+      <div className="municipio-selector-wrapper">
+        <div className="municipio-selector-content">
+          <label htmlFor="municipio-select" className="municipio-label">
+            Filtrar patrimonios por municipio
+          </label>
+          <select
+            id="municipio-select"
+            value={municipioSeleccionado}
+            onChange={(e) => setMunicipioSeleccionado(e.target.value)}
+            className="municipio-select-main"
+          >
+            <option value="">Selecciona un municipio</option>
+            {municipios.map((municipio) => (
+              <option key={municipio.id} value={municipio.id}>
+                {municipio.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className={`map-wrapper ${mapExpanded ? "map-expanded" : ""}`}>
         <button
           className="map-expand-btn"
@@ -85,14 +134,20 @@ function Home() {
       <section className="popular-section">
         <h2 className="section-title">Lo más popular</h2>
         <div className="popular-row">
-          {patrimonios.slice(0, 6).map((item) => (
+          {todosPatrimonios.slice(0, 6).map((item) => (
             <article key={item.id} className="popular-card">
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>
                 <p className="popular-meta">{item.descripcion}</p>
               </div>
               <div className="popular-thumb">
-                <img src={item.imagen} alt={item.nombre} />
+                <img 
+                  src={item.imagen} 
+                  alt={item.nombre}
+                  onError={(e) => {
+                    e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
+                  }}
+                />
                 <span className={`category-badge popular-badge ${showCategoryClass(item.categoria)}`}>{item.categoria}</span>
               </div>
             </article>

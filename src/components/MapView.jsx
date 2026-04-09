@@ -48,6 +48,9 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText }) 
         img.src = item.imagen;
         img.alt = item.nombre;
         img.className = "popup-thumb";
+        img.onerror = () => {
+          img.style.display = "none";
+        };
         popupContent.appendChild(img);
       }
 

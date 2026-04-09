@@ -81,7 +81,7 @@ header a{text-decoration:none}
 /* Popup content (Leaflet) */
 .patrimonio-popup .popup-thumb{width:100%;height:auto;border-radius:10px;margin-bottom:0.6rem;display:block}
 .patrimonio-popup .popup-desc{margin:0.45rem 0 0.75rem;color:var(--muted);font-size:0.95rem;line-height:1.4}
-.leaflet-popup-content-wrapper{max-width:260px}
+.leaflet-popup-content-wrapper{max-width:320px}
 
 /* Detail & content helpers */
 .page-inner{max-width:900px;margin:0 auto}
@@ -226,6 +226,66 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   .contacto-phone{padding:1rem}
   .lead{font-size:1rem}
   .page-inner{padding:0}
+}
+
+/* Municipio selector wrapper and select */
+.municipio-selector-wrapper{
+  max-width:900px;
+  margin:0 auto 2rem;
+  padding:0 1rem;
+}
+
+.municipio-selector-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.municipio-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--green-700);
+  margin-bottom: 0.25rem;
+}
+
+.municipio-select-main{
+  width:100%;
+  max-width:380px;
+  padding:0.9rem 1.2rem;
+  border-radius:10px;
+  border:2px solid var(--green-500);
+  background:var(--card);
+  color:#111;
+  font-weight:600;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+  font-size:0.95rem;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(15,61,41,0.12);
+  transition:all .2s ease;
+  appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f3d29' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat:no-repeat;
+  background-position:right 0.8rem center;
+  background-size:1.2em;
+  padding-right:2.8rem;
+}
+
+.municipio-select-main:hover{
+  border-color:var(--green-700);
+  box-shadow:0 8px 24px rgba(15,61,41,0.18);
+}
+
+.municipio-select-main:focus{
+  outline:none;
+  border-color:var(--green-700);
+  box-shadow:0 8px 24px rgba(15,61,41,0.25);
+}
+
+.municipio-select-main option{
+  padding:0.75rem;
+  color:#111;
+  background:#fff;
 }
 
 .muted{color:var(--muted)}

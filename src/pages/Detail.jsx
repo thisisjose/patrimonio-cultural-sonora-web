@@ -1,40 +1,42 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
+import { getPatrimonios } from "../services/patrimonioService";
 
 function Detail() {
   const { id } = useParams();
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [patrimonio, setPatrimonio] = useState();
 
+  const API_BASE = "http://localhost:3000";
+
   useEffect(() => {
-    const controller = new AbortController();
+    const cargarPatrimonio = async () => {
+      try {
+        const patrimoniosData = await getPatrimonios();
+        if (Array.isArray(patrimoniosData)) {
+          const found = patrimoniosData
+            .map((item) => ({
+              ...item,
+              lat: item.latitud,
+              lng: item.longitud,
+              imagen: item.imagen_url
+                ? item.imagen_url.startsWith("http")
+                  ? item.imagen_url
+                  : `${API_BASE}${item.imagen_url}`
+                : "https://placehold.co/600x400?text=Sin+imagen",
+            }))
+            .find((item) => String(item.id) === id);
 
-    fetch("http://localhost:3000/api/patrimonios", {
-      signal: controller.signal,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (!Array.isArray(data)) return;
-
-        const found = data
-          .map((item) => ({
-            ...item,
-            lat: item.latitud,
-            lng: item.longitud,
-            imagen: item.imagen_url ?? item.imagen,
-          }))
-          .find((item) => String(item.id) === id);
-
-        setPatrimonio(found ?? null);
-      })
-      .catch((error) => {
-        if (error.name !== "AbortError") {
-          console.error("Error fetching patrimonio:", error);
+          setPatrimonio(found ?? null);
         }
-      });
+      } catch (error) {
+        console.error("Error fetching patrimonio:", error);
+        setPatrimonio(null);
+      }
+    };
 
-    return () => controller.abort();
+    cargarPatrimonio();
   }, [id]);
 
   if (patrimonio === undefined) {
@@ -67,6 +69,9 @@ function Detail() {
               alt={patrimonio.nombre}
               className="detail-image"
               onClick={() => setIsImageOpen(true)}
+              onError={(e) => {
+                e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
+              }}
             />
             <button
               className="image-zoom"
