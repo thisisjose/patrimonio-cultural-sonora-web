@@ -1,269 +1,429 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  getPatrimonios,
+  createPatrimonio,
+  updatePatrimonio,
+  deletePatrimonio,
+  getMunicipios,
+} from "../../services/patrimonioService";
+
+// ----- Importaciones para el mapa -----
+import { MapContainer, TileLayer, useMapEvents, Marker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix para los iconos de Leaflet en Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+// Componente selector de mapa dentro del formulario
+// Componente selector de mapa dentro del formulario
+function MapPicker({ latitud, longitud, onLocationSelect }) {
+  // Inicializamos el estado con las props (o con coordenadas por defecto)
+  const [position, setPosition] = useState(() => {
+    if (latitud && longitud) {
+      return { lat: parseFloat(latitud), lng: parseFloat(longitud) };
+    }
+    return { lat: 29.0729, lng: -110.9559 };
+  });
+
+  const handleClick = (e) => {
+    const newPos = { lat: e.latlng.lat, lng: e.latlng.lng };
+    setPosition(newPos);
+    onLocationSelect(newPos);
+  };
+
+  return (
+    <MapContainer
+      center={[position.lat, position.lng]}
+      zoom={13}
+      style={{ height: "300px", width: "100%", borderRadius: "var(--radius-sm)", zIndex: 0 }}
+    >
+      <TileLayer
+        attribution='&copy; OpenStreetMap contributors, &copy; Carto'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+      />
+      <MapClickHandler onClick={handleClick} />
+      <Marker position={[position.lat, position.lng]} />
+    </MapContainer>
+  );
+}
+
+// Componente para capturar clic en el mapa
+function MapClickHandler({ onClick }) {
+  useMapEvents({
+    click(e) {
+      onClick(e);
+    },
+  });
+  return null;
+}
 
 export default function AdminDashboard() {
-  const [patrimonios, setPatrimonios] = useState([
-    {
-      id: 1158,
-      titulo: "Danza del Venado",
-      ubicacion: "Hermosillo",
-      categoria: "Inmaterial",
-      estado: "Pendiente",
-      fechaRegistro: "02-03-2025",
-      fechaActualizacion: "04-01-2026",
-      imagen: "https://www.inah.gob.mx/images/fotodeldia/20230316_fotodia_DanzaVenado.jpg",
-      descripcion: "La Danza del Venado es una expresión artística y espiritual de los pueblos Yaqui y Mayo de Sonora, que representa la cacería del venado como símbolo sagrado de vida y naturaleza.",
-    },
-    {
-      id: 1157,
-      titulo: "Catedral de Hermosillo",
-      ubicacion: "Hermosillo",
-      categoria: "Material",
-      estado: "Registrado",
-      fechaRegistro: "23-11-2025",
-      fechaActualizacion: "03-01-2026",
-      imagen: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG/1280px-Catedral_de_la_Asunci%C3%B3n_en_Hermosillo%2C_Sonora._M%C3%A9xico._02.JPG?_=20120911015059",
-      descripcion: "La Catedral de la Asunción de Hermosillo es un templo católico construido en el siglo XIX, considerado uno de los íconos arquitectónicos más representativos del estado de Sonora.",
-    },
-    {
-      id: 1156,
-      titulo: "Zona Arqueológica Cerro de Trincheras",
-      ubicacion: "Trincheras",
-      categoria: "Material",
-      estado: "Registrado",
-      fechaRegistro: "20-12-2024",
-      fechaActualizacion: "13-10-2026",
-      imagen: "https://lugares.inah.gob.mx/sites/default/files/zonas/3_Cerro_de_Trincheras%2C_Sonora_S.jpg",
-      descripcion: "Zona arqueológica prehispánica ubicada en el municipio de Trincheras, con evidencias de asentamientos de la cultura Trincheras que datan de entre el 800 y 1450 d.C.",
-    },
-    {
-      id: 1155,
-      titulo: "Fiestas del Pitic",
-      ubicacion: "Hermosillo",
-      categoria: "Inmaterial",
-      estado: "Pendiente",
-      fechaRegistro: "07-07-2025",
-      fechaActualizacion: "28-12-2025",
-      imagen: "https://tse4.mm.bing.net/th/id/OIP.YRv7bOEVflxxpRpZI6h6cwHaE8?rs=1&pid=ImgDetMain&o=7&rm=3",
-      descripcion: "Las Fiestas del Pitic son una celebración popular que conmemora la fundación de Hermosillo, con actividades culturales, artísticas y gastronómicas que reflejan la identidad sonorense.",
-    },
-    {
-      id: 1154,
-      titulo: "Museo de Sonora",
-      ubicacion: "Hermosillo",
-      categoria: "Material",
-      estado: "Registrado",
-      fechaRegistro: "17-05-2025",
-      fechaActualizacion: "29-11-2026",
-      imagen: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Antigua_Penitenciar%C3%ADa_del_Estado_de_Sonora%2C_Hermosillo_01.jpg",
-      descripcion: "El Museo de Sonora ocupa el edificio de la antigua Penitenciaría del Estado, declarado monumento histórico. Alberga colecciones permanentes sobre la historia natural y cultural de Sonora.",
-    },
-  ]);
+  const [patrimonios, setPatrimonios] = useState([]);
+  const [municipios, setMunicipios] = useState([]);
 
-  const [filtro, setFiltro] = useState({ municipio: "Todos", categoria: "Todas", estado: "Todos" });
+  const [filtro, setFiltro] = useState({
+    municipio: "Todos",
+    categoria: "Todas",
+    estado: "Todos",
+  });
+
   const [modalVer, setModalVer] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
   const [formEditar, setFormEditar] = useState({});
 
   const [modalNuevo, setModalNuevo] = useState(false);
   const [formNuevo, setFormNuevo] = useState({
-  titulo: "",
-  ubicacion: "Hermosillo",
-  categoria: "Material",
-  estado: "Pendiente",
-  imagen: "",
-  descripcion: "",
-  fechaRegistro: "",
-  fechaActualizacion: "",
-});
+    nombre: "",
+    municipioId: "",
+    categoria: "Material",
+    descripcion: "",
+    latitud: "",
+    longitud: "",
+    tagsInput: "",
+    imagenFile: null,
+  });
 
-  const generarId = () => {
-  let nuevoId;
-  do {
-    nuevoId = Math.floor(1000 + Math.random() * 9000);
-  } while (patrimonios.some((p) => p.id === nuevoId));
-  return nuevoId;
-};
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const onDelete = (id) => setPatrimonios(patrimonios.filter((p) => p.id !== id));
+  const API_BASE = "http://localhost:3000";
+
+  const municipioNombrePorId = useMemo(() => {
+    const map = new Map();
+    municipios.forEach((m) => {
+      map.set(String(m.id), m.nombre);
+    });
+    return map;
+  }, [municipios]);
+
+  // const mapPatrimonio = (item) => {
+  //   const municipioId = item.municipioId ?? item.municipio?.id ?? "";
+  //   const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
+
+  //   return {
+  //     id: item.id,
+  //     nombre: item.nombre ?? "",
+  //     categoria: item.categoria ?? "Material",
+  //     descripcion: item.descripcion ?? "",
+  //     latitud: item.latitud ?? "",
+  //     longitud: item.longitud ?? "",
+  //     imagen: item.imagen_url
+  //       ? item.imagen_url.startsWith("http")
+  //         ? item.imagen_url
+  //         : `${API_BASE}${item.imagen_url}`
+  //       : "https://placehold.co/600x400?text=Sin+imagen",
+  //     municipioId,
+  //     ubicacion: municipioNombre,
+  //     estado: "Registrado",
+  //     fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
+  //     fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
+  //     tags: item.tags || [],
+  //   };
+  // };
+
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const [respPatrimonios, respMunicipios] = await Promise.all([
+        getPatrimonios(),
+        getMunicipios(),
+      ]);
+      setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
+      const lista = Array.isArray(respPatrimonios) ? respPatrimonios : respPatrimonios?.data || [];
+      setPatrimonios(lista);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar los patrimonios.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
   const abrirVer = (item) => setModalVer(item);
   const cerrarVer = () => setModalVer(null);
 
   const abrirEditar = (item) => {
-    setFormEditar({ ...item });
+    setFormEditar({
+      id: item.id,
+      nombre: item.nombre,
+      municipioId: item.municipioId,
+      categoria: item.categoria,
+      descripcion: item.descripcion,
+      latitud: item.latitud,
+      longitud: item.longitud,
+      tagsInput: (item.tags || []).map(t => t.nombre || t).join(", "),
+      imagen: item.imagen,
+      imagenFile: null,
+    });
     setModalEditar(item);
   };
-  const cerrarEditar = () => { setModalEditar(null); setFormEditar({}); };
 
-  const guardarEdicion = () => {
-    setPatrimonios(patrimonios.map((p) => (p.id === formEditar.id ? { ...formEditar } : p)));
-    cerrarEditar();
+  const cerrarEditar = () => {
+    setModalEditar(null);
+    setFormEditar({});
   };
 
-  const handleImageUpload = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    setFormNuevo({
-      ...formNuevo,
-      imagen: reader.result,
-    });
+  const handleImageUploadNuevo = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setFormNuevo((prev) => ({ ...prev, imagenFile: file }));
   };
-  reader.readAsDataURL(file);
-};
 
-  const filtrados = patrimonios.filter(
+  const guardarNuevo = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      const formData = new FormData();
+      formData.append("nombre", formNuevo.nombre);
+      formData.append("categoria", formNuevo.categoria);
+      formData.append("descripcion", formNuevo.descripcion);
+      formData.append("latitud", formNuevo.latitud);
+      formData.append("longitud", formNuevo.longitud);
+      formData.append("municipioId", formNuevo.municipioId);
+      if (formNuevo.imagenFile) formData.append("imagen", formNuevo.imagenFile);
+      if (formNuevo.tagsInput.trim()) {
+        const tagsArray = formNuevo.tagsInput.split(",").map(t => t.trim()).filter(t => t);
+        tagsArray.forEach(tag => formData.append("tags[]", tag));
+      }
+      await createPatrimonio(formData);
+      setModalNuevo(false);
+      setFormNuevo({
+        nombre: "",
+        municipioId: "",
+        categoria: "Material",
+        descripcion: "",
+        latitud: "",
+        longitud: "",
+        tagsInput: "",
+        imagenFile: null,
+      });
+      await cargarDatos();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo crear el patrimonio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const guardarEdicion = async () => {
+    try {
+      setSaving(true);
+      setError("");
+      let isFormData = false;
+      let dataToSend;
+      if (formEditar.imagenFile) {
+        isFormData = true;
+        const fd = new FormData();
+        fd.append("nombre", formEditar.nombre);
+        fd.append("categoria", formEditar.categoria);
+        fd.append("descripcion", formEditar.descripcion);
+        fd.append("latitud", formEditar.latitud);
+        fd.append("longitud", formEditar.longitud);
+        fd.append("municipioId", formEditar.municipioId);
+        if (formEditar.tagsInput?.trim()) {
+          const tagsArray = formEditar.tagsInput.split(",").map(t => t.trim()).filter(t => t);
+          tagsArray.forEach(tag => fd.append("tags[]", tag));
+        }
+        fd.append("imagen", formEditar.imagenFile);
+        dataToSend = fd;
+      } else {
+        dataToSend = {
+          nombre: formEditar.nombre,
+          categoria: formEditar.categoria,
+          descripcion: formEditar.descripcion,
+          latitud: formEditar.latitud,
+          longitud: formEditar.longitud,
+          municipioId: formEditar.municipioId,
+        };
+        if (formEditar.tagsInput?.trim()) {
+          dataToSend.tags = formEditar.tagsInput.split(",").map(t => t.trim()).filter(t => t);
+        } else {
+          dataToSend.tags = [];
+        }
+      }
+      await updatePatrimonio(formEditar.id, dataToSend, isFormData);
+      cerrarEditar();
+      await cargarDatos();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo actualizar el patrimonio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUploadEditar = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setFormEditar(prev => ({ ...prev, imagenFile: file }));
+  };
+
+  const onDelete = async (id) => {
+    if (!window.confirm("¿Seguro que quieres eliminar este patrimonio?")) return;
+    try {
+      setSaving(true);
+      await deletePatrimonio(id);
+      await cargarDatos();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo eliminar el patrimonio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Manejadores para selección de ubicación desde el mapa
+  const handleMapSelectNuevo = (coords) => {
+    setFormNuevo(prev => ({
+      ...prev,
+      latitud: coords.lat.toString(),
+      longitud: coords.lng.toString(),
+    }));
+  };
+
+  const handleMapSelectEditar = (coords) => {
+    setFormEditar(prev => ({
+      ...prev,
+      latitud: coords.lat.toString(),
+      longitud: coords.lng.toString(),
+    }));
+  };
+
+  const patrimoniosUI = useMemo(() => {
+  const mapPatrimonio = (item) => {
+    const municipioId = item.municipioId ?? item.municipio?.id ?? "";
+    const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
+
+    return {
+      id: item.id,
+      nombre: item.nombre ?? "",
+      categoria: item.categoria ?? "Material",
+      descripcion: item.descripcion ?? "",
+      latitud: item.latitud ?? "",
+      longitud: item.longitud ?? "",
+      imagen: item.imagen_url
+        ? item.imagen_url.startsWith("http")
+          ? item.imagen_url
+          : `${API_BASE}${item.imagen_url}`
+        : "https://placehold.co/600x400?text=Sin+imagen",
+      municipioId,
+      ubicacion: municipioNombre,
+      estado: "Registrado",
+      fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
+      fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
+      tags: item.tags || [],
+    };
+  };
+  return patrimonios.map(mapPatrimonio);
+}, [patrimonios, municipioNombrePorId, API_BASE]);
+
+  const filtrados = patrimoniosUI.filter(
     (p) =>
-      (filtro.municipio === "Todos" || p.ubicacion === filtro.municipio) &&
+      (filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio)) &&
       (filtro.categoria === "Todas" || p.categoria === filtro.categoria) &&
       (filtro.estado === "Todos" || p.estado === filtro.estado)
   );
 
-  const pend = patrimonios.filter((p) => p.estado === "Pendiente").length;
-  const reg = patrimonios.filter((p) => p.estado === "Registrado").length;
-
-  const guardarNuevo = () => {
-  const nuevo = {
-    ...formNuevo,
-    id: generarId(),
-    fechaRegistro: new Date().toLocaleDateString(),
-    fechaActualizacion: new Date().toLocaleDateString(),
-  };
-
-  setPatrimonios([nuevo, ...patrimonios]);
-  setModalNuevo(false);
-
-  // reset
-  setFormNuevo({
-    titulo: "",
-    ubicacion: "Hermosillo",
-    categoria: "Material",
-    estado: "Pendiente",
-    imagen: "",
-    descripcion: "",
-    fechaRegistro: "",
-    fechaActualizacion: "",
-  });
-};
+  const registrados = patrimoniosUI.filter((p) => p.estado === "Registrado").length;
+  const pendientes = patrimoniosUI.filter((p) => p.estado === "Pendiente").length;
 
   return (
     <>
       <style>{STYLE}</style>
 
-      {/* MODAL NUEVO */}
-        {modalNuevo && (
-          <div className="overlay" onClick={() => setModalNuevo(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <div>
-                  <div className="modal-title">Nuevo Patrimonio</div>
-                </div>
-                <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
+      {/* MODAL NUEVO con mapa integrado */}
+      {modalNuevo && (
+        <div className="overlay" onClick={() => setModalNuevo(false)}>
+          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Nuevo Patrimonio</div>
+              <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Nombre</label>
+                <input className="form-input" value={formNuevo.nombre} onChange={e => setFormNuevo({...formNuevo, nombre: e.target.value})} />
               </div>
-
-              <div className="modal-body">
-                {formNuevo.imagen && (
-                  <img src={formNuevo.imagen} alt="" className="modal-img" />
-                )}
-
+              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Título</label>
-                  <input
-                    className="form-input"
-                    value={formNuevo.titulo}
-                    onChange={(e) => setFormNuevo({ ...formNuevo, titulo: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Municipio</label>
-                    <select
-                      className="form-input"
-                      value={formNuevo.ubicacion}
-                      onChange={(e) => setFormNuevo({ ...formNuevo, ubicacion: e.target.value })}
-                    >
-                      <option>Hermosillo</option>
-                      <option>Trincheras</option>
-                      <option>Obregón</option>
-                      <option>Guaymas</option>
-                      <option>Nogales</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Categoría</label>
-                    <select
-                      className="form-input"
-                      value={formNuevo.categoria}
-                      onChange={(e) => setFormNuevo({ ...formNuevo, categoria: e.target.value })}
-                    >
-                      <option>Material</option>
-                      <option>Inmaterial</option>
-                      <option>Biocultural</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Estado</label>
-                  <select
-                    className="form-input"
-                    value={formNuevo.estado}
-                    onChange={(e) => setFormNuevo({ ...formNuevo, estado: e.target.value })}
-                  >
-                    <option>Pendiente</option>
-                    <option>Registrado</option>
+                  <label className="form-label">Municipio</label>
+                  <select className="form-input" value={formNuevo.municipioId} onChange={e => setFormNuevo({...formNuevo, municipioId: e.target.value})}>
+                    <option value="">Selecciona</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                   </select>
                 </div>
-
                 <div className="form-group">
-                  <label className="form-label">Imagen</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="form-input"
-                    onChange={handleImageUpload}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Descripción</label>
-                  <textarea
-                    className="form-input form-textarea"
-                    value={formNuevo.descripcion}
-                    onChange={(e) => setFormNuevo({ ...formNuevo, descripcion: e.target.value })}
-                  />
+                  <label className="form-label">Categoría</label>
+                  <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({...formNuevo, categoria: e.target.value})}>
+                    <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button className="btn-primary" onClick={guardarNuevo}>
-                  Guardar
-                </button>
-                <button className="btn-secondary" onClick={() => setModalNuevo(false)}>
-                  Cancelar
-                </button>
+              {/* MAPA INTEGRADO */}
+              <div className="form-group">
+                <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+                <MapPicker
+                  latitud={formNuevo.latitud}
+                  longitud={formNuevo.longitud}
+                  onLocationSelect={handleMapSelectNuevo}
+                />
+                {formNuevo.latitud && formNuevo.longitud && (
+                  <div className="form-row" style={{ marginTop: "8px" }}>
+                    <div className="form-group">
+                      <label className="form-label">Latitud</label>
+                      <input className="form-input" value={formNuevo.latitud} readOnly />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Longitud</label>
+                      <input className="form-input" value={formNuevo.longitud} readOnly />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Imagen</label>
+                <input type="file" accept="image/*" className="form-input" onChange={handleImageUploadNuevo} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tags (separados por coma)</label>
+                <input className="form-input" value={formNuevo.tagsInput} onChange={e => setFormNuevo({...formNuevo, tagsInput: e.target.value})} placeholder="Ej: colonial, museo, histórico" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Descripción</label>
+                <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({...formNuevo, descripcion: e.target.value})} />
               </div>
             </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>
+              <button className="btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-      {/* MODAL VER */}
+      {/* MODAL VER (sin cambios) */}
       {modalVer && (
         <div className="overlay" onClick={cerrarVer}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div>
-                <div className="modal-title">{modalVer.titulo}</div>
-                <div className="modal-crumb">{modalVer.ubicacion}, Sonora · #{modalVer.id}</div>
-              </div>
+              <div className="modal-title">{modalVer.nombre}</div>
               <button className="modal-close" onClick={cerrarVer}>✕</button>
             </div>
             <div className="modal-body">
-              <img src={modalVer.imagen} alt={modalVer.titulo} className="modal-img" />
+              <img src={modalVer.imagen} alt={modalVer.nombre} className="modal-img" />
               <div className="modal-badges">
                 <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
                 <span className={`bst ${modalVer.estado.toLowerCase()}`}>
@@ -271,26 +431,13 @@ export default function AdminDashboard() {
                   {modalVer.estado}
                 </span>
               </div>
-              {modalVer.descripcion && (
-                <p className="modal-desc">{modalVer.descripcion}</p>
-              )}
+              {modalVer.descripcion && <p className="modal-desc">{modalVer.descripcion}</p>}
               <div className="modal-grid">
-                <div className="modal-field">
-                  <div className="mf-label">Municipio</div>
-                  <div className="mf-value">{modalVer.ubicacion}</div>
-                </div>
-                <div className="modal-field">
-                  <div className="mf-label">Categoría</div>
-                  <div className="mf-value">{modalVer.categoria}</div>
-                </div>
-                <div className="modal-field">
-                  <div className="mf-label">Fecha de Registro</div>
-                  <div className="mf-value mono">{modalVer.fechaRegistro}</div>
-                </div>
-                <div className="modal-field">
-                  <div className="mf-label">Última Actualización</div>
-                  <div className="mf-value mono">{modalVer.fechaActualizacion}</div>
-                </div>
+                <div className="modal-field"><div className="mf-label">Municipio</div><div className="mf-value">{modalVer.ubicacion}</div></div>
+                <div className="modal-field"><div className="mf-label">Latitud</div><div className="mf-value mono">{modalVer.latitud}</div></div>
+                <div className="modal-field"><div className="mf-label">Longitud</div><div className="mf-value mono">{modalVer.longitud}</div></div>
+                <div className="modal-field"><div className="mf-label">Registro</div><div className="mf-value mono">{modalVer.fechaRegistro}</div></div>
+                <div className="modal-field"><div className="mf-label">Actualización</div><div className="mf-value mono">{modalVer.fechaActualizacion}</div></div>
               </div>
             </div>
             <div className="modal-footer">
@@ -301,219 +448,139 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
+      {/* MODAL EDITAR con mapa integrado */}
       {modalEditar && (
         <div className="overlay" onClick={cerrarEditar}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div>
-                <div className="modal-title">Editar Patrimonio</div>
-                <div className="modal-crumb">#{formEditar.id} · {formEditar.ubicacion}</div>
-              </div>
+              <div className="modal-title">Editar Patrimonio</div>
               <button className="modal-close" onClick={cerrarEditar}>✕</button>
             </div>
             <div className="modal-body">
-              <img src={formEditar.imagen} alt={formEditar.titulo} className="modal-img" />
               <div className="form-group">
-                <label className="form-label">Título</label>
-                <input
-                  className="form-input"
-                  value={formEditar.titulo}
-                  onChange={(e) => setFormEditar({ ...formEditar, titulo: e.target.value })}
-                />
+                <label className="form-label">Nombre</label>
+                <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Municipio</label>
-                  <select
-                    className="form-input"
-                    value={formEditar.ubicacion}
-                    onChange={(e) => setFormEditar({ ...formEditar, ubicacion: e.target.value })}
-                  >
-                    <option>Hermosillo</option>
-                    <option>Trincheras</option>
-                    <option>Obregón</option>
-                    <option>Guaymas</option>
-                    <option>Nogales</option>
+                  <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
+                    <option value="">Selecciona</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Categoría</label>
-                  <select
-                    className="form-input"
-                    value={formEditar.categoria}
-                    onChange={(e) => setFormEditar({ ...formEditar, categoria: e.target.value })}
-                  >
-                    <option>Material</option>
-                    <option>Inmaterial</option>
-                    <option>Biocultural</option>
+                  <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
+                    <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
                   </select>
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Estado</label>
-                  <select
-                    className="form-input"
-                    value={formEditar.estado}
-                    onChange={(e) => setFormEditar({ ...formEditar, estado: e.target.value })}
-                  >
-                    <option>Pendiente</option>
-                    <option>Registrado</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Imagen</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="form-input"
-                    onChange={(e) => handleImageUpload(e)}
-                  />
-                </div>
+
+              {/* MAPA INTEGRADO */}
+              <div className="form-group">
+                <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+                <MapPicker
+                  key={`${formEditar.latitud}-${formEditar.longitud}`}  // 👈 clave única que cambia con las coordenadas
+                  latitud={formEditar.latitud}
+                  longitud={formEditar.longitud}
+                  onLocationSelect={handleMapSelectEditar}
+                />
+                {formEditar.latitud && formEditar.longitud && (
+                  <div className="form-row" style={{ marginTop: "8px" }}>
+                    <div className="form-group">
+                      <label className="form-label">Latitud</label>
+                      <input className="form-input" value={formEditar.latitud} readOnly />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Longitud</label>
+                      <input className="form-input" value={formEditar.longitud} readOnly />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Tags (separados por coma)</label>
+                <input className="form-input" value={formEditar.tagsInput || ""} onChange={e => setFormEditar({...formEditar, tagsInput: e.target.value})} placeholder="Ej: colonial, museo" />
               </div>
               <div className="form-group">
                 <label className="form-label">Descripción</label>
-                <textarea
-                  className="form-input form-textarea"
-                  value={formEditar.descripcion || ""}
-                  onChange={(e) => setFormEditar({ ...formEditar, descripcion: e.target.value })}
-                />
+                <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Imagen actual</label>
+                {formEditar.imagen && (
+                  <img src={formEditar.imagen} alt="actual" style={{ maxWidth: '100%', maxHeight: '150px', marginBottom: '8px', borderRadius: '8px' }} />
+                )}
+                <label className="form-label" style={{ marginTop: '8px' }}>Cambiar imagen</label>
+                <input type="file" accept="image/*" className="form-input" onChange={handleImageUploadEditar} />
+                {formEditar.imagenFile && <small>Archivo seleccionado: {formEditar.imagenFile.name}</small>}
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-primary" onClick={guardarEdicion}>Guardar cambios</button>
+              <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
               <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
 
-    {/* CONTENIDO PRINCIPAL */}
+      {/* PÁGINA PRINCIPAL (sin cambios) */}
       <div className="page">
         <div className="page-header">
-          <div>
-            <div className="page-title">Patrimonios</div>
-            <div className="page-crumb">Administración · Patrimonios Culturales</div>
-          </div>
+          <div className="page-title">Patrimonios</div>
+          <div className="page-crumb">Administración · Patrimonios Culturales</div>
         </div>
-
-        <button className="btn-primary" onClick={() => setModalNuevo(true)}>
-          + Nuevo Patrimonio
-        </button>
+        <button className="btn-primary" onClick={() => setModalNuevo(true)}>+ Nuevo Patrimonio</button>
+        {error && <div className="error-banner">{error}</div>}
 
         <div className="metrics">
-          <div className="m-card">
-            <div>
-              <div className="m-label">Pendientes</div>
-              <div className="m-value">{pend}</div>
-              <div className="m-sub">Requieren revisión</div>
-            </div>
-          </div>
-          <div className="m-card">
-            <div>
-              <div className="m-label">Registrados</div>
-              <div className="m-value">{reg}</div>
-              <div className="m-sub">Catalogados y activos</div>
-            </div>
-          </div>
-          <div className="m-card">
-            <div>
-              <div className="m-label">Total</div>
-              <div className="m-value">{patrimonios.length}</div>
-              <div className="m-sub">En el inventario</div>
-            </div>
-          </div>
+          <div className="m-card"><div><div className="m-label">Pendientes</div><div className="m-value">{pendientes}</div><div className="m-sub">Requieren revisión</div></div></div>
+          <div className="m-card"><div><div className="m-label">Registrados</div><div className="m-value">{registrados}</div><div className="m-sub">Catalogados y activos</div></div></div>
+          <div className="m-card"><div><div className="m-label">Total</div><div className="m-value">{patrimoniosUI.length}</div><div className="m-sub">En el inventario</div></div></div>
         </div>
 
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className="card">
           <div className="tbar">
             <div className="fpill">
-              &nbsp;
-              <select className="fsel" onChange={(e) => setFiltro({ ...filtro, municipio: e.target.value })}>
-                <option>Todos</option>
-                <option>Hermosillo</option>
-                <option>Trincheras</option>
+              <select className="fsel" value={filtro.municipio} onChange={e => setFiltro({...filtro, municipio: e.target.value})}>
+                <option value="Todos">Todos</option>
+                {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
               </select>
-              <span className="farrow">▾</span>
             </div>
             <div className="fpill">
-              &nbsp;
-              <select className="fsel" onChange={(e) => setFiltro({ ...filtro, categoria: e.target.value })}>
-                <option>Todas</option>
-                <option>Material</option>
-                <option>Inmaterial</option>
-                <option>Biocultural</option>
+              <select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}>
+                <option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Biocultural</option>
               </select>
-              <span className="farrow">▾</span>
             </div>
             <div className="fpill">
-              &nbsp;
-              <select className="fsel" onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })}>
-                <option>Todos</option>
-                <option>Pendiente</option>
-                <option>Registrado</option>
+              <select className="fsel" value={filtro.estado} onChange={e => setFiltro({...filtro, estado: e.target.value})}>
+                <option value="Todos">Todos</option><option>Pendiente</option><option>Registrado</option>
               </select>
-              <span className="farrow">▾</span>
             </div>
             <div className="spacer" />
             <span className="cnt">{filtrados.length} registros</span>
           </div>
-
           <div className="table-scroll">
             <table>
               <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Imagen</th>
-                  <th>Patrimonio</th>
-                  <th>Categoría</th>
-                  <th>Estado</th>
-                  <th>Registro</th>
-                  <th>Actualización</th>
-                  <th>Acciones</th>
-                </tr>
+                <tr><th>ID</th><th>Imagen</th><th>Patrimonio</th><th>Categoría</th><th>Estado</th><th>Registro</th><th>Actualización</th><th>Acciones</th></tr>
               </thead>
               <tbody>
-                {filtrados.length === 0 ? (
-                  <tr>
-                    <td colSpan="8">
-                      <div className="empty">
-                        <div className="empty-icon">🔍</div>
-                        Sin resultados para los filtros aplicados
-                      </div>
-                    </td>
+                {loading ? <tr><td colSpan="8"><div className="empty">Cargando...</div></td></tr> : filtrados.length === 0 ? <tr><td colSpan="8"><div className="empty">Sin resultados</div></td></tr> : filtrados.map(item => (
+                  <tr key={item.id}>
+                    <td><span className="tid">#{item.id}</span></td>
+                    <td><img src={item.imagen} alt={item.nombre} className="thumb" /></td>
+                    <td><div className="ttitle">{item.nombre}</div><div className="tloc">{item.ubicacion}, Sonora</div></td>
+                    <td><span className={`bcat ${item.categoria.toLowerCase()}`}>{item.categoria}</span></td>
+                    <td><span className={`bst ${item.estado.toLowerCase()}`}><span className={`dot ${item.estado === "Registrado" ? "green" : "amber"}`} />{item.estado}</span></td>
+                    <td><span className="tdate">{item.fechaRegistro}</span></td>
+                    <td><span className="tdate">{item.fechaActualizacion}</span></td>
+                    <td><div><button className="ab view" onClick={() => abrirVer(item)}>Ver</button><button className="ab edit" onClick={() => abrirEditar(item)}>Editar</button><button className="ab delete" onClick={() => onDelete(item.id)}>Eliminar</button></div></td>
                   </tr>
-                ) : (
-                  filtrados.map((item) => (
-                    <tr key={item.id}>
-                      <td><span className="tid">#{item.id}</span></td>
-                      <td><img src={item.imagen} alt={item.titulo} className="thumb" /></td>
-                      <td>
-                        <div className="ttitle">{item.titulo}</div>
-                        <div className="tloc">{item.ubicacion}, Sonora</div>
-                      </td>
-                      <td>
-                        <span className={`bcat ${item.categoria.toLowerCase()}`}>{item.categoria}</span>
-                      </td>
-                      <td>
-                        <span className={`bst ${item.estado.toLowerCase()}`}>
-                          <span className={`dot ${item.estado === "Registrado" ? "green" : "amber"}`} />
-                          {item.estado}
-                        </span>
-                      </td>
-                      <td><span className="tdate">{item.fechaRegistro}</span></td>
-                      <td><span className="tdate">{item.fechaActualizacion}</span></td>
-                      <td>
-                        <div>
-                          <button className="ab view" onClick={() => abrirVer(item)}>Ver</button>
-                          <button className="ab edit" onClick={() => abrirEditar(item)}>Editar</button>
-                          <button className="ab delete" onClick={() => onDelete(item.id)}>Eliminar</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
