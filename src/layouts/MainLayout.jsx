@@ -1,36 +1,6 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 import RSicono from "../Icons/RSicono.png";
-
-const linkStyle = {
-  color: "#fff",
-  textDecoration: "none",
-  fontSize: "1.05rem",
-  fontWeight: "600",
-  padding: "0.5rem 0",
-  borderBottom: "3px solid transparent",
-  transition: "all 0.3s ease",
-  cursor: "pointer"
-};
-
-function NavLinkItem({ to, children }) {
-  return (
-    <Link
-      to={to}
-      style={linkStyle}
-      onMouseEnter={(e) => {
-        e.target.style.borderBottomColor = "#ffd700";
-        e.target.style.color = "#ffd700";
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.borderBottomColor = "transparent";
-        e.target.style.color = "#fff";
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
@@ -48,9 +18,15 @@ function MainLayout() {
           </div>
 
           <nav className="nav-links" role="navigation" aria-label="Main">
-            <Link to="/">Mapa</Link>
-            <Link to="/acerca">Acerca</Link>
-            <Link to="/contacto">Contacto</Link>
+            <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end>
+              Mapa
+            </NavLink>
+            <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Acerca
+            </NavLink>
+            <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Contacto
+            </NavLink>
           </nav>
 
           <button
@@ -64,12 +40,18 @@ function MainLayout() {
         </div>
 
         {open && (
-          <div style={{ background: "rgba(0,0,0,0.04)" }}>
-            <div className="container" style={{ padding: "0.75rem 1rem" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <Link to="/" onClick={() => setOpen(false)}>Mapa</Link>
-                <Link to="/acerca" onClick={() => setOpen(false)}>Acerca</Link>
-                <Link to="/contacto" onClick={() => setOpen(false)}>Contacto</Link>
+          <div className="mobile-menu">
+            <div className="container mobile-menu-inner">
+              <div className="mobile-menu-nav">
+                <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={() => setOpen(false)}>
+                  Mapa
+                </NavLink>
+                <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                  Acerca
+                </NavLink>
+                <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                  Contacto
+                </NavLink>
               </div>
             </div>
           </div>
