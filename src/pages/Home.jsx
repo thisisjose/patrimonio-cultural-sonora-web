@@ -10,6 +10,7 @@ function Home() {
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [todosPatrimonios, setTodosPatrimonios] = useState([]);
 
   const API_BASE = "http://localhost:3000";
@@ -49,20 +50,20 @@ function Home() {
     cargarDatos();
   }, []);
 
-  // Filtrar patrimonios cuando se selecciona un municipio
+  // Filtrar patrimonios cuando se selecciona un municipio o categoría
   useEffect(() => {
-    if (!municipioSeleccionado) {
-      setPatrimonios([]);
-      return;
-    }
-
-    // Convertir a string para comparación segura
-    const filtered = todosPatrimonios.filter(
-      (item) => String(item.municipioId) === String(municipioSeleccionado)
-    );
+    const filtered = todosPatrimonios.filter((item) => {
+      const matchMunicipio = municipioSeleccionado
+        ? String(item.municipioId) === String(municipioSeleccionado)
+        : true;
+      const matchCategoria = categoriaSeleccionada
+        ? String(item.categoria).toLowerCase() === categoriaSeleccionada
+        : true;
+      return matchMunicipio && matchCategoria;
+    });
 
     setPatrimonios(filtered);
-  }, [municipioSeleccionado, todosPatrimonios]);
+  }, [categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
 
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
@@ -102,22 +103,41 @@ function Home() {
 
       <div className="municipio-selector-wrapper">
         <div className="municipio-selector-content">
-          <label htmlFor="municipio-select" className="municipio-label">
-            Filtrar patrimonios por municipio
-          </label>
-          <select
-            id="municipio-select"
-            value={municipioSeleccionado}
-            onChange={(e) => setMunicipioSeleccionado(e.target.value)}
-            className="municipio-select-main"
-          >
-            <option value="">Selecciona un municipio</option>
-            {municipios.map((municipio) => (
-              <option key={municipio.id} value={municipio.id}>
-                {municipio.nombre}
-              </option>
-            ))}
-          </select>
+          <div>
+            <div className="filter-header">
+              <span className="filter-label">Filtrar por municipio</span>
+            </div>
+            <select
+              id="municipio-select"
+              value={municipioSeleccionado}
+              onChange={(e) => setMunicipioSeleccionado(e.target.value)}
+              className="municipio-select-main"
+            >
+              <option value="">Todos los municipios</option>
+              {municipios.map((municipio) => (
+                <option key={municipio.id} value={municipio.id}>
+                  {municipio.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="filter-header">
+              <span className="filter-label">Filtrar por categoría</span>
+            </div>
+            <select
+              id="categoria-select"
+              value={categoriaSeleccionada}
+              onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+              className="municipio-select-main"
+            >
+              <option value="">Todas las categorías</option>
+              <option value="material">Material</option>
+              <option value="inmaterial">Inmaterial</option>
+              <option value="biocultural">Biocultural</option>
+            </select>
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
-import { getPatrimonios } from "../services/patrimonioService";
+import { getPatrimonioById } from "../services/patrimonioService";
 
 function Detail() {
   const { id } = useParams();
@@ -13,23 +13,23 @@ function Detail() {
   useEffect(() => {
     const cargarPatrimonio = async () => {
       try {
-        const patrimoniosData = await getPatrimonios();
-        if (Array.isArray(patrimoniosData)) {
-          const found = patrimoniosData
-            .map((item) => ({
-              ...item,
-              lat: item.latitud,
-              lng: item.longitud,
-              imagen: item.imagen_url
-                ? item.imagen_url.startsWith("http")
-                  ? item.imagen_url
-                  : `${API_BASE}${item.imagen_url}`
-                : "https://placehold.co/600x400?text=Sin+imagen",
-            }))
-            .find((item) => String(item.id) === id);
-
-          setPatrimonio(found ?? null);
+        const item = await getPatrimonioById(id);
+        if (!item) {
+          setPatrimonio(null);
+          return;
         }
+
+        setPatrimonio({
+          ...item,
+          lat: item.latitud,
+          lng: item.longitud,
+          imagen: item.imagen_url
+            ? item.imagen_url.startsWith("http")
+              ? item.imagen_url
+              : `${API_BASE}${item.imagen_url}`
+            : "https://placehold.co/600x400?text=Sin+imagen",
+          tags: item.tags || [],
+        });
       } catch (error) {
         console.error("Error fetching patrimonio:", error);
         setPatrimonio(null);
@@ -46,6 +46,17 @@ function Detail() {
   if (patrimonio === null) {
     return <h2 className="heading-2">Patrimonio no encontrado</h2>;
   }
+
+  const tags = Array.isArray(patrimonio.tags) ? patrimonio.tags : [];
+  const formatTag = (tag) => {
+    if (typeof tag === "string") return tag;
+    if (tag && typeof tag.nombre === "string") return tag.nombre;
+    return String(tag ?? "");
+  };
+
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${patrimonio.lat},${patrimonio.lng}`
+  )}`;
 
   return (
     <div className="page-inner detail-page">
@@ -89,14 +100,41 @@ function Detail() {
             <div className="detail-category-below">
               Categoría: <span className="category-badge">{patrimonio.categoria}</span>
             </div>
+
+            <div className="detail-tags-below">
+              {tags.length > 0 ? (
+                <>
+                  Tag{tags.length > 1 ? "s" : ""}: {tags.map((tag, index) => (
+                    <span key={index} className="tag-badge">
+                      {formatTag(tag)}
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <>Tag: <span className="tag-badge">Sin tag</span></>
+              )}
+            </div>
           </div>
         </section>
 
         <aside className="detail-location">
           <h2 className="section-title">Ubicación</h2>
           <div className="detail-map">
-            <MapView patrimonios={[patrimonio]} center={[patrimonio.lat, patrimonio.lng]} zoom={15} />
+            <MapView
+              patrimonios={[patrimonio]}
+              center={[patrimonio.lat, patrimonio.lng]}
+              zoom={15}
+              interactive={false}
+            />
           </div>
+          <a
+            className="detail-map-link"
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Abrir en Google Maps
+          </a>
         </aside>
       </div>
 

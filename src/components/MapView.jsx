@@ -19,14 +19,14 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText }) {
+function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, interactive }) {
   const map = useMap();
 
   useEffect(() => {
     const clusterGroup = L.markerClusterGroup({
       showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      spiderfyOnMaxZoom: true,
+      zoomToBoundsOnClick: interactive,
+      spiderfyOnMaxZoom: interactive,
       disableClusteringAtZoom: 13,
       maxClusterRadius: 45,
     });
@@ -38,38 +38,42 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText }) 
         fillColor: getCircleColor(item.categoria),
         fillOpacity: 0.95,
         weight: 2,
+        interactive,
       });
 
-      const popupContent = document.createElement("div");
-      popupContent.className = "patrimonio-popup";
+      if (interactive) {
+        const popupContent = document.createElement("div");
+        popupContent.className = "patrimonio-popup";
 
-      if (item.imagen) {
-        const img = document.createElement("img");
-        img.src = item.imagen;
-        img.alt = item.nombre;
-        img.className = "popup-thumb";
-        img.onerror = () => {
-          img.style.display = "none";
-        };
-        popupContent.appendChild(img);
+        if (item.imagen) {
+          const img = document.createElement("img");
+          img.src = item.imagen;
+          img.alt = item.nombre;
+          img.className = "popup-thumb";
+          img.onerror = () => {
+            img.style.display = "none";
+          };
+          popupContent.appendChild(img);
+        }
+
+        const title = document.createElement("strong");
+        title.textContent = item.nombre;
+        popupContent.appendChild(title);
+        
+        const desc = document.createElement("p");
+        desc.className = "popup-desc";
+        desc.textContent = truncateText(item.descripcion);
+        popupContent.appendChild(desc);
+
+        const button = document.createElement("button");
+        button.className = "popup-cta";
+        button.textContent = "Ver detalles";
+        button.onclick = () => navigate(`/patrimonio/${item.id}`);
+        popupContent.appendChild(button);
+
+        circle.bindPopup(popupContent);
       }
 
-      const title = document.createElement("strong");
-      title.textContent = item.nombre;
-      popupContent.appendChild(title);
-      
-      const desc = document.createElement("p");
-      desc.className = "popup-desc";
-      desc.textContent = truncateText(item.descripcion);
-      popupContent.appendChild(desc);
-
-      const button = document.createElement("button");
-      button.className = "popup-cta";
-      button.textContent = "Ver detalles";
-      button.onclick = () => navigate(`/patrimonio/${item.id}`);
-      popupContent.appendChild(button);
-
-      circle.bindPopup(popupContent);
       clusterGroup.addLayer(circle);
     });
 
@@ -78,12 +82,12 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText }) 
     return () => {
       map.removeLayer(clusterGroup);
     };
-  }, [map, patrimonios, navigate, getCircleColor, truncateText]);
+  }, [map, patrimonios, navigate, getCircleColor, truncateText, interactive]);
 
   return null;
 }
 
-function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7 }) {
+function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
   const navigate = useNavigate();
 
   const truncateText = (text = "", max = 90) => {
@@ -105,7 +109,17 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7 }) {
   };
 
   return (
-    <MapContainer center={center} zoom={zoom}>
+    <MapContainer
+      center={center}
+      zoom={zoom}
+      zoomControl={interactive}
+      scrollWheelZoom={interactive}
+      dragging={interactive}
+      doubleClickZoom={interactive}
+      touchZoom={interactive}
+      boxZoom={interactive}
+      keyboard={interactive}
+    >
       <TileLayer
         attribution='&copy; OpenStreetMap contributors, &copy; Carto'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
@@ -115,6 +129,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7 }) {
         navigate={navigate}
         getCircleColor={getCircleColor}
         truncateText={truncateText}
+        interactive={interactive}
       />
     </MapContainer>
   );
