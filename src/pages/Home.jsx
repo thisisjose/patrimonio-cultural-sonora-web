@@ -6,7 +6,6 @@ import infoIcon from "../Icons/info.png";
 import { getPatrimonios, getMunicipios } from "../services/patrimonioService";
 
 function Home() {
-  const [mapExpanded, setMapExpanded] = useState(false);
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
@@ -141,14 +140,8 @@ function Home() {
         </div>
       </div>
 
-      <div className={`map-wrapper ${mapExpanded ? "map-expanded" : ""}`}>
-        <button
-          className="map-expand-btn"
-          onClick={() => setMapExpanded((prev) => !prev)}
-          type="button"
-        >
-        </button>
-        <MapView patrimonios={patrimonios} expanded={mapExpanded} />
+      <div className="map-wrapper">
+        <MapView patrimonios={patrimonios} expanded={false} />
       </div>
 
       <section className="popular-section">

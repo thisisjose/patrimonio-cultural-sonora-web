@@ -59,6 +59,28 @@ header a{text-decoration:none}
 .map-wrapper{max-width:900px;height:540px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(12,45,28,0.09);position:relative;z-index:1}
 .leaflet-container{height:100%;width:100%;position:relative}
 
+/* Mover controles de zoom de Leaflet a la esquina inferior derecha */
+.leaflet-top.leaflet-left {
+  top: auto !important;
+  bottom: 2.5rem !important;
+  left: auto !important;
+  right: 1rem !important;
+}
+.leaflet-control-zoom {
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.95);
+  box-shadow:0 12px 24px rgba(0,0,0,0.14);
+}
+.leaflet-control-zoom a {
+  width:40px;
+  height:40px;
+  line-height:40px;
+  text-align:center;
+  font-size:1.1rem;
+  color:#0f3d29;
+}
+
 /* Map marker glow */
 .patrimonio-dot{
   filter:drop-shadow(0 0 9px rgba(0,0,0,0.24));
