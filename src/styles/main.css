@@ -81,6 +81,33 @@ header a{text-decoration:none}
   color:#0f3d29;
 }
 
+/* Botón de ubicación */
+.location-button-container {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+}
+.location-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f3d29;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.location-button:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 1);
+}
+
 /* Map marker glow */
 .patrimonio-dot{
   filter:drop-shadow(0 0 9px rgba(0,0,0,0.24));

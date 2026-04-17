@@ -4,7 +4,7 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import L from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Fix iconos default de Leaflet en Vite
@@ -87,6 +87,94 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
   return null;
 }
 
+function LocationButton() {
+  const map = useMap();
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationMarker, setLocationMarker] = useState(null);
+
+  const handleLocationClick = () => {
+    if (!navigator.geolocation) {
+      alert("La geolocalización no está soportada por este navegador.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const userLatLng = [latitude, longitude];
+
+        // Centrar el mapa en la ubicación del usuario
+        map.setView(userLatLng, 15);
+
+        // Remover marcador anterior si existe
+        if (locationMarker) {
+          map.removeLayer(locationMarker);
+        }
+
+        // Crear nuevo marcador/círculo azul para la ubicación del usuario
+        const userCircle = L.circle(userLatLng, {
+          color: '#007bff',
+          fillColor: '#007bff',
+          fillOpacity: 0.3,
+          radius: 50, // Radio de 50 metros
+          weight: 3
+        }).addTo(map);
+
+        // Agregar popup al círculo
+        userCircle.bindPopup("Tu ubicación actual").openPopup();
+
+        setLocationMarker(userCircle);
+        setUserLocation(userLatLng);
+      },
+      (error) => {
+        console.error("Error obteniendo ubicación:", error);
+        let errorMessage = "No se pudo obtener tu ubicación.";
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Permiso de ubicación denegado. Por favor, permite el acceso a tu ubicación.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Ubicación no disponible.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Tiempo de espera agotado para obtener la ubicación.";
+            break;
+        }
+        
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutos
+      }
+    );
+  };
+
+  // Limpiar marcador al desmontar
+  useEffect(() => {
+    return () => {
+      if (locationMarker) {
+        map.removeLayer(locationMarker);
+      }
+    };
+  }, [locationMarker, map]);
+
+  return (
+    <div className="location-button-container">
+      <button
+        className="location-button"
+        onClick={handleLocationClick}
+        title="Mostrar mi ubicación"
+        type="button"
+      >
+        📍
+      </button>
+    </div>
+  );
+}
+
 function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
   const navigate = useNavigate();
 
@@ -131,6 +219,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         truncateText={truncateText}
         interactive={interactive}
       />
+      {interactive && <LocationButton />}
     </MapContainer>
   );
 }
