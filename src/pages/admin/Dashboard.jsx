@@ -12,7 +12,6 @@ import { MapContainer, TileLayer, useMapEvents, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// Fix para los iconos de Leaflet en Vite
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -20,10 +19,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Componente selector de mapa dentro del formulario
-// Componente selector de mapa dentro del formulario
 function MapPicker({ latitud, longitud, onLocationSelect }) {
-  // Inicializamos el estado con las props (o con coordenadas por defecto)
   const [position, setPosition] = useState(() => {
     if (latitud && longitud) {
       return { lat: parseFloat(latitud), lng: parseFloat(longitud) };
@@ -53,13 +49,8 @@ function MapPicker({ latitud, longitud, onLocationSelect }) {
   );
 }
 
-// Componente para capturar clic en el mapa
 function MapClickHandler({ onClick }) {
-  useMapEvents({
-    click(e) {
-      onClick(e);
-    },
-  });
+  useMapEvents({ click(e) { onClick(e); } });
   return null;
 }
 
@@ -86,7 +77,8 @@ export default function AdminDashboard() {
     latitud: "",
     longitud: "",
     tagsInput: "",
-    imagenFile: null,
+    portadaFile: null,
+    imagenesFiles: [],        // ✅ múltiples archivos para galería
   });
 
   const [loading, setLoading] = useState(true);
@@ -97,36 +89,9 @@ export default function AdminDashboard() {
 
   const municipioNombrePorId = useMemo(() => {
     const map = new Map();
-    municipios.forEach((m) => {
-      map.set(String(m.id), m.nombre);
-    });
+    municipios.forEach((m) => map.set(String(m.id), m.nombre));
     return map;
   }, [municipios]);
-
-  // const mapPatrimonio = (item) => {
-  //   const municipioId = item.municipioId ?? item.municipio?.id ?? "";
-  //   const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
-
-  //   return {
-  //     id: item.id,
-  //     nombre: item.nombre ?? "",
-  //     categoria: item.categoria ?? "Material",
-  //     descripcion: item.descripcion ?? "",
-  //     latitud: item.latitud ?? "",
-  //     longitud: item.longitud ?? "",
-  //     imagen: item.imagen_url
-  //       ? item.imagen_url.startsWith("http")
-  //         ? item.imagen_url
-  //         : `${API_BASE}${item.imagen_url}`
-  //       : "https://placehold.co/600x400?text=Sin+imagen",
-  //     municipioId,
-  //     ubicacion: municipioNombre,
-  //     estado: "Registrado",
-  //     fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
-  //     fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
-  //     tags: item.tags || [],
-  //   };
-  // };
 
   const cargarDatos = async () => {
     try {
@@ -164,8 +129,10 @@ export default function AdminDashboard() {
       latitud: item.latitud,
       longitud: item.longitud,
       tagsInput: (item.tags || []).map(t => t.nombre || t).join(", "),
-      imagen: item.imagen,
-      imagenFile: null,
+      portadaFile: null,
+      imagenesFiles: [],                 // nuevas imágenes a agregar
+      galeriaActual: item.galeria || [], // imágenes existentes { id, url }
+      imagenesAEliminar: [],             // ids de imágenes a borrar
     });
     setModalEditar(item);
   };
@@ -175,9 +142,22 @@ export default function AdminDashboard() {
     setFormEditar({});
   };
 
-  const handleImageUploadNuevo = (e) => {
+  // Manejadores para creación
+  const handlePortadaUploadNuevo = (e) => {
     const file = e.target.files?.[0];
-    if (file) setFormNuevo((prev) => ({ ...prev, imagenFile: file }));
+    if (file) setFormNuevo(prev => ({ ...prev, portadaFile: file }));
+  };
+
+  const handleGaleriaUploadNuevo = (e) => {
+    const files = Array.from(e.target.files || []);
+    setFormNuevo(prev => ({ ...prev, imagenesFiles: [...prev.imagenesFiles, ...files] }));
+  };
+
+  const removeGaleriaFileNuevo = (index) => {
+    setFormNuevo(prev => ({
+      ...prev,
+      imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== index)
+    }));
   };
 
   const guardarNuevo = async () => {
@@ -191,7 +171,11 @@ export default function AdminDashboard() {
       formData.append("latitud", formNuevo.latitud);
       formData.append("longitud", formNuevo.longitud);
       formData.append("municipioId", formNuevo.municipioId);
-      if (formNuevo.imagenFile) formData.append("imagen", formNuevo.imagenFile);
+      if (formNuevo.portadaFile) formData.append("portada", formNuevo.portadaFile);
+      // Agregar cada imagen de galería
+      formNuevo.imagenesFiles.forEach(file => {
+        formData.append("imagenes", file);
+      });
       if (formNuevo.tagsInput.trim()) {
         const tagsArray = formNuevo.tagsInput.split(",").map(t => t.trim()).filter(t => t);
         tagsArray.forEach(tag => formData.append("tags[]", tag));
@@ -206,7 +190,8 @@ export default function AdminDashboard() {
         latitud: "",
         longitud: "",
         tagsInput: "",
-        imagenFile: null,
+        portadaFile: null,
+        imagenesFiles: [],
       });
       await cargarDatos();
     } catch (err) {
@@ -217,14 +202,36 @@ export default function AdminDashboard() {
     }
   };
 
+  // Manejadores para edición
+  const handlePortadaUploadEditar = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setFormEditar(prev => ({ ...prev, portadaFile: file }));
+  };
+
+  const handleGaleriaUploadEditar = (e) => {
+    const files = Array.from(e.target.files || []);
+    setFormEditar(prev => ({ ...prev, imagenesFiles: [...prev.imagenesFiles, ...files] }));
+  };
+
+  const toggleEliminarImagen = (id) => {
+    setFormEditar(prev => {
+      const esta = prev.imagenesAEliminar.includes(id);
+      return {
+        ...prev,
+        imagenesAEliminar: esta
+          ? prev.imagenesAEliminar.filter(i => i !== id)
+          : [...prev.imagenesAEliminar, id]
+      };
+    });
+  };
+
   const guardarEdicion = async () => {
     try {
       setSaving(true);
       setError("");
-      let isFormData = false;
       let dataToSend;
-      if (formEditar.imagenFile) {
-        isFormData = true;
+      // Si hay archivos nuevos o imágenes a eliminar, usar FormData
+      if (formEditar.portadaFile || formEditar.imagenesFiles.length > 0 || formEditar.imagenesAEliminar.length > 0) {
         const fd = new FormData();
         fd.append("nombre", formEditar.nombre);
         fd.append("categoria", formEditar.categoria);
@@ -236,9 +243,16 @@ export default function AdminDashboard() {
           const tagsArray = formEditar.tagsInput.split(",").map(t => t.trim()).filter(t => t);
           tagsArray.forEach(tag => fd.append("tags[]", tag));
         }
-        fd.append("imagen", formEditar.imagenFile);
+        if (formEditar.portadaFile) fd.append("portada", formEditar.portadaFile);
+        // Agregar nuevas imágenes de galería
+        formEditar.imagenesFiles.forEach(file => fd.append("imagenes", file));
+        // Enviar IDs a eliminar como string separado por comas (backend modificado lo parsea)
+        if (formEditar.imagenesAEliminar.length) {
+          fd.append("eliminarImagenesIds", formEditar.imagenesAEliminar.join(","));
+        }
         dataToSend = fd;
       } else {
+        // Envío como JSON
         dataToSend = {
           nombre: formEditar.nombre,
           categoria: formEditar.categoria,
@@ -246,14 +260,10 @@ export default function AdminDashboard() {
           latitud: formEditar.latitud,
           longitud: formEditar.longitud,
           municipioId: formEditar.municipioId,
+          tags: formEditar.tagsInput?.split(",").map(t => t.trim()).filter(t => t) || [],
         };
-        if (formEditar.tagsInput?.trim()) {
-          dataToSend.tags = formEditar.tagsInput.split(",").map(t => t.trim()).filter(t => t);
-        } else {
-          dataToSend.tags = [];
-        }
       }
-      await updatePatrimonio(formEditar.id, dataToSend, isFormData);
+      await updatePatrimonio(formEditar.id, dataToSend);
       cerrarEditar();
       await cargarDatos();
     } catch (err) {
@@ -262,11 +272,6 @@ export default function AdminDashboard() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleImageUploadEditar = (e) => {
-    const file = e.target.files?.[0];
-    if (file) setFormEditar(prev => ({ ...prev, imagenFile: file }));
   };
 
   const onDelete = async (id) => {
@@ -283,7 +288,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Manejadores para selección de ubicación desde el mapa
   const handleMapSelectNuevo = (coords) => {
     setFormNuevo(prev => ({
       ...prev,
@@ -301,32 +305,35 @@ export default function AdminDashboard() {
   };
 
   const patrimoniosUI = useMemo(() => {
-  const mapPatrimonio = (item) => {
-    const municipioId = item.municipioId ?? item.municipio?.id ?? "";
-    const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
-
-    return {
-      id: item.id,
-      nombre: item.nombre ?? "",
-      categoria: item.categoria ?? "Material",
-      descripcion: item.descripcion ?? "",
-      latitud: item.latitud ?? "",
-      longitud: item.longitud ?? "",
-      imagen: item.imagen_url
-        ? item.imagen_url.startsWith("http")
-          ? item.imagen_url
-          : `${API_BASE}${item.imagen_url}`
-        : "https://placehold.co/600x400?text=Sin+imagen",
-      municipioId,
-      ubicacion: municipioNombre,
-      estado: "Registrado",
-      fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
-      fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
-      tags: item.tags || [],
+    const mapPatrimonio = (item) => {
+      const municipioId = item.municipioId ?? item.municipio?.id ?? "";
+      const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
+      return {
+        id: item.id,
+        nombre: item.nombre ?? "",
+        categoria: item.categoria ?? "Material",
+        descripcion: item.descripcion ?? "",
+        latitud: item.latitud ?? "",
+        longitud: item.longitud ?? "",
+        imagen: item.imagen_url
+          ? item.imagen_url.startsWith("http")
+            ? item.imagen_url
+            : `${API_BASE}${item.imagen_url}`
+          : "https://placehold.co/600x400?text=Sin+imagen",
+        galeria: (item.galeria || []).map(g => ({
+          id: g.id,
+          url: g.url.startsWith("http") ? g.url : `${API_BASE}${g.url}`
+        })),
+        municipioId,
+        ubicacion: municipioNombre,
+        estado: "Registrado",
+        fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
+        fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
+        tags: item.tags || [],
+      };
     };
-  };
-  return patrimonios.map(mapPatrimonio);
-}, [patrimonios, municipioNombrePorId, API_BASE]);
+    return patrimonios.map(mapPatrimonio);
+  }, [patrimonios, municipioNombrePorId, API_BASE]);
 
   const filtrados = patrimoniosUI.filter(
     (p) =>
@@ -342,7 +349,7 @@ export default function AdminDashboard() {
     <>
       <style>{STYLE}</style>
 
-      {/* MODAL NUEVO con mapa integrado */}
+      {/* MODAL NUEVO con múltiples imágenes */}
       {modalNuevo && (
         <div className="overlay" onClick={() => setModalNuevo(false)}>
           <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
@@ -371,32 +378,38 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* MAPA INTEGRADO */}
               <div className="form-group">
                 <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                <MapPicker
-                  latitud={formNuevo.latitud}
-                  longitud={formNuevo.longitud}
-                  onLocationSelect={handleMapSelectNuevo}
-                />
+                <MapPicker latitud={formNuevo.latitud} longitud={formNuevo.longitud} onLocationSelect={handleMapSelectNuevo} />
                 {formNuevo.latitud && formNuevo.longitud && (
                   <div className="form-row" style={{ marginTop: "8px" }}>
-                    <div className="form-group">
-                      <label className="form-label">Latitud</label>
-                      <input className="form-input" value={formNuevo.latitud} readOnly />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Longitud</label>
-                      <input className="form-input" value={formNuevo.longitud} readOnly />
-                    </div>
+                    <div className="form-group"><label>Latitud</label><input className="form-input" value={formNuevo.latitud} readOnly /></div>
+                    <div className="form-group"><label>Longitud</label><input className="form-input" value={formNuevo.longitud} readOnly /></div>
                   </div>
                 )}
               </div>
 
               <div className="form-group">
-                <label className="form-label">Imagen</label>
-                <input type="file" accept="image/*" className="form-input" onChange={handleImageUploadNuevo} />
+                <label className="form-label">Imagen de portada</label>
+                <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadNuevo} />
+                {formNuevo.portadaFile && <small>Archivo seleccionado: {formNuevo.portadaFile.name}</small>}
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Galería de imágenes (puedes seleccionar varias)</label>
+                <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadNuevo} />
+                {formNuevo.imagenesFiles.length > 0 && (
+                  <div style={{ marginTop: "8px" }}>
+                    {formNuevo.imagenesFiles.map((file, idx) => (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span>{file.name}</span>
+                        <button type="button" className="ab delete" style={{ padding: "2px 8px" }} onClick={() => removeGaleriaFileNuevo(idx)}>Eliminar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Tags (separados por coma)</label>
                 <input className="form-input" value={formNuevo.tagsInput} onChange={e => setFormNuevo({...formNuevo, tagsInput: e.target.value})} placeholder="Ej: colonial, museo, histórico" />
@@ -414,10 +427,10 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL VER (sin cambios) */}
+      {/* MODAL VER con galería */}
       {modalVer && (
         <div className="overlay" onClick={cerrarVer}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{modalVer.nombre}</div>
               <button className="modal-close" onClick={cerrarVer}>✕</button>
@@ -439,6 +452,16 @@ export default function AdminDashboard() {
                 <div className="modal-field"><div className="mf-label">Registro</div><div className="mf-value mono">{modalVer.fechaRegistro}</div></div>
                 <div className="modal-field"><div className="mf-label">Actualización</div><div className="mf-value mono">{modalVer.fechaActualizacion}</div></div>
               </div>
+              {modalVer.galeria && modalVer.galeria.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Galería de imágenes</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+                    {modalVer.galeria.map(img => (
+                      <img key={img.id} src={img.url} alt="galería" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--gray-200)" }} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
               <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
@@ -448,7 +471,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL EDITAR con mapa integrado */}
+      {/* MODAL EDITAR con manejo de galería */}
       {modalEditar && (
         <div className="overlay" onClick={cerrarEditar}>
           <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
@@ -477,25 +500,13 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* MAPA INTEGRADO */}
               <div className="form-group">
                 <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                <MapPicker
-                  key={`${formEditar.latitud}-${formEditar.longitud}`}  // 👈 clave única que cambia con las coordenadas
-                  latitud={formEditar.latitud}
-                  longitud={formEditar.longitud}
-                  onLocationSelect={handleMapSelectEditar}
-                />
+                <MapPicker key={`${formEditar.latitud}-${formEditar.longitud}`} latitud={formEditar.latitud} longitud={formEditar.longitud} onLocationSelect={handleMapSelectEditar} />
                 {formEditar.latitud && formEditar.longitud && (
                   <div className="form-row" style={{ marginTop: "8px" }}>
-                    <div className="form-group">
-                      <label className="form-label">Latitud</label>
-                      <input className="form-input" value={formEditar.latitud} readOnly />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Longitud</label>
-                      <input className="form-input" value={formEditar.longitud} readOnly />
-                    </div>
+                    <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
+                    <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
                   </div>
                 )}
               </div>
@@ -510,13 +521,45 @@ export default function AdminDashboard() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Imagen actual</label>
-                {formEditar.imagen && (
-                  <img src={formEditar.imagen} alt="actual" style={{ maxWidth: '100%', maxHeight: '150px', marginBottom: '8px', borderRadius: '8px' }} />
+                <label className="form-label">Imagen actual (portada)</label>
+                {modalEditar?.imagen && (
+                  <img src={modalEditar.imagen} alt="actual" style={{ maxWidth: "100%", maxHeight: "150px", marginBottom: "8px", borderRadius: "8px" }} />
                 )}
-                <label className="form-label" style={{ marginTop: '8px' }}>Cambiar imagen</label>
-                <input type="file" accept="image/*" className="form-input" onChange={handleImageUploadEditar} />
-                {formEditar.imagenFile && <small>Archivo seleccionado: {formEditar.imagenFile.name}</small>}
+                <label className="form-label" style={{ marginTop: "8px" }}>Cambiar portada</label>
+                <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
+                {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Galería actual</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
+                  {formEditar.galeriaActual?.map(img => (
+                    <div key={img.id} style={{ position: "relative", width: "80px" }}>
+                      <img src={img.url} alt="galería" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--gray-200)" }} />
+                      <label style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "4px", fontSize: "11px" }}>
+                        <input type="checkbox" checked={formEditar.imagenesAEliminar?.includes(img.id)} onChange={() => toggleEliminarImagen(img.id)} />
+                        Eliminar
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <label className="form-label">Agregar nuevas imágenes a la galería</label>
+                <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
+                {formEditar.imagenesFiles?.length > 0 && (
+                  <div style={{ marginTop: "8px" }}>
+                    {formEditar.imagenesFiles.map((file, idx) => (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span>{file.name}</span>
+                        <button type="button" className="ab delete" style={{ padding: "2px 8px" }} onClick={() => {
+                          setFormEditar(prev => ({
+                            ...prev,
+                            imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx)
+                          }));
+                        }}>Quitar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer">

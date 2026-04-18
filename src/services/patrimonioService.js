@@ -2,40 +2,66 @@ import axios from "axios";
 
 const API_URL = "http://localhost:3000/api";
 
-// 🔥 TOKEN MANUAL (pegas aquí el de Thunder Client)
-const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzU3Njc0NzQsImV4cCI6MTc3NTg1Mzg3NH0.j1pUAmGBdGwsGltF-Hs-u63AtfgxKZ27PNog5Mvmlq0";
+// ⚠️ Token manual solo para pruebas rápidas. Comenta esta línea y usa localStorage en producción.
+const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzY0NzUwOTMsImV4cCI6MTc3NjU2MTQ5M30.n8LpUubT63_ldq8mT08_T0Soz4yQZxUTGP4oIjpQ5wg";
 
 const api = axios.create({
   baseURL: API_URL,
 });
 
-// Interceptor para enviar el token
+// Interceptor para enviar el token (solo si existe)
 api.interceptors.request.use(
   (config) => {
     const token = MANUAL_TOKEN || localStorage.getItem("token");
-
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Obtener todos los patrimonios
-export const getPatrimonios = async () => {
-  const response = await api.get("/admin/patrimonios");
+// ========== ENDPOINTS PÚBLICOS (sin necesidad de token) ==========
+
+/**
+ * Obtener todos los patrimonios con filtros opcionales
+ * @param {Object} params - { categoria, tag }
+ */
+export const getPatrimonios = async (params = {}) => {
+  const response = await api.get("/patrimonios", { params });
   return response.data;
 };
 
-// Obtener un patrimonio por ID
+/**
+ * Obtener un patrimonio por ID
+ */
 export const getPatrimonioById = async (id) => {
-  const response = await api.get(`/admin/patrimonios/${id}`);
+  const response = await api.get(`/patrimonios/${id}`);
   return response.data;
 };
 
-// Crear patrimonio
+/**
+ * Obtener todos los municipios
+ */
+export const getMunicipios = async () => {
+  const response = await api.get("/municipios");
+  return response.data;
+};
+
+/**
+ * Obtener todos los tags (con contador de usos)
+ */
+export const getTags = async () => {
+  const response = await api.get("/tags");
+  return response.data;
+};
+
+// ========== ENDPOINTS DE ADMINISTRACIÓN (requieren token en POST, DELETE) ==========
+
+/**
+ * Crear un nuevo patrimonio (solo admin)
+ * @param {FormData} formData - Debe contener: nombre, descripcion, ubicacion, latitud, longitud, categoria, municipioId, tags (string con comas o array), portada (file), imagenes (files[])
+ */
 export const createPatrimonio = async (formData) => {
   const response = await api.post("/admin/patrimonios", formData, {
     headers: {
@@ -45,38 +71,24 @@ export const createPatrimonio = async (formData) => {
   return response.data;
 };
 
-// Actualizar patrimonio
-// export const updatePatrimonio = async (id, data) => {
-//   const response = await api.put(`/admin/patrimonios/${id}`, data);
-//   return response.data;
-// };
-export const updatePatrimonio = async (id, data, isFormData = false) => {
+/**
+ * Actualizar un patrimonio
+ * @param {number} id
+ * @param {FormData|Object} data - Si incluye archivos usar FormData, si no un objeto plano.
+ */
+export const updatePatrimonio = async (id, data) => {
+  const isFormData = data instanceof FormData;
   const config = {
-    method: 'put',
-    url: `/admin/patrimonios/${id}`,
-    data: data,
+    headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
   };
-  if (isFormData) {
-    config.headers = { 'Content-Type': 'multipart/form-data' };
-  }
-  const response = await api(config);
+  const response = await api.put(`/admin/patrimonios/${id}`, data, config);
   return response.data;
 };
 
-// Eliminar patrimonio
+/**
+ * Eliminar un patrimonio (solo admin)
+ */
 export const deletePatrimonio = async (id) => {
   const response = await api.delete(`/admin/patrimonios/${id}`);
-  return response.data;
-};
-
-// Obtener municipios
-export const getMunicipios = async () => {
-  const response = await api.get("/municipios");
-  return response.data;
-};
-
-// Obtener tags
-export const getTags = async () => {
-  const response = await api.get("/tags");
   return response.data;
 };
