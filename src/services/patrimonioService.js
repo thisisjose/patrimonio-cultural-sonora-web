@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3000/api";
 
 // ⚠️ Token manual solo para pruebas rápidas. Comenta esta línea y usa localStorage en producción.
-const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzY0NzUwOTMsImV4cCI6MTc3NjU2MTQ5M30.n8LpUubT63_ldq8mT08_T0Soz4yQZxUTGP4oIjpQ5wg";
+const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzY2Mjg3MzgsImV4cCI6MTc3NjcxNTEzOH0.-f4Ck4niQHsFgkFQ8qYT_ZTNCB0O-jDCsKrv-fzAM_Q";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -91,4 +91,31 @@ export const updatePatrimonio = async (id, data) => {
 export const deletePatrimonio = async (id) => {
   const response = await api.delete(`/admin/patrimonios/${id}`);
   return response.data;
+};
+
+/**
+ * Exportar patrimonios a Excel
+ */
+export const exportarPatrimoniosExcel = async () => {
+  const response = await api.get("/admin/exportar-excel", {
+    responseType: "blob", // Importante para manejar el archivo binario
+  });
+  return response.data;
+};
+
+export const descargarExcelPatrimonios = async () => {
+  try {
+    const blob = await exportarPatrimoniosExcel();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "patrimonios_sonora.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el Excel:", error);
+    throw error;
+  }
 };

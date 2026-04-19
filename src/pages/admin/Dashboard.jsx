@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   getPatrimonios,
   createPatrimonio,
   updatePatrimonio,
   deletePatrimonio,
   getMunicipios,
+  descargarExcelPatrimonios,
 } from "../../services/patrimonioService";
 
 // ----- Importaciones para el mapa -----
@@ -345,230 +346,506 @@ export default function AdminDashboard() {
   const registrados = patrimoniosUI.filter((p) => p.estado === "Registrado").length;
   const pendientes = patrimoniosUI.filter((p) => p.estado === "Pendiente").length;
 
+  // Lightbox state
+const [lightboxOpen, setLightboxOpen] = useState(false);
+const [lightboxImages, setLightboxImages] = useState([]);
+const [lightboxIndex, setLightboxIndex] = useState(0);
+
+const openLightbox = (images, startIndex) => {
+  setLightboxImages(images);
+  setLightboxIndex(startIndex);
+  setLightboxOpen(true);
+};
+
+const closeLightbox = useCallback(() => {
+  setLightboxOpen(false);
+  setLightboxImages([]);
+  setLightboxIndex(0);
+}, []);
+
+const nextImage = useCallback(() => {
+  setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+}, [lightboxImages.length]);
+
+const prevImage = useCallback(() => {
+  setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+}, [lightboxImages.length]);
+
+// Manejo de teclado
+useEffect(() => {
+  const handleKeyDown = (e) => {
+    if (!lightboxOpen) return;
+    if (e.key === 'ArrowRight') nextImage();
+    if (e.key === 'ArrowLeft') prevImage();
+    if (e.key === 'Escape') closeLightbox();
+  };
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [lightboxOpen, nextImage, prevImage, closeLightbox]);
+
   return (
     <>
       <style>{STYLE}</style>
 
-      {/* MODAL NUEVO con múltiples imágenes */}
-      {modalNuevo && (
-        <div className="overlay" onClick={() => setModalNuevo(false)}>
-          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">Nuevo Patrimonio</div>
-              <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Nombre</label>
-                <input className="form-input" value={formNuevo.nombre} onChange={e => setFormNuevo({...formNuevo, nombre: e.target.value})} />
+      {/* MODAL NUEVO - Diseño mejorado (dos columnas como editar) */}
+{modalNuevo && (
+  <div className="overlay" onClick={() => setModalNuevo(false)}>
+    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <div className="modal-title">Nuevo Patrimonio</div>
+        <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
+      </div>
+      <div className="modal-body two-columns">
+        {/* Columna izquierda: imágenes */}
+        <div className="edit-left">
+          <div className="form-group">
+            <label className="form-label">Imagen de portada</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="form-input"
+              onChange={handlePortadaUploadNuevo}
+            />
+            {formNuevo.portadaFile && (
+              <div style={{ marginTop: "8px" }}>
+                <img
+                  src={URL.createObjectURL(formNuevo.portadaFile)}
+                  alt="Vista previa portada"
+                  style={{ maxWidth: "100%", maxHeight: "160px", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-200)" }}
+                />
+                <small style={{ display: "block", marginTop: "4px" }}>{formNuevo.portadaFile.name}</small>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Municipio</label>
-                  <select className="form-input" value={formNuevo.municipioId} onChange={e => setFormNuevo({...formNuevo, municipioId: e.target.value})}>
-                    <option value="">Selecciona</option>
-                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Categoría</label>
-                  <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({...formNuevo, categoria: e.target.value})}>
-                    <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
-                  </select>
-                </div>
-              </div>
+            )}
+          </div>
 
-              <div className="form-group">
-                <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                <MapPicker latitud={formNuevo.latitud} longitud={formNuevo.longitud} onLocationSelect={handleMapSelectNuevo} />
-                {formNuevo.latitud && formNuevo.longitud && (
-                  <div className="form-row" style={{ marginTop: "8px" }}>
-                    <div className="form-group"><label>Latitud</label><input className="form-input" value={formNuevo.latitud} readOnly /></div>
-                    <div className="form-group"><label>Longitud</label><input className="form-input" value={formNuevo.longitud} readOnly /></div>
+          <div className="form-group">
+            <label className="form-label">Galería de imágenes (varias)</label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="form-input"
+              onChange={handleGaleriaUploadNuevo}
+            />
+            {formNuevo.imagenesFiles.length > 0 && (
+              <div className="gallery-grid" style={{ marginTop: "12px" }}>
+                {formNuevo.imagenesFiles.map((file, idx) => (
+                  <div key={idx} className="gallery-item">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`preview-${idx}`}
+                      style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                    />
+                    <button
+                      type="button"
+                      className="ab delete small"
+                      onClick={() => removeGaleriaFileNuevo(idx)}
+                      style={{ marginTop: "4px", width: "auto", padding: "2px 8px" }}
+                    >
+                      Quitar
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Imagen de portada</label>
-                <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadNuevo} />
-                {formNuevo.portadaFile && <small>Archivo seleccionado: {formNuevo.portadaFile.name}</small>}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Galería de imágenes (puedes seleccionar varias)</label>
-                <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadNuevo} />
-                {formNuevo.imagenesFiles.length > 0 && (
-                  <div style={{ marginTop: "8px" }}>
-                    {formNuevo.imagenesFiles.map((file, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <span>{file.name}</span>
-                        <button type="button" className="ab delete" style={{ padding: "2px 8px" }} onClick={() => removeGaleriaFileNuevo(idx)}>Eliminar</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Tags (separados por coma)</label>
-                <input className="form-input" value={formNuevo.tagsInput} onChange={e => setFormNuevo({...formNuevo, tagsInput: e.target.value})} placeholder="Ej: colonial, museo, histórico" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Descripción</label>
-                <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({...formNuevo, descripcion: e.target.value})} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>
-              <button className="btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
-            </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* MODAL VER con galería */}
-      {modalVer && (
-        <div className="overlay" onClick={cerrarVer}>
-          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">{modalVer.nombre}</div>
-              <button className="modal-close" onClick={cerrarVer}>✕</button>
+        {/* Columna derecha: campos y mapa */}
+        <div className="edit-right">
+          <div className="form-group">
+            <label className="form-label">Nombre</label>
+            <input
+              className="form-input"
+              value={formNuevo.nombre}
+              onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })}
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Municipio</label>
+              <select
+                className="form-input"
+                value={formNuevo.municipioId}
+                onChange={e => setFormNuevo({ ...formNuevo, municipioId: e.target.value })}
+              >
+                <option value="">Selecciona</option>
+                {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
             </div>
-            <div className="modal-body">
-              <img src={modalVer.imagen} alt={modalVer.nombre} className="modal-img" />
-              <div className="modal-badges">
-                <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
-                <span className={`bst ${modalVer.estado.toLowerCase()}`}>
-                  <span className={`dot ${modalVer.estado === "Registrado" ? "green" : "amber"}`} />
-                  {modalVer.estado}
-                </span>
-              </div>
-              {modalVer.descripcion && <p className="modal-desc">{modalVer.descripcion}</p>}
-              <div className="modal-grid">
-                <div className="modal-field"><div className="mf-label">Municipio</div><div className="mf-value">{modalVer.ubicacion}</div></div>
-                <div className="modal-field"><div className="mf-label">Latitud</div><div className="mf-value mono">{modalVer.latitud}</div></div>
-                <div className="modal-field"><div className="mf-label">Longitud</div><div className="mf-value mono">{modalVer.longitud}</div></div>
-                <div className="modal-field"><div className="mf-label">Registro</div><div className="mf-value mono">{modalVer.fechaRegistro}</div></div>
-                <div className="modal-field"><div className="mf-label">Actualización</div><div className="mf-value mono">{modalVer.fechaActualizacion}</div></div>
-              </div>
-              {modalVer.galeria && modalVer.galeria.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Categoría</label>
+              <select
+                className="form-input"
+                value={formNuevo.categoria}
+                onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}
+              >
+                <option>Material</option>
+                <option>Inmaterial</option>
+                <option>Biocultural</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Tags (separados por coma)</label>
+            <input
+              className="form-input"
+              value={formNuevo.tagsInput}
+              onChange={e => setFormNuevo({ ...formNuevo, tagsInput: e.target.value })}
+              placeholder="Ej: colonial, museo, histórico"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Descripción</label>
+            <textarea
+              className="form-input form-textarea"
+              value={formNuevo.descripcion}
+              onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+            <MapPicker
+              latitud={formNuevo.latitud}
+              longitud={formNuevo.longitud}
+              onLocationSelect={handleMapSelectNuevo}
+            />
+            {formNuevo.latitud && formNuevo.longitud && (
+              <div className="form-row" style={{ marginTop: "12px" }}>
                 <div className="form-group">
-                  <label className="form-label">Galería de imágenes</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
-                    {modalVer.galeria.map(img => (
-                      <img key={img.id} src={img.url} alt="galería" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--gray-200)" }} />
-                    ))}
-                  </div>
+                  <label>Latitud</label>
+                  <input className="form-input" value={formNuevo.latitud} readOnly />
                 </div>
+                <div className="form-group">
+                  <label>Longitud</label>
+                  <input className="form-input" value={formNuevo.longitud} readOnly />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>
+          {saving ? "Guardando..." : "Guardar"}
+        </button>
+        <button className="btn-secondary" onClick={() => setModalNuevo(false)}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* MODAL VER - con lightbox */}
+{modalVer && (
+  <div className="overlay" onClick={cerrarVer}>
+    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <div className="modal-title">{modalVer.nombre}</div>
+        <button className="modal-close" onClick={cerrarVer}>✕</button>
+      </div>
+      <div className="modal-body two-columns">
+        {/* Columna izquierda: imágenes */}
+        <div className="view-left">
+          <div className="view-main-image">
+            <img
+              src={modalVer.imagen}
+              alt={modalVer.nombre}
+              onClick={() => {
+                const allImages = [
+                  { url: modalVer.imagen, alt: modalVer.nombre },
+                  ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                ];
+                openLightbox(allImages, 0);
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+            <button
+              className="image-zoom-btn"
+              onClick={() => {
+                const allImages = [
+                  { url: modalVer.imagen, alt: modalVer.nombre },
+                  ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                ];
+                openLightbox(allImages, 0);
+              }}
+              aria-label="Ver galería"
+            >
+              ⤢
+            </button>
+          </div>
+          {modalVer.galeria && modalVer.galeria.length > 0 && (
+            <div className="view-gallery">
+              <label className="form-label">Galería de imágenes</label>
+              <div className="gallery-grid">
+                {modalVer.galeria.map((img, idx) => (
+                  <div key={img.id} className="gallery-item">
+                    <img
+                      src={img.url}
+                      alt={`galería ${idx}`}
+                      onClick={() => {
+                        const allImages = [
+                          { url: modalVer.imagen, alt: modalVer.nombre },
+                          ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                        ];
+                        openLightbox(allImages, idx + 1); // +1 porque la portada es la primera
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Columna derecha: información (sin cambios) */}
+        <div className="view-right">
+          <div className="view-badges">
+            <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
+            <span className={`bst ${modalVer.estado.toLowerCase()}`}>
+              <span className={`dot ${modalVer.estado === "Registrado" ? "green" : "amber"}`} />
+              {modalVer.estado}
+            </span>
+          </div>
+
+          {modalVer.descripcion && (
+            <div className="view-description">
+              <h3 className="section-title-small">Descripción</h3>
+              <p>{modalVer.descripcion}</p>
+            </div>
+          )}
+
+          <div className="view-tags">
+            <h3 className="section-title-small">Tags</h3>
+            <div className="tags-list">
+              {modalVer.tags && modalVer.tags.length > 0 ? (
+                modalVer.tags.map((tag, idx) => (
+                  <span key={idx} className="tag-badge">{typeof tag === 'object' ? tag.nombre : tag}</span>
+                ))
+              ) : (
+                <span className="tag-badge">Sin tags</span>
               )}
             </div>
-            <div className="modal-footer">
-              <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
-              <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
+          </div>
+
+          <div className="view-location">
+            <h3 className="section-title-small">Ubicación</h3>
+            <div className="location-coords">
+              <div><strong>Municipio:</strong> {modalVer.ubicacion}</div>
+              <div><strong>Latitud:</strong> <span className="mono">{modalVer.latitud}</span></div>
+              <div><strong>Longitud:</strong> <span className="mono">{modalVer.longitud}</span></div>
+            </div>
+            {modalVer.latitud && modalVer.longitud && (
+              <a
+                href={`https://www.google.com/maps?q=${modalVer.latitud},${modalVer.longitud}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="maps-link"
+              >
+                Abrir en Google Maps
+              </a>
+            )}
+          </div>
+
+          <div className="view-dates">
+            <div><strong>Fecha de registro:</strong> {modalVer.fechaRegistro}</div>
+            <div><strong>Última actualización:</strong> {modalVer.fechaActualizacion}</div>
+          </div>
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
+        <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* MODAL EDITAR - Nuevo diseño amplio y estructurado */}
+{/* MODAL EDITAR - con lightbox en las imágenes actuales */}
+{modalEditar && (
+  <div className="overlay" onClick={cerrarEditar}>
+    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <div className="modal-title">Editar Patrimonio</div>
+        <button className="modal-close" onClick={cerrarEditar}>✕</button>
+      </div>
+      <div className="modal-body two-columns">
+        {/* Columna izquierda: imágenes */}
+        <div className="edit-left">
+          {/* Portada actual con clic para lightbox */}
+          <div className="form-group">
+            <label className="form-label">Imagen de portada actual</label>
+            {modalEditar?.imagen && (
+              <div className="edit-portada-wrapper">
+                <img
+                  src={modalEditar.imagen}
+                  alt="portada actual"
+                  className="edit-portada-preview"
+                  onClick={() => {
+                    // Construir lista de imágenes actuales (sin las nuevas)
+                    const currentImages = [
+                      { url: modalEditar.imagen, alt: 'Portada' },
+                      ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
+                    ];
+                    openLightbox(currentImages, 0);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+                <button
+                  className="image-zoom-btn-small"
+                  onClick={() => {
+                    const currentImages = [
+                      { url: modalEditar.imagen, alt: 'Portada' },
+                      ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
+                    ];
+                    openLightbox(currentImages, 0);
+                  }}
+                >
+                  ⤢
+                </button>
+              </div>
+            )}
+            <label className="form-label" style={{ marginTop: "12px" }}>Cambiar portada</label>
+            <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
+            {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
+          </div>
+
+          {/* Galería actual con clic para lightbox */}
+          <div className="form-group">
+            <label className="form-label">Galería actual</label>
+            <div className="gallery-grid">
+              {formEditar.galeriaActual?.map((img, idx) => (
+                <div key={img.id} className="gallery-item">
+                  <img
+                    src={img.url}
+                    alt="galería"
+                    onClick={() => {
+                      const currentImages = [
+                        { url: modalEditar.imagen, alt: 'Portada' },
+                        ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
+                      ];
+                      openLightbox(currentImages, idx + 1);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label className="gallery-check">
+                    <input
+                      type="checkbox"
+                      checked={formEditar.imagenesAEliminar?.includes(img.id)}
+                      onChange={() => toggleEliminarImagen(img.id)}
+                    />
+                    Eliminar
+                  </label>
+                </div>
+              ))}
+            </div>
+            <label className="form-label" style={{ marginTop: "12px" }}>Agregar nuevas imágenes</label>
+            <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
+            {formEditar.imagenesFiles?.length > 0 && (
+              <div className="new-images-list">
+                {formEditar.imagenesFiles.map((file, idx) => (
+                  <div key={idx} className="new-image-item">
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      className="ab delete small"
+                      onClick={() => {
+                        setFormEditar(prev => ({
+                          ...prev,
+                          imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx)
+                        }));
+                      }}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Resto del formulario (nombre, descripción, categoría, tags) - sin cambios */}
+          <div className="form-group">
+            <label className="form-label">Nombre</label>
+            <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Descripción</label>
+            <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Categoría</label>
+              <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
+                <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tags (separados por coma)</label>
+              <input className="form-input" value={formEditar.tagsInput || ""} onChange={e => setFormEditar({...formEditar, tagsInput: e.target.value})} placeholder="Ej: colonial, museo" />
             </div>
           </div>
         </div>
-      )}
 
-      {/* MODAL EDITAR con manejo de galería */}
-      {modalEditar && (
-        <div className="overlay" onClick={cerrarEditar}>
-          <div className="modal" style={{ maxWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">Editar Patrimonio</div>
-              <button className="modal-close" onClick={cerrarEditar}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Nombre</label>
-                <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
+        {/* Columna derecha: mapa y municipio (sin cambios) */}
+        <div className="edit-right">
+          <div className="form-group">
+            <label className="form-label">Municipio</label>
+            <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
+              <option value="">Selecciona</option>
+              {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+            <MapPicker
+              key={`${formEditar.latitud}-${formEditar.longitud}`}
+              latitud={formEditar.latitud}
+              longitud={formEditar.longitud}
+              onLocationSelect={handleMapSelectEditar}
+            />
+            {formEditar.latitud && formEditar.longitud && (
+              <div className="form-row" style={{ marginTop: "12px" }}>
+                <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
+                <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Municipio</label>
-                  <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
-                    <option value="">Selecciona</option>
-                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Categoría</label>
-                  <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
-                    <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                <MapPicker key={`${formEditar.latitud}-${formEditar.longitud}`} latitud={formEditar.latitud} longitud={formEditar.longitud} onLocationSelect={handleMapSelectEditar} />
-                {formEditar.latitud && formEditar.longitud && (
-                  <div className="form-row" style={{ marginTop: "8px" }}>
-                    <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
-                    <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Tags (separados por coma)</label>
-                <input className="form-input" value={formEditar.tagsInput || ""} onChange={e => setFormEditar({...formEditar, tagsInput: e.target.value})} placeholder="Ej: colonial, museo" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Descripción</label>
-                <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Imagen actual (portada)</label>
-                {modalEditar?.imagen && (
-                  <img src={modalEditar.imagen} alt="actual" style={{ maxWidth: "100%", maxHeight: "150px", marginBottom: "8px", borderRadius: "8px" }} />
-                )}
-                <label className="form-label" style={{ marginTop: "8px" }}>Cambiar portada</label>
-                <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
-                {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Galería actual</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
-                  {formEditar.galeriaActual?.map(img => (
-                    <div key={img.id} style={{ position: "relative", width: "80px" }}>
-                      <img src={img.url} alt="galería" style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "6px", border: "1px solid var(--gray-200)" }} />
-                      <label style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "4px", fontSize: "11px" }}>
-                        <input type="checkbox" checked={formEditar.imagenesAEliminar?.includes(img.id)} onChange={() => toggleEliminarImagen(img.id)} />
-                        Eliminar
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <label className="form-label">Agregar nuevas imágenes a la galería</label>
-                <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
-                {formEditar.imagenesFiles?.length > 0 && (
-                  <div style={{ marginTop: "8px" }}>
-                    {formEditar.imagenesFiles.map((file, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <span>{file.name}</span>
-                        <button type="button" className="ab delete" style={{ padding: "2px 8px" }} onClick={() => {
-                          setFormEditar(prev => ({
-                            ...prev,
-                            imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx)
-                          }));
-                        }}>Quitar</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
-              <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
+      <div className="modal-footer">
+        <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
+        <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Lightbox / Galería modal */}
+{lightboxOpen && (
+  <div className="lightbox-overlay" onClick={closeLightbox}>
+    <div className="lightbox-container" onClick={(e) => e.stopPropagation()}>
+      <button className="lightbox-close" onClick={closeLightbox}>✕</button>
+      <button className="lightbox-prev" onClick={prevImage}>‹</button>
+      <img
+        className="lightbox-image"
+        src={lightboxImages[lightboxIndex]?.url}
+        alt={lightboxImages[lightboxIndex]?.alt || 'Imagen'}
+      />
+      <button className="lightbox-next" onClick={nextImage}>›</button>
+      <div className="lightbox-counter">
+        {lightboxIndex + 1} / {lightboxImages.length}
+      </div>
+    </div>
+  </div>
+)}
 
       {/* PÁGINA PRINCIPAL (sin cambios) */}
       <div className="page">
@@ -604,6 +881,22 @@ export default function AdminDashboard() {
               </select>
             </div>
             <div className="spacer" />
+            <button
+              className="fpill"
+              onClick={descargarExcelPatrimonios}
+              style={{
+                background: 'var(--gray-50)',
+                border: '1.5px solid var(--gray-200)',
+                borderRadius: '20px',
+                padding: '5px 10px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Exportar a Excel">
+              <img src="/xls.png" alt="Exportar Excel" style={{ width: '20px', height: '20px' }} />
+            </button>
             <span className="cnt">{filtrados.length} registros</span>
           </div>
           <div className="table-scroll">
@@ -830,4 +1123,325 @@ const STYLE = `
   }
   .form-input:focus { border-color: var(--green-500); background: white; }
   .form-textarea { min-height: 80px; resize: vertical; }
+
+  /* Modal más grande */
+.modal.modal-large {
+  max-width: 1100px;
+  width: 90vw;
+}
+
+/* Layout de dos columnas */
+.modal-body.two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Ajustes para la galería */
+.gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.gallery-item {
+  width: 100px;
+  text-align: center;
+}
+.gallery-item img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+}
+.gallery-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  margin-top: 4px;
+  justify-content: center;
+}
+
+.new-images-list {
+  margin-top: 8px;
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+.new-image-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.new-image-item:last-child { border-bottom: none; }
+.ab.delete.small {
+  padding: 2px 8px;
+  font-size: 11px;
+  width: auto;
+  height: auto;
+}
+
+.edit-portada-preview {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--gray-200);
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .modal-body.two-columns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .modal.modal-large {
+    width: 95vw;
+  }
+}
+
+/* Estilos para el modal de ver */
+.view-main-image {
+  position: relative;
+  margin-bottom: 20px;
+}
+.view-main-image img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+}
+.image-zoom-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.2s;
+}
+.image-zoom-btn:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+.view-gallery {
+  margin-top: 16px;
+}
+.gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.gallery-item {
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+}
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+  transition: transform 0.2s;
+}
+.gallery-item img:hover {
+  transform: scale(1.05);
+}
+
+.view-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.view-badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.section-title-small {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+  margin-bottom: 8px;
+}
+.view-description p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gray-700);
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-badge {
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--gray-700);
+}
+.location-coords {
+  background: var(--gray-50);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--gray-100);
+}
+.mono {
+  font-family: 'DM Mono', monospace;
+}
+.maps-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--green-700);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px;
+}
+.maps-link:hover {
+  text-decoration: underline;
+}
+.view-dates {
+  font-size: 12px;
+  color: var(--gray-500);
+  border-top: 1px solid var(--gray-100);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Lightbox */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.lightbox-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.lightbox-close:hover {
+  background: rgba(255,255,255,0.4);
+}
+.lightbox-prev,
+.lightbox-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  font-size: 48px;
+  cursor: pointer;
+  width: 60px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  border-radius: 8px;
+}
+.lightbox-prev { left: -70px; }
+.lightbox-next { right: -70px; }
+.lightbox-prev:hover,
+.lightbox-next:hover {
+  background: rgba(255,255,255,0.4);
+}
+.lightbox-counter {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-family: 'DM Mono', monospace;
+}
+.image-zoom-btn-small {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edit-portada-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .lightbox-prev { left: 10px; font-size: 32px; width: 40px; height: 60px; }
+  .lightbox-next { right: 10px; font-size: 32px; width: 40px; height: 60px; }
+  .lightbox-close { top: 10px; right: 10px; }
+  .lightbox-counter { bottom: -30px; }
+}
 `;
