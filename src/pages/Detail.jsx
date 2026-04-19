@@ -1,14 +1,57 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
 import { getPatrimonioById } from "../services/patrimonioService";
 
+const API_BASE = "http://localhost:3000";
+
+const buildImageUrl = (value) => {
+  if (!value) return null;
+  if (typeof value !== "string") return null;
+  return value.startsWith("http") ? value : `${API_BASE}${value}`;
+};
+
+const normalizeImage = (image) => {
+  if (!image) return null;
+  if (typeof image === "string") return buildImageUrl(image);
+
+  if (typeof image === "object") {
+    return (
+      buildImageUrl(image.url) ||
+      buildImageUrl(image.imagen_url) ||
+      buildImageUrl(image.path) ||
+      buildImageUrl(image.src)
+    );
+  }
+
+  return null;
+};
+
+const buildImageList = (item) => {
+  const list = [];
+  const main = normalizeImage(item.imagen_url || item.imagen || item.portada);
+  if (main) list.push(main);
+
+  const gallery = item.galeria || item.galeria_actual || item.imagenes || [];
+  if (Array.isArray(gallery)) {
+    gallery.forEach((entry) => {
+      const url = normalizeImage(entry);
+      if (url && !list.includes(url)) list.push(url);
+    });
+  }
+
+  if (list.length === 0) {
+    list.push("https://placehold.co/600x400?text=Sin+imagen");
+  }
+
+  return list;
+};
+
 function Detail() {
   const { id } = useParams();
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [patrimonio, setPatrimonio] = useState();
-
-  const API_BASE = "http://localhost:3000";
 
   useEffect(() => {
     const cargarPatrimonio = async () => {
@@ -23,12 +66,9 @@ function Detail() {
           ...item,
           lat: item.latitud,
           lng: item.longitud,
-          imagen: item.imagen_url
-            ? item.imagen_url.startsWith("http")
-              ? item.imagen_url
-              : `${API_BASE}${item.imagen_url}`
-            : "https://placehold.co/600x400?text=Sin+imagen",
+          imagen: normalizeImage(item.imagen_url || item.imagen || item.portada) || "https://placehold.co/600x400?text=Sin+imagen",
           tags: item.tags || [],
+          galeria: Array.isArray(item.galeria) ? item.galeria : item.galeria_actual || item.imagenes || [],
         });
       } catch (error) {
         console.error("Error fetching patrimonio:", error);
@@ -38,6 +78,8 @@ function Detail() {
 
     cargarPatrimonio();
   }, [id]);
+
+  const images = useMemo(() => (patrimonio ? buildImageList(patrimonio) : []), [patrimonio]);
 
   if (patrimonio === undefined) {
     return null;
@@ -58,6 +100,14 @@ function Detail() {
     `${patrimonio.lat},${patrimonio.lng}`
   )}`;
 
+  const prevImage = () => {
+    setCurrentImageIndex((current) => (current - 1 + images.length) % images.length);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((current) => (current + 1) % images.length);
+  };
+
   return (
     <div className="page-inner detail-page">
       <nav className="breadcrumbs">
@@ -74,10 +124,10 @@ function Detail() {
 
       <div className="detail-layout">
         <section className="detail-card">
-          <div className="detail-image-container" aria-label="Imagen del patrimonio">
+          <div className="detail-image-container" aria-label="Galería del patrimonio">
             <img
-              src={patrimonio.imagen}
-              alt={patrimonio.nombre}
+              src={images[currentImageIndex]}
+              alt={`${patrimonio.nombre} foto ${currentImageIndex + 1}`}
               className="detail-image"
               onClick={() => setIsImageOpen(true)}
               onError={(e) => {
@@ -94,6 +144,36 @@ function Detail() {
             </button>
           </div>
 
+          {images.length > 1 && (
+            <div className="detail-carousel-controls">
+              <button type="button" className="btn-secondary" onClick={prevImage}>
+                Anterior
+              </button>
+              <span className="carousel-counter">
+                {currentImageIndex + 1} / {images.length}
+              </span>
+              <button type="button" className="btn-primary" onClick={nextImage}>
+                Siguiente
+              </button>
+            </div>
+          )}
+
+          {images.length > 1 && (
+            <div className="detail-thumbnails">
+              {images.map((src, index) => (
+                <button
+                  key={`${src}-${index}`}
+                  type="button"
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`thumb-button ${index === currentImageIndex ? "active" : ""}`}
+                  aria-label={`Ver imagen ${index + 1}`}
+                >
+                  <img src={src} alt={`${patrimonio.nombre} miniatura ${index + 1}`} />
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="detail-info">
             <p className="detail-description">{patrimonio.descripcion}</p>
 
@@ -104,7 +184,8 @@ function Detail() {
             <div className="detail-tags-below">
               {tags.length > 0 ? (
                 <>
-                  Tag{tags.length > 1 ? "s" : ""}: {tags.map((tag, index) => (
+                  Tag{tags.length > 1 ? "s" : ""}:{" "}
+                  {tags.map((tag, index) => (
                     <span key={index} className="tag-badge">
                       {formatTag(tag)}
                     </span>
@@ -149,7 +230,21 @@ function Detail() {
             >
               ×
             </button>
-            <img src={patrimonio.imagen} alt={patrimonio.nombre} className="image-modal-img" />
+            <img
+              src={images[currentImageIndex]}
+              alt={`${patrimonio.nombre} imagen ampliada`}
+              className="image-modal-img"
+            />
+            {images.length > 1 && (
+              <div className="image-modal-nav">
+                <button type="button" onClick={prevImage}>
+                  Anterior
+                </button>
+                <button type="button" onClick={nextImage}>
+                  Siguiente
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
