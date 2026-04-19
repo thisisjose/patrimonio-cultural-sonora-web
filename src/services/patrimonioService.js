@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3000/api";
 
 // ⚠️ Token manual solo para pruebas rápidas. Comenta esta línea y usa localStorage en producción.
-const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzY0NzUwOTMsImV4cCI6MTc3NjU2MTQ5M30.n8LpUubT63_ldq8mT08_T0Soz4yQZxUTGP4oIjpQ5wg";
+const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Miwibm9tYnJlIjoiam9zZXdlIiwiaWF0IjoxNzc2NjIzNzg0LCJleHAiOjE3NzY3MTAxODR9.1wS6FyjVOZ17eNFa4enQMIF5XC3-aDZ72jG5BWv6dfI";
 
 const api = axios.create({
   baseURL: API_URL,
