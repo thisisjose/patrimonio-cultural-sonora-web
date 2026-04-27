@@ -228,15 +228,6 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           <h2 className="detail-title">{item.nombre}</h2>
           <p className="detail-subtitle">Municipio: {municipioNombre}</p>
         </div>
-        <button
-          type="button"
-          className="btn-download-pdf"
-          onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
-          aria-label="Descargar información en PDF"
-          title="Descargar información del patrimonio"
-        >
-          Descargar PDF
-        </button>
       </div>
 
       <div className="detail-layout">
@@ -333,6 +324,14 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           >
             Abrir en Google Maps
           </a>
+         <a
+          className="detail-map-link"
+          onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
+          aria-label="Descargar información en PDF"
+          title="Descargar información del patrimonio"
+        >
+          Descargar PDF
+        </a>
         </aside>
       </div>
 

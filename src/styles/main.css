@@ -166,7 +166,7 @@ header a{text-decoration:none}
 .detail-location{background:var(--card);border-radius:16px;box-shadow:0 12px 40px rgba(15,61,41,0.08);padding:1.75rem;}
 .detail-map{height:340px;border-radius:18px;overflow:hidden;box-shadow:0 14px 38px rgba(0,0,0,0.1);position:relative;}
 .detail-map .leaflet-control{z-index:2 !important}
-.detail-map-link{display:inline-block;margin-top:1rem;padding:.8rem 1rem;border-radius:12px;background:var(--green-500);color:#fff;font-weight:600;text-decoration:none;transition:transform .18s ease,box-shadow .18s ease}
+.detail-map-link{cursor: pointer; user-select: none; display:inline-block;margin-top:1rem;padding:.8rem 1rem;border-radius:12px;background:var(--green-500);color:#fff;font-weight:600;text-decoration:none;transition:transform .18s ease,box-shadow .18s ease}
 .detail-map-link:hover{transform:translateY(-1px);box-shadow:0 12px 30px rgba(26,95,62,0.18)}
 
 .detail-image-container{position:relative;max-width:560px;margin:0 auto;border-radius:22px;overflow:hidden;box-shadow:0 14px 38px rgba(0,0,0,0.1);z-index:0}
