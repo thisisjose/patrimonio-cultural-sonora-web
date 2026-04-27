@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
-import { getPatrimonioById } from "../services/patrimonioService";
+import { getPatrimonioById, getMunicipios, getPatrimonios } from "../services/patrimonioService";
 
 const API_BASE = "http://localhost:3000";
 
@@ -47,53 +47,29 @@ const buildImageList = (item) => {
   return list;
 };
 
-function Detail() {
-  const { id } = useParams();
+function normalizePatrimonioData(item) {
+  return {
+    ...item,
+    lat: item.latitud ?? item.lat ?? null,
+    lng: item.longitud ?? item.lng ?? null,
+    imagen: normalizeImage(item.imagen_url || item.imagen || item.portada) || "https://placehold.co/600x400?text=Sin+imagen",
+    tags: Array.isArray(item.tags) ? item.tags : item.tags ? [item.tags] : [],
+    galeria: Array.isArray(item.galeria)
+      ? item.galeria
+      : Array.isArray(item.galeria_actual)
+      ? item.galeria_actual
+      : Array.isArray(item.imagenes)
+      ? item.imagenes
+      : [],
+  };
+}
+
+function PatrimonioDetailEntry({ item, municipioNombre }) {
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [patrimonio, setPatrimonio] = useState();
+  const images = useMemo(() => buildImageList(item), [item]);
 
-  useEffect(() => {
-    const cargarPatrimonio = async () => {
-      try {
-        const item = await getPatrimonioById(id);
-        if (!item) {
-          setPatrimonio(null);
-          return;
-        }
-
-        setPatrimonio({
-          ...item,
-          lat: item.latitud,
-          lng: item.longitud,
-          imagen: normalizeImage(item.imagen_url || item.imagen || item.portada) || "https://placehold.co/600x400?text=Sin+imagen",
-          tags: item.tags || [],
-          galeria: Array.isArray(item.galeria) ? item.galeria : item.galeria_actual || item.imagenes || [],
-        });
-      } catch (error) {
-        console.error("Error fetching patrimonio:", error);
-        setPatrimonio(null);
-      }
-    };
-
-    cargarPatrimonio();
-  }, [id]);
-
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [patrimonio]);
-
-  const images = useMemo(() => (patrimonio ? buildImageList(patrimonio) : []), [patrimonio]);
-
-  if (patrimonio === undefined) {
-    return null;
-  }
-
-  if (patrimonio === null) {
-    return <h2 className="heading-2">Patrimonio no encontrado</h2>;
-  }
-
-  const tags = Array.isArray(patrimonio.tags) ? patrimonio.tags : [];
+  const tags = Array.isArray(item.tags) ? item.tags : [];
   const formatTag = (tag) => {
     if (typeof tag === "string") return tag;
     if (tag && typeof tag.nombre === "string") return tag.nombre;
@@ -101,7 +77,7 @@ function Detail() {
   };
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${patrimonio.lat},${patrimonio.lng}`
+    `${item.lat},${item.lng}`
   )}`;
 
   const prevImage = () => {
@@ -112,26 +88,23 @@ function Detail() {
     setCurrentImageIndex((current) => (current + 1) % images.length);
   };
 
-  return (
-    <div className="page-inner detail-page">
-      <nav className="breadcrumbs">
-        <Link to="/">Inicio</Link>
-        <span className="crumb-sep">›</span>
-        <Link to="/">Patrimonio</Link>
-        <span className="crumb-sep">›</span>
-        <span className="crumb-current">{patrimonio.nombre}</span>
-      </nav>
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [item]);
 
+  return (
+    <article className="detail-entry">
       <div className="detail-header">
-        <h1 className="detail-title">{patrimonio.nombre}</h1>
+        <h2 className="detail-title">{item.nombre}</h2>
+        <p className="detail-subtitle">Municipio: {municipioNombre}</p>
       </div>
 
       <div className="detail-layout">
         <section className="detail-card">
-          <div className="detail-image-container" aria-label="Galería del patrimonio">
+          <div className="detail-image-container" aria-label={`Galería de ${item.nombre}`}>
             <img
               src={images[currentImageIndex]}
-              alt={`${patrimonio.nombre} foto ${currentImageIndex + 1}`}
+              alt={`${item.nombre} foto ${currentImageIndex + 1}`}
               className="detail-image"
               onClick={() => setIsImageOpen(true)}
               onError={(e) => {
@@ -172,23 +145,23 @@ function Detail() {
                   className={`thumb-button ${index === currentImageIndex ? "active" : ""}`}
                   aria-label={`Ver imagen ${index + 1}`}
                 >
-                  <img src={src} alt={`${patrimonio.nombre} miniatura ${index + 1}`} />
+                  <img src={src} alt={`${item.nombre} miniatura ${index + 1}`} />
                 </button>
               ))}
             </div>
           )}
 
           <div className="detail-info">
-            <p className="detail-description">{patrimonio.descripcion}</p>
+            <p className="detail-description">{item.descripcion}</p>
 
             <div className="detail-category-below">
-              Categoría: <span className="category-badge">{patrimonio.categoria}</span>
+              Categoría: <span className="category-badge">{item.categoria}</span>
             </div>
 
             <div className="detail-tags-below">
               {tags.length > 0 ? (
                 <>
-                  Tag{tags.length > 1 ? "s" : ""}:{" "}
+                  Tag{tags.length > 1 ? "s" : ""}: {" "}
                   {tags.map((tag, index) => (
                     <span key={index} className="tag-badge">
                       {formatTag(tag)}
@@ -206,8 +179,8 @@ function Detail() {
           <h2 className="section-title">Ubicación</h2>
           <div className="detail-map">
             <MapView
-              patrimonios={[patrimonio]}
-              center={[patrimonio.lat, patrimonio.lng]}
+              patrimonios={[item]}
+              center={[item.lat, item.lng]}
               zoom={15}
               interactive={false}
             />
@@ -236,7 +209,7 @@ function Detail() {
             </button>
             <img
               src={images[currentImageIndex]}
-              alt={`${patrimonio.nombre} imagen ampliada`}
+              alt={`${item.nombre} imagen ampliada`}
               className="image-modal-img"
             />
             {images.length > 1 && (
@@ -251,6 +224,121 @@ function Detail() {
             )}
           </div>
         </div>
+      )}
+    </article>
+  );
+}
+
+function Detail() {
+  const { id } = useParams();
+  const [patrimonio, setPatrimonio] = useState();
+  const [municipios, setMunicipios] = useState([]);
+  const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
+  const [selectedMunicipioId, setSelectedMunicipioId] = useState(null);
+  const [municipioLoading, setMunicipioLoading] = useState(false);
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const municipiosData = await getMunicipios();
+        if (Array.isArray(municipiosData)) {
+          setMunicipios(municipiosData);
+        }
+
+        const item = await getPatrimonioById(id);
+        if (!item) {
+          setPatrimonio(null);
+          return;
+        }
+
+        setPatrimonio(normalizePatrimonioData(item));
+      } catch (error) {
+        console.error("Error fetching patrimonio:", error);
+        setPatrimonio(null);
+      }
+    };
+
+    cargarDatos();
+  }, [id]);
+
+  const cargarPatrimoniosMunicipio = async (municipioId) => {
+    if (!municipioId) return;
+    setSelectedMunicipioId(municipioId);
+    setMunicipioLoading(true);
+    setMunicipioPatrimonios([]);
+
+    try {
+      const items = await getPatrimonios();
+      const filtered = Array.isArray(items)
+        ? items
+            .filter((item) => String(item.municipioId) === String(municipioId))
+            .map((item) => normalizePatrimonioData(item))
+        : [];
+      setMunicipioPatrimonios(filtered);
+    } catch (error) {
+      console.error("Error loading patrimonios de municipio:", error);
+      setMunicipioPatrimonios([]);
+    } finally {
+      setMunicipioLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setMunicipioPatrimonios([]);
+    setSelectedMunicipioId(null);
+  }, [patrimonio]);
+
+  if (patrimonio === undefined) {
+    return null;
+  }
+
+  if (patrimonio === null) {
+    return <h2 className="heading-2">Patrimonio no encontrado</h2>;
+  }
+
+  const nombreMunicipio = patrimonio && patrimonio.municipioId
+    ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))?.nombre || "Municipio"
+    : "Municipio";
+
+  const showMunicipioDetails = Boolean(selectedMunicipioId);
+
+  return (
+    <div className="page-inner detail-page">
+      <nav className="breadcrumbs">
+        <Link to="/">Inicio</Link>
+        <span className="crumb-sep">›</span>
+        <Link to="/">Patrimonio</Link>
+        <span className="crumb-sep">›</span>
+        {patrimonio && patrimonio.municipioId ? (
+          <>
+            <button
+              type="button"
+              className="breadcrumb-link"
+              onClick={() => cargarPatrimoniosMunicipio(patrimonio.municipioId)}
+            >
+              {nombreMunicipio}
+            </button>
+            <span className="crumb-sep">›</span>
+          </>
+        ) : null}
+        <span className="crumb-current">{showMunicipioDetails ? nombreMunicipio : patrimonio.nombre}</span>
+      </nav>
+
+      {showMunicipioDetails ? (
+        <section className="municipio-details">
+          <h2 className="section-title">Patrimonios en {nombreMunicipio}</h2>
+          {municipioLoading ? (
+            <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
+          ) : municipioPatrimonios.length === 0 ? (
+            <p className="lead">No se encontraron patrimonios en {nombreMunicipio}.</p>
+          ) : (
+            municipioPatrimonios.map((item) => (
+              <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
+            ))
+          )}
+        </section>
+      ) : (
+        <PatrimonioDetailEntry item={patrimonio} municipioNombre={nombreMunicipio} />
       )}
     </div>
   );

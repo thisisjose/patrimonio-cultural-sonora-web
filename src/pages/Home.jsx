@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import MapView from "../components/MapView";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
@@ -6,6 +7,7 @@ import infoIcon from "../Icons/info.png";
 import { getPatrimonios, getMunicipios } from "../services/patrimonioService";
 
 function Home() {
+  const [searchParams] = useSearchParams();
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
@@ -49,6 +51,14 @@ function Home() {
     cargarDatos();
   }, []);
 
+  // Leer parámetro municipioId de la URL y establecer el filtro
+  useEffect(() => {
+    const municipioIdParam = searchParams.get("municipioId");
+    if (municipioIdParam) {
+      setMunicipioSeleccionado(municipioIdParam);
+    }
+  }, [searchParams]);
+
   // Filtrar patrimonios cuando se selecciona un municipio o categoría
   useEffect(() => {
     const filtered = todosPatrimonios.filter((item) => {
@@ -67,11 +77,21 @@ function Home() {
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
 
+  // Obtener nombre del municipio seleccionado
+  const nombreMunicipio = municipioSeleccionado
+    ? municipios.find(m => String(m.id) === String(municipioSeleccionado))?.nombre || ""
+    : "";
+
   return (
     <section>
       <div className="page-hero">
         <h1 className="hero-title">Patrimonio cultural del estado de Sonora</h1>
-        <p className="hero-sub">Descubre monumentos, festividades y elementos culturales del estado a través de un mapa interactivo que concentra información histórica y visual.</p>
+        {nombreMunicipio && (
+          <p className="hero-sub">Patrimonios en {nombreMunicipio}</p>
+        )}
+        {!nombreMunicipio && (
+          <p className="hero-sub">Descubre monumentos, festividades y elementos culturales del estado a través de un mapa interactivo que concentra información histórica y visual.</p>
+        )}
       </div>
 
       <div className="features-grid">
