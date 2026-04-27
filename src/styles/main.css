@@ -200,39 +200,153 @@ header a{text-decoration:none}
 .image-card{width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-bottom:1rem}
 
 /* Popular items (Home) */
-.popular-section{max-width:1400px;margin:2.5rem auto 3rem;}
-.section-title{font-size:1.8rem;color:var(--green-700);margin-bottom:1rem;text-align:center}
-.popular-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
-.popular-card{display:flex;height:180px;gap:1rem;background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;transition:transform .18s ease}
-.popular-card:hover{transform:translateY(-4px)}
-.popular-content{padding:1.25rem;display:flex;flex-direction:column;justify-content:center;flex:1}
-.popular-name{margin:0 0 0.35rem;font-size:1.1rem;font-weight:700;color:var(--green-700)}
-.popular-meta{margin:0;color:var(--muted);font-size:1rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;}
-.popular-thumb{position:relative;width:180px;height:180px;flex-shrink:0}
-.popular-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.popular-badge{position:absolute;left:1rem;bottom:1rem;padding:6px 12px;border-radius:999px;font-weight:700;font-size:0.8rem;color:#fff !important;text-transform:uppercase;letter-spacing:0.04em;box-shadow:0 6px 16px rgba(0,0,0,0.2)}
-.popular-badge.material{background:rgba(231,76,60,0.92)}
-.popular-badge.inmaterial{background:rgba(52,152,219,0.92)}
-.popular-badge.biocultural{background:rgba(39,174,96,0.92)}
-
-@media (max-width:900px){
-  .popular-row{grid-template-columns:repeat(2,1fr)}
-  .popular-card{height:200px}
-  .popular-thumb{width:160px;height:200px}
+/* Popular items (Home) */
+.popular-section {
+  max-width: 1400px;
+  margin: 2.5rem auto 3rem;
 }
 
-@media (max-width:520px){
-  .popular-row{grid-template-columns:repeat(1,1fr)}
-  .popular-card{height:220px}
-  .popular-thumb{width:180px;min-width:180px;height:220px}
-  .popular-thumb img{height:100%}
+.section-title {
+  font-size: 1.8rem;
+  color: var(--green-700);
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
-@media (max-width:768px){
-  .popular-row{grid-template-columns:repeat(2,1fr)}
-  .popular-card{height:200px}
-  .popular-thumb{width:160px;min-width:160px;height:200px}
-  .popular-thumb img{height:100%;}
+.popular-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.popular-card {
+  display: flex;
+  height: 180px;
+  gap: 1rem;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.18s ease;
+}
+
+.popular-card:hover {
+  transform: translateY(-4px);
+}
+
+.popular-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.popular-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.popular-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3; /* Corrección aplicada aquí */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popular-thumb {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+}
+
+.popular-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.popular-badge {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #fff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.popular-badge.material {
+  background: rgba(231, 76, 60, 0.92);
+}
+
+.popular-badge.inmaterial {
+  background: rgba(52, 152, 219, 0.92);
+}
+
+.popular-badge.biocultural {
+  background: rgba(39, 174, 96, 0.92);
+}
+
+@media (max-width: 900px) {
+  .popular-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .popular-card {
+    height: 200px;
+  }
+  .popular-thumb {
+    width: 160px;
+    height: 200px;
+  }
+}
+
+@media (max-width: 520px) {
+  .popular-row {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  .popular-card {
+    height: 220px;
+  }
+  .popular-thumb {
+    width: 180px;
+    min-width: 180px;
+    height: 220px;
+  }
+  .popular-thumb img {
+    height: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .popular-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .popular-card {
+    height: 200px;
+  }
+  .popular-thumb {
+    width: 160px;
+    min-width: 160px;
+    height: 200px;
+  }
+  .popular-thumb img {
+    height: 100%;
+  }
 }
 
 /* Contact styles (kept, but modernized) */
