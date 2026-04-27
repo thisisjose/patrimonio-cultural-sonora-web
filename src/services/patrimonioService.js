@@ -56,6 +56,16 @@ export const getTags = async () => {
   return response.data;
 };
 
+export const updateTag = async (id, nombre) => {
+  const response = await api.put(`/admin/tags/${id}`, { nombre });
+  return response.data;
+};
+
+export const deleteTag = async (id) => {
+  const response = await api.delete(`/admin/tags/${id}`);
+  return response.data;
+};
+
 // ========== ENDPOINTS DE ADMINISTRACIÓN (requieren token en POST, DELETE) ==========
 
 /**
@@ -91,4 +101,31 @@ export const updatePatrimonio = async (id, data) => {
 export const deletePatrimonio = async (id) => {
   const response = await api.delete(`/admin/patrimonios/${id}`);
   return response.data;
+};
+
+/**
+ * Exportar patrimonios a Excel
+ */
+export const exportarPatrimoniosExcel = async () => {
+  const response = await api.get("/admin/exportar-excel", {
+    responseType: "blob", // Importante para manejar el archivo binario
+  });
+  return response.data;
+};
+
+export const descargarExcelPatrimonios = async () => {
+  try {
+    const blob = await exportarPatrimoniosExcel();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "patrimonios_sonora.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el Excel:", error);
+    throw error;
+  }
 };
