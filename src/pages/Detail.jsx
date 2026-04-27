@@ -235,7 +235,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           aria-label="Descargar información en PDF"
           title="Descargar información del patrimonio"
         >
-          📥 Descargar PDF
+          Descargar PDF
         </button>
       </div>
 

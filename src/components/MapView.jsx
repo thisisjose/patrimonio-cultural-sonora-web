@@ -89,7 +89,6 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
 function LocationButton() {
   const map = useMap();
-  const [userLocation, setUserLocation] = useState(null);
   const [locationMarker, setLocationMarker] = useState(null);
 
   const handleLocationClick = () => {
@@ -98,61 +97,46 @@ function LocationButton() {
       return;
     }
 
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         const userLatLng = [latitude, longitude];
 
-        // Centrar el mapa en la ubicación del usuario
-        map.setView(userLatLng, 15);
+        // Centrar mapa
+        map.setView(userLatLng, 16);
 
-        // Remover marcador anterior si existe
+        // Remover marcador anterior
         if (locationMarker) {
           map.removeLayer(locationMarker);
         }
 
-        // Crear nuevo marcador/círculo azul para la ubicación del usuario
+        // Radio ajustado a 120 metros para mayor visibilidad
         const userCircle = L.circle(userLatLng, {
           color: '#007bff',
           fillColor: '#007bff',
           fillOpacity: 0.3,
-          radius: 50, // Radio de 50 metros
-          weight: 3
+          radius: 150, 
+          weight: 2
         }).addTo(map);
 
-        // Agregar popup al círculo
         userCircle.bindPopup("Tu ubicación actual").openPopup();
 
         setLocationMarker(userCircle);
-        setUserLocation(userLatLng);
       },
       (error) => {
         console.error("Error obteniendo ubicación:", error);
-        let errorMessage = "No se pudo obtener tu ubicación.";
-        
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = "Permiso de ubicación denegado. Por favor, permite el acceso a tu ubicación.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "Ubicación no disponible.";
-            break;
-          case error.TIMEOUT:
-            errorMessage = "Tiempo de espera agotado para obtener la ubicación.";
-            break;
-        }
-        
-        alert(errorMessage);
+        alert("No se pudo obtener tu ubicación actual.");
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutos
-      }
+      options
     );
   };
 
-  // Limpiar marcador al desmontar
   useEffect(() => {
     return () => {
       if (locationMarker) {
@@ -169,7 +153,8 @@ function LocationButton() {
         title="Mostrar mi ubicación"
         type="button"
       >
-        📍
+        <span>📍</span>
+        <span>Mi ubicación</span>
       </button>
     </div>
   );
