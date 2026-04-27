@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import { getPatrimonioById, getMunicipios, getPatrimonios } from "../services/patrimonioService";
 
@@ -64,6 +65,134 @@ function normalizePatrimonioData(item) {
   };
 }
 
+// Función para convertir imagen URL a base64
+const urlToBase64 = async (url) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error converting image to base64:", error);
+    return null;
+  }
+};
+
+// Función para generar y descargar PDF
+const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
+  try {
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let currentY = 20;
+
+    // Helper para dibujar líneas divisorias
+    const drawLine = (y) => {
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y, pageWidth - margin, y);
+    };
+
+    // ===== TÍTULO =====
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(41, 128, 185); // Azul profesional
+    const titleLines = doc.splitTextToSize(item.nombre, pageWidth - margin * 2);
+    doc.text(titleLines, margin, currentY);
+    currentY += (titleLines.length * 10) + 5;
+
+    // ===== INFORMACIÓN BÁSICA =====
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    const infoText = `Municipio: ${municipioNombre} | Categoría: ${item.categoria || "No especificada"}`;
+    doc.text(infoText, margin, currentY);
+    currentY += 10;
+    
+    drawLine(currentY - 5);
+
+    // ===== ETIQUETAS =====
+    if (item.tags && item.tags.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(50, 50, 50);
+      doc.text("Etiquetas:", margin, currentY);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const tagText = item.tags.map((t) => (typeof t === "string" ? t : t.nombre)).join(", ");
+      const tagLines = doc.splitTextToSize(tagText, pageWidth - margin * 2 - 20);
+      doc.text(tagLines, margin + 20, currentY);
+      currentY += (tagLines.length * 5) + 5;
+    }
+
+    // ===== DESCRIPCIÓN =====
+    currentY += 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(41, 128, 185);
+    doc.text("Descripción", margin, currentY);
+    currentY += 7;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const descLines = doc.splitTextToSize(item.descripcion || "Sin descripción", pageWidth - margin * 2);
+    doc.text(descLines, margin, currentY);
+    currentY += (descLines.length * 5) + 15;
+
+    // ===== GALERÍA =====
+    if (images && images.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(41, 128, 185);
+      doc.text("Galería", margin, currentY);
+      currentY += 8;
+
+      const imagesPerRow = 3;
+      const gap = 3; // Espacio entre imágenes
+      const availableWidth = pageWidth - (margin * 2) - (gap * (imagesPerRow - 1));
+      const imageWidth = availableWidth / imagesPerRow;
+      const imageHeight = imageWidth * 0.75; 
+      const imagesToShow = Math.min(images.length, 6);
+
+      let xPos = margin;
+      let rowY = currentY;
+
+      for (let i = 0; i < imagesToShow; i++) {
+        try {
+          const base64Image = await urlToBase64(images[i]);
+          if (base64Image) {
+            const colIndex = i % imagesPerRow;
+            
+            if (colIndex === 0 && i > 0) {
+              rowY += imageHeight + gap;
+            }
+
+            // Validar que no se salga de la hoja
+            if (rowY + imageHeight > doc.internal.pageSize.getHeight() - margin) {
+              doc.addPage();
+              rowY = margin;
+            }
+
+            doc.addImage(base64Image, "JPEG", margin + (colIndex * (imageWidth + gap)), rowY, imageWidth, imageHeight);
+          }
+        } catch (error) {
+          console.error(`Error procesando imagen ${i}:`, error);
+        }
+      }
+    }
+
+    doc.save(`${item.nombre}.pdf`);
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("Error al generar el PDF.");
+  }
+};
+
+
 function PatrimonioDetailEntry({ item, municipioNombre }) {
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -95,8 +224,19 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
   return (
     <article className="detail-entry">
       <div className="detail-header">
-        <h2 className="detail-title">{item.nombre}</h2>
-        <p className="detail-subtitle">Municipio: {municipioNombre}</p>
+        <div className="detail-header-content">
+          <h2 className="detail-title">{item.nombre}</h2>
+          <p className="detail-subtitle">Municipio: {municipioNombre}</p>
+        </div>
+        <button
+          type="button"
+          className="btn-download-pdf"
+          onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
+          aria-label="Descargar información en PDF"
+          title="Descargar información del patrimonio"
+        >
+          📥 Descargar PDF
+        </button>
       </div>
 
       <div className="detail-layout">

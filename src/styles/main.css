@@ -145,7 +145,8 @@ header a{text-decoration:none}
 /* Detail & content helpers */
 .page-inner{max-width:900px;margin:0 auto}
 .detail-page{padding:1.5rem 0}
-.detail-header{margin-bottom:2rem;text-align:center}
+.detail-header{margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.detail-header-content{flex:1;text-align:center}
 .detail-title{font-family:'Playfair Display',serif;font-size:2.8rem;color:var(--green-700);line-height:1.1;margin-bottom:0}
 .breadcrumbs{display:flex;flex-wrap:wrap;gap:0.35rem;font-size:0.95rem;color:var(--muted);margin-bottom:1rem}
 .breadcrumbs a,
@@ -262,6 +263,10 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   .contacto-container{padding:1.5rem}
   .detail-layout{grid-template-columns:1fr}
   .detail-map{height:280px}
+  .detail-header{flex-direction:column;text-align:center}
+  .detail-header-content{text-align:center}
+  .btn-download-pdf{width:100%}
+  .detail-title{font-size:2rem}
 }
 
 @media (max-width:720px){
@@ -417,6 +422,33 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   transform: translateY(-1px);
   opacity: 0.95;
 }
+
+.btn-download-pdf {
+  background: linear-gradient(135deg, var(--accent), #e06b2e);
+  color: #fff;
+  border: 0;
+  padding: 0.9rem 1.4rem;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform .18s ease, box-shadow .18s ease;
+  box-shadow: 0 6px 20px rgba(216, 155, 58, 0.2);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-download-pdf:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(216, 155, 58, 0.3);
+}
+
+.btn-download-pdf:active {
+  transform: translateY(0);
+}
+
 
 .detail-thumbnails {
   display: flex;
