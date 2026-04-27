@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3000/api";
 
 // ⚠️ Token manual solo para pruebas rápidas. Comenta esta línea y usa localStorage en producción.
-const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzY2Mjg3MzgsImV4cCI6MTc3NjcxNTEzOH0.-f4Ck4niQHsFgkFQ8qYT_ZTNCB0O-jDCsKrv-fzAM_Q";
+const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiYWRtaW4iLCJpYXQiOjE3NzczMjc3MDMsImV4cCI6MTc3NzQxNDEwM30.AYt_EyPaAbeYjM_tE2nntjUXF-BeFLw80E0iuvJH1P8";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -53,6 +53,16 @@ export const getMunicipios = async () => {
  */
 export const getTags = async () => {
   const response = await api.get("/tags");
+  return response.data;
+};
+
+export const updateTag = async (id, nombre) => {
+  const response = await api.put(`/admin/tags/${id}`, { nombre });
+  return response.data;
+};
+
+export const deleteTag = async (id) => {
+  const response = await api.delete(`/admin/tags/${id}`);
   return response.data;
 };
 

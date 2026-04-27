@@ -6,6 +6,9 @@ import {
   deletePatrimonio,
   getMunicipios,
   descargarExcelPatrimonios,
+  getTags,
+  updateTag,
+  deleteTag,
 } from "../../services/patrimonioService";
 
 // ----- Importaciones para el mapa -----
@@ -58,16 +61,21 @@ function MapClickHandler({ onClick }) {
 export default function AdminDashboard() {
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
+  const [tagsList, setTagsList] = useState([]); // Lista global de tags
 
   const [filtro, setFiltro] = useState({
     municipio: "Todos",
     categoria: "Todas",
     estado: "Todos",
   });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [modalVer, setModalVer] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
-  const [formEditar, setFormEditar] = useState({});
+  const [formEditar, setFormEditar] = useState({
+    tags: [],           // Array de strings (nombres de tags)
+    newTagInput: "",    // Input para agregar tag
+  });
 
   const [modalNuevo, setModalNuevo] = useState(false);
   const [formNuevo, setFormNuevo] = useState({
@@ -77,10 +85,13 @@ export default function AdminDashboard() {
     descripcion: "",
     latitud: "",
     longitud: "",
-    tagsInput: "",
+    tags: [],           // Array de strings
+    newTagInput: "",    // Input para agregar tag
     portadaFile: null,
-    imagenesFiles: [],        // ✅ múltiples archivos para galería
+    imagenesFiles: [],
   });
+
+  const [modalTagsOpen, setModalTagsOpen] = useState(false); // Modal de gestión global de tags
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,20 +105,23 @@ export default function AdminDashboard() {
     return map;
   }, [municipios]);
 
+  // Cargar patrimonios, municipios y tags
   const cargarDatos = async () => {
     try {
       setLoading(true);
       setError("");
-      const [respPatrimonios, respMunicipios] = await Promise.all([
+      const [respPatrimonios, respMunicipios, respTags] = await Promise.all([
         getPatrimonios(),
         getMunicipios(),
+        getTags(),
       ]);
       setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
+      setTagsList(Array.isArray(respTags) ? respTags : []);
       const lista = Array.isArray(respPatrimonios) ? respPatrimonios : respPatrimonios?.data || [];
       setPatrimonios(lista);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar los patrimonios.");
+      setError("No se pudieron cargar los datos.");
     } finally {
       setLoading(false);
     }
@@ -117,10 +131,38 @@ export default function AdminDashboard() {
     cargarDatos();
   }, []);
 
+  // Gestión global de tags
+  const handleEditTag = async (tag) => {
+    const nuevoNombre = window.prompt("Nuevo nombre del tag:", tag.nombre);
+    if (nuevoNombre && nuevoNombre.trim() !== tag.nombre) {
+      try {
+        await updateTag(tag.id, nuevoNombre.trim());
+        await cargarDatos(); // refresca todo
+      } catch (err) {
+        console.error(err);
+        alert("Error al actualizar el tag.");
+      }
+    }
+  };
+
+  const handleDeleteTag = async (tag) => {
+    if (!window.confirm(`¿Eliminar el tag "${tag.nombre}"? Se removerá de todos los patrimonios.`)) return;
+    try {
+      await deleteTag(tag.id);
+      await cargarDatos();
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo eliminar el tag.");
+    }
+  };
+
+  // Abrir modales
   const abrirVer = (item) => setModalVer(item);
   const cerrarVer = () => setModalVer(null);
 
   const abrirEditar = (item) => {
+    // Convertir tags a array de strings
+    const tagsActuales = (item.tags || []).map(t => typeof t === 'object' ? t.nombre : t);
     setFormEditar({
       id: item.id,
       nombre: item.nombre,
@@ -129,11 +171,12 @@ export default function AdminDashboard() {
       descripcion: item.descripcion,
       latitud: item.latitud,
       longitud: item.longitud,
-      tagsInput: (item.tags || []).map(t => t.nombre || t).join(", "),
+      tags: tagsActuales,
+      newTagInput: "",
       portadaFile: null,
-      imagenesFiles: [],                 // nuevas imágenes a agregar
-      galeriaActual: item.galeria || [], // imágenes existentes { id, url }
-      imagenesAEliminar: [],             // ids de imágenes a borrar
+      imagenesFiles: [],
+      galeriaActual: item.galeria || [],
+      imagenesAEliminar: [],
     });
     setModalEditar(item);
   };
@@ -141,6 +184,18 @@ export default function AdminDashboard() {
   const cerrarEditar = () => {
     setModalEditar(null);
     setFormEditar({});
+  };
+
+  // Helper para agregar/quitar tags en formularios
+  const addTagToForm = (form, setForm, tagNombre) => {
+    const nuevo = tagNombre.trim().toLowerCase();
+    if (nuevo && !form.tags.includes(nuevo)) {
+      setForm(prev => ({ ...prev, tags: [...prev.tags, nuevo], newTagInput: "" }));
+    }
+  };
+
+  const removeTagFromForm = (form, setForm, tagNombre) => {
+    setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagNombre) }));
   };
 
   // Manejadores para creación
@@ -173,14 +228,11 @@ export default function AdminDashboard() {
       formData.append("longitud", formNuevo.longitud);
       formData.append("municipioId", formNuevo.municipioId);
       if (formNuevo.portadaFile) formData.append("portada", formNuevo.portadaFile);
-      // Agregar cada imagen de galería
       formNuevo.imagenesFiles.forEach(file => {
         formData.append("imagenes", file);
       });
-      if (formNuevo.tagsInput.trim()) {
-        const tagsArray = formNuevo.tagsInput.split(",").map(t => t.trim()).filter(t => t);
-        tagsArray.forEach(tag => formData.append("tags[]", tag));
-      }
+      // Tags como array
+      formNuevo.tags.forEach(tag => formData.append("tags[]", tag));
       await createPatrimonio(formData);
       setModalNuevo(false);
       setFormNuevo({
@@ -190,7 +242,8 @@ export default function AdminDashboard() {
         descripcion: "",
         latitud: "",
         longitud: "",
-        tagsInput: "",
+        tags: [],
+        newTagInput: "",
         portadaFile: null,
         imagenesFiles: [],
       });
@@ -231,8 +284,8 @@ export default function AdminDashboard() {
       setSaving(true);
       setError("");
       let dataToSend;
-      // Si hay archivos nuevos o imágenes a eliminar, usar FormData
-      if (formEditar.portadaFile || formEditar.imagenesFiles.length > 0 || formEditar.imagenesAEliminar.length > 0) {
+      const hayArchivos = formEditar.portadaFile || formEditar.imagenesFiles.length > 0 || formEditar.imagenesAEliminar.length > 0;
+      if (hayArchivos) {
         const fd = new FormData();
         fd.append("nombre", formEditar.nombre);
         fd.append("categoria", formEditar.categoria);
@@ -240,20 +293,23 @@ export default function AdminDashboard() {
         fd.append("latitud", formEditar.latitud);
         fd.append("longitud", formEditar.longitud);
         fd.append("municipioId", formEditar.municipioId);
-        if (formEditar.tagsInput?.trim()) {
-          const tagsArray = formEditar.tagsInput.split(",").map(t => t.trim()).filter(t => t);
-          tagsArray.forEach(tag => fd.append("tags[]", tag));
+        
+        // 🔥 Manejo de tags: si no hay tags, enviamos un string vacío
+        if (formEditar.tags && formEditar.tags.length > 0) {
+          formEditar.tags.forEach(tag => fd.append("tags[]", tag));
+        } else {
+          // Forzamos el envío de un campo "tags" vacío para indicar que se deben borrar todos
+          fd.append("tags", "");
         }
+        
         if (formEditar.portadaFile) fd.append("portada", formEditar.portadaFile);
-        // Agregar nuevas imágenes de galería
         formEditar.imagenesFiles.forEach(file => fd.append("imagenes", file));
-        // Enviar IDs a eliminar como string separado por comas (backend modificado lo parsea)
         if (formEditar.imagenesAEliminar.length) {
           fd.append("eliminarImagenesIds", formEditar.imagenesAEliminar.join(","));
         }
         dataToSend = fd;
       } else {
-        // Envío como JSON
+        // Para peticiones sin archivos, enviamos objeto JSON con tags como array (puede ser vacío)
         dataToSend = {
           nombre: formEditar.nombre,
           categoria: formEditar.categoria,
@@ -261,7 +317,7 @@ export default function AdminDashboard() {
           latitud: formEditar.latitud,
           longitud: formEditar.longitud,
           municipioId: formEditar.municipioId,
-          tags: formEditar.tagsInput?.split(",").map(t => t.trim()).filter(t => t) || [],
+          tags: formEditar.tags || [],   // array vacío si no hay tags
         };
       }
       await updatePatrimonio(formEditar.id, dataToSend);
@@ -336,518 +392,361 @@ export default function AdminDashboard() {
     return patrimonios.map(mapPatrimonio);
   }, [patrimonios, municipioNombrePorId, API_BASE]);
 
-  const filtrados = patrimoniosUI.filter(
-    (p) =>
-      (filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio)) &&
-      (filtro.categoria === "Todas" || p.categoria === filtro.categoria) &&
-      (filtro.estado === "Todos" || p.estado === filtro.estado)
-  );
+  const filtrados = patrimoniosUI.filter((p) => {
+    const matchesMunicipio = filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio);
+    const matchesCategoria = filtro.categoria === "Todas" || p.categoria === filtro.categoria;
+    const matchesEstado = filtro.estado === "Todos" || p.estado === filtro.estado;
+    let matchesSearch = true;
+    if (searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase().trim();
+      const nombreMatch = p.nombre.toLowerCase().includes(term);
+      const descripcionMatch = p.descripcion.toLowerCase().includes(term);
+      const ubicacionMatch = p.ubicacion.toLowerCase().includes(term);
+      const tagsMatch = p.tags.some(tag => {
+        const tagName = typeof tag === 'object' ? tag.nombre : tag;
+        return tagName && tagName.toLowerCase().includes(term);
+      });
+      matchesSearch = nombreMatch || descripcionMatch || ubicacionMatch || tagsMatch;
+    }
+    return matchesMunicipio && matchesCategoria && matchesEstado && matchesSearch;
+  });
 
   const registrados = patrimoniosUI.filter((p) => p.estado === "Registrado").length;
   const pendientes = patrimoniosUI.filter((p) => p.estado === "Pendiente").length;
 
-  // Lightbox state
-const [lightboxOpen, setLightboxOpen] = useState(false);
-const [lightboxImages, setLightboxImages] = useState([]);
-const [lightboxIndex, setLightboxIndex] = useState(0);
+  // Lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-const openLightbox = (images, startIndex) => {
-  setLightboxImages(images);
-  setLightboxIndex(startIndex);
-  setLightboxOpen(true);
-};
-
-const closeLightbox = useCallback(() => {
-  setLightboxOpen(false);
-  setLightboxImages([]);
-  setLightboxIndex(0);
-}, []);
-
-const nextImage = useCallback(() => {
-  setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
-}, [lightboxImages.length]);
-
-const prevImage = useCallback(() => {
-  setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
-}, [lightboxImages.length]);
-
-// Manejo de teclado
-useEffect(() => {
-  const handleKeyDown = (e) => {
-    if (!lightboxOpen) return;
-    if (e.key === 'ArrowRight') nextImage();
-    if (e.key === 'ArrowLeft') prevImage();
-    if (e.key === 'Escape') closeLightbox();
+  const openLightbox = (images, startIndex) => {
+    setLightboxImages(images);
+    setLightboxIndex(startIndex);
+    setLightboxOpen(true);
   };
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [lightboxOpen, nextImage, prevImage, closeLightbox]);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  }, []);
+
+  const nextImage = useCallback(() => {
+    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+  }, [lightboxImages.length]);
+
+  const prevImage = useCallback(() => {
+    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  }, [lightboxImages.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!lightboxOpen) return;
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'Escape') closeLightbox();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, nextImage, prevImage, closeLightbox]);
 
   return (
     <>
       <style>{STYLE}</style>
 
-      {/* MODAL NUEVO - Diseño mejorado (dos columnas como editar) */}
-{modalNuevo && (
-  <div className="overlay" onClick={() => setModalNuevo(false)}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">Nuevo Patrimonio</div>
-        <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
-      </div>
-      <div className="modal-body two-columns">
-        {/* Columna izquierda: imágenes */}
-        <div className="edit-left">
-          <div className="form-group">
-            <label className="form-label">Imagen de portada</label>
-            <input
-              type="file"
-              accept="image/*"
-              className="form-input"
-              onChange={handlePortadaUploadNuevo}
-            />
-            {formNuevo.portadaFile && (
-              <div style={{ marginTop: "8px" }}>
-                <img
-                  src={URL.createObjectURL(formNuevo.portadaFile)}
-                  alt="Vista previa portada"
-                  style={{ maxWidth: "100%", maxHeight: "160px", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-200)" }}
-                />
-                <small style={{ display: "block", marginTop: "4px" }}>{formNuevo.portadaFile.name}</small>
-              </div>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Galería de imágenes (varias)</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="form-input"
-              onChange={handleGaleriaUploadNuevo}
-            />
-            {formNuevo.imagenesFiles.length > 0 && (
-              <div className="gallery-grid" style={{ marginTop: "12px" }}>
-                {formNuevo.imagenesFiles.map((file, idx) => (
-                  <div key={idx} className="gallery-item">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`preview-${idx}`}
-                      style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                    />
-                    <button
-                      type="button"
-                      className="ab delete small"
-                      onClick={() => removeGaleriaFileNuevo(idx)}
-                      style={{ marginTop: "4px", width: "auto", padding: "2px 8px" }}
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Columna derecha: campos y mapa */}
-        <div className="edit-right">
-          <div className="form-group">
-            <label className="form-label">Nombre</label>
-            <input
-              className="form-input"
-              value={formNuevo.nombre}
-              onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Municipio</label>
-              <select
-                className="form-input"
-                value={formNuevo.municipioId}
-                onChange={e => setFormNuevo({ ...formNuevo, municipioId: e.target.value })}
-              >
-                <option value="">Selecciona</option>
-                {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
+      {/* MODAL NUEVO PATRIMONIO (con tags visuales) */}
+      {modalNuevo && (
+        <div className="overlay" onClick={() => setModalNuevo(false)}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Nuevo Patrimonio</div>
+              <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
             </div>
-            <div className="form-group">
-              <label className="form-label">Categoría</label>
-              <select
-                className="form-input"
-                value={formNuevo.categoria}
-                onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}
-              >
-                <option>Material</option>
-                <option>Inmaterial</option>
-                <option>Biocultural</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Tags (separados por coma)</label>
-            <input
-              className="form-input"
-              value={formNuevo.tagsInput}
-              onChange={e => setFormNuevo({ ...formNuevo, tagsInput: e.target.value })}
-              placeholder="Ej: colonial, museo, histórico"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Descripción</label>
-            <textarea
-              className="form-input form-textarea"
-              value={formNuevo.descripcion}
-              onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-            <MapPicker
-              latitud={formNuevo.latitud}
-              longitud={formNuevo.longitud}
-              onLocationSelect={handleMapSelectNuevo}
-            />
-            {formNuevo.latitud && formNuevo.longitud && (
-              <div className="form-row" style={{ marginTop: "12px" }}>
+            <div className="modal-body two-columns">
+              <div className="edit-left">
                 <div className="form-group">
-                  <label>Latitud</label>
-                  <input className="form-input" value={formNuevo.latitud} readOnly />
+                  <label className="form-label">Imagen de portada</label>
+                  <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadNuevo} />
+                  {formNuevo.portadaFile && (
+                    <div style={{ marginTop: "8px" }}>
+                      <img src={URL.createObjectURL(formNuevo.portadaFile)} alt="Vista previa portada" style={{ maxWidth: "100%", maxHeight: "160px", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-200)" }} />
+                      <small style={{ display: "block", marginTop: "4px" }}>{formNuevo.portadaFile.name}</small>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
-                  <label>Longitud</label>
-                  <input className="form-input" value={formNuevo.longitud} readOnly />
+                  <label className="form-label">Galería de imágenes (varias)</label>
+                  <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadNuevo} />
+                  {formNuevo.imagenesFiles.length > 0 && (
+                    <div className="gallery-grid" style={{ marginTop: "12px" }}>
+                      {formNuevo.imagenesFiles.map((file, idx) => (
+                        <div key={idx} className="gallery-item">
+                          <img src={URL.createObjectURL(file)} alt={`preview-${idx}`} style={{ width: "100px", height: "100px", objectFit: "cover" }} />
+                          <button type="button" className="ab delete small" onClick={() => removeGaleriaFileNuevo(idx)} style={{ marginTop: "4px", width: "auto", padding: "2px 8px" }}>Quitar</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="modal-footer">
-        <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>
-          {saving ? "Guardando..." : "Guardar"}
-        </button>
-        <button className="btn-secondary" onClick={() => setModalNuevo(false)}>
-          Cancelar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {/* MODAL VER - con lightbox */}
-{modalVer && (
-  <div className="overlay" onClick={cerrarVer}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">{modalVer.nombre}</div>
-        <button className="modal-close" onClick={cerrarVer}>✕</button>
-      </div>
-      <div className="modal-body two-columns">
-        {/* Columna izquierda: imágenes */}
-        <div className="view-left">
-          <div className="view-main-image">
-            <img
-              src={modalVer.imagen}
-              alt={modalVer.nombre}
-              onClick={() => {
-                const allImages = [
-                  { url: modalVer.imagen, alt: modalVer.nombre },
-                  ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                ];
-                openLightbox(allImages, 0);
-              }}
-              style={{ cursor: 'pointer' }}
-            />
-            <button
-              className="image-zoom-btn"
-              onClick={() => {
-                const allImages = [
-                  { url: modalVer.imagen, alt: modalVer.nombre },
-                  ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                ];
-                openLightbox(allImages, 0);
-              }}
-              aria-label="Ver galería"
-            >
-              ⤢
-            </button>
-          </div>
-          {modalVer.galeria && modalVer.galeria.length > 0 && (
-            <div className="view-gallery">
-              <label className="form-label">Galería de imágenes</label>
-              <div className="gallery-grid">
-                {modalVer.galeria.map((img, idx) => (
-                  <div key={img.id} className="gallery-item">
-                    <img
-                      src={img.url}
-                      alt={`galería ${idx}`}
-                      onClick={() => {
-                        const allImages = [
-                          { url: modalVer.imagen, alt: modalVer.nombre },
-                          ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                        ];
-                        openLightbox(allImages, idx + 1); // +1 porque la portada es la primera
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Columna derecha: información (sin cambios) */}
-        <div className="view-right">
-          <div className="view-badges">
-            <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
-            <span className={`bst ${modalVer.estado.toLowerCase()}`}>
-              <span className={`dot ${modalVer.estado === "Registrado" ? "green" : "amber"}`} />
-              {modalVer.estado}
-            </span>
-          </div>
-
-          {modalVer.descripcion && (
-            <div className="view-description">
-              <h3 className="section-title-small">Descripción</h3>
-              <p>{modalVer.descripcion}</p>
-            </div>
-          )}
-
-          <div className="view-tags">
-            <h3 className="section-title-small">Tags</h3>
-            <div className="tags-list">
-              {modalVer.tags && modalVer.tags.length > 0 ? (
-                modalVer.tags.map((tag, idx) => (
-                  <span key={idx} className="tag-badge">{typeof tag === 'object' ? tag.nombre : tag}</span>
-                ))
-              ) : (
-                <span className="tag-badge">Sin tags</span>
-              )}
-            </div>
-          </div>
-
-          <div className="view-location">
-            <h3 className="section-title-small">Ubicación</h3>
-            <div className="location-coords">
-              <div><strong>Municipio:</strong> {modalVer.ubicacion}</div>
-              <div><strong>Latitud:</strong> <span className="mono">{modalVer.latitud}</span></div>
-              <div><strong>Longitud:</strong> <span className="mono">{modalVer.longitud}</span></div>
-            </div>
-            {modalVer.latitud && modalVer.longitud && (
-              <a
-                href={`https://www.google.com/maps?q=${modalVer.latitud},${modalVer.longitud}`}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="maps-link"
-              >
-                Abrir en Google Maps
-              </a>
-            )}
-          </div>
-
-          <div className="view-dates">
-            <div><strong>Fecha de registro:</strong> {modalVer.fechaRegistro}</div>
-            <div><strong>Última actualización:</strong> {modalVer.fechaActualizacion}</div>
-          </div>
-        </div>
-      </div>
-      <div className="modal-footer">
-        <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
-        <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {/* MODAL EDITAR - Nuevo diseño amplio y estructurado */}
-{/* MODAL EDITAR - con lightbox en las imágenes actuales */}
-{modalEditar && (
-  <div className="overlay" onClick={cerrarEditar}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">Editar Patrimonio</div>
-        <button className="modal-close" onClick={cerrarEditar}>✕</button>
-      </div>
-      <div className="modal-body two-columns">
-        {/* Columna izquierda: imágenes */}
-        <div className="edit-left">
-          {/* Portada actual con clic para lightbox */}
-          <div className="form-group">
-            <label className="form-label">Imagen de portada actual</label>
-            {modalEditar?.imagen && (
-              <div className="edit-portada-wrapper">
-                <img
-                  src={modalEditar.imagen}
-                  alt="portada actual"
-                  className="edit-portada-preview"
-                  onClick={() => {
-                    // Construir lista de imágenes actuales (sin las nuevas)
-                    const currentImages = [
-                      { url: modalEditar.imagen, alt: 'Portada' },
-                      ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
-                    ];
-                    openLightbox(currentImages, 0);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <button
-                  className="image-zoom-btn-small"
-                  onClick={() => {
-                    const currentImages = [
-                      { url: modalEditar.imagen, alt: 'Portada' },
-                      ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
-                    ];
-                    openLightbox(currentImages, 0);
-                  }}
-                >
-                  ⤢
-                </button>
-              </div>
-            )}
-            <label className="form-label" style={{ marginTop: "12px" }}>Cambiar portada</label>
-            <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
-            {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
-          </div>
-
-          {/* Galería actual con clic para lightbox */}
-          <div className="form-group">
-            <label className="form-label">Galería actual</label>
-            <div className="gallery-grid">
-              {formEditar.galeriaActual?.map((img, idx) => (
-                <div key={img.id} className="gallery-item">
-                  <img
-                    src={img.url}
-                    alt="galería"
-                    onClick={() => {
-                      const currentImages = [
-                        { url: modalEditar.imagen, alt: 'Portada' },
-                        ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))
-                      ];
-                      openLightbox(currentImages, idx + 1);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <label className="gallery-check">
-                    <input
-                      type="checkbox"
-                      checked={formEditar.imagenesAEliminar?.includes(img.id)}
-                      onChange={() => toggleEliminarImagen(img.id)}
-                    />
-                    Eliminar
-                  </label>
+              <div className="edit-right">
+                <div className="form-group">
+                  <label className="form-label">Nombre</label>
+                  <input className="form-input" value={formNuevo.nombre} onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })} />
                 </div>
-              ))}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Municipio</label>
+                    <select className="form-input" value={formNuevo.municipioId} onChange={e => setFormNuevo({ ...formNuevo, municipioId: e.target.value })}>
+                      <option value="">Selecciona</option>
+                      {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Categoría</label>
+                    <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}>
+                      <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Tags visuales */}
+                <div className="form-group">
+                  <label className="form-label">Tags</label>
+                  <div className="current-tags">
+                    {formNuevo.tags.map(tag => (
+                      <span key={tag} className="tag-badge editable">
+                        {tag}
+                        <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formNuevo, setFormNuevo, tag)}>✕</button>
+                      </span>
+                    ))}
+                    {formNuevo.tags.length === 0 && <span className="no-tags">Sin tags</span>}
+                  </div>
+                  <div className="add-tag-row">
+                    <input type="text" className="form-input" placeholder="Nuevo tag" value={formNuevo.newTagInput} onChange={e => setFormNuevo(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)} />
+                    <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)}>Agregar</button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Descripción</label>
+                  <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+                  <MapPicker latitud={formNuevo.latitud} longitud={formNuevo.longitud} onLocationSelect={handleMapSelectNuevo} />
+                  {formNuevo.latitud && formNuevo.longitud && (
+                    <div className="form-row" style={{ marginTop: "12px" }}>
+                      <div className="form-group"><label>Latitud</label><input className="form-input" value={formNuevo.latitud} readOnly /></div>
+                      <div className="form-group"><label>Longitud</label><input className="form-input" value={formNuevo.longitud} readOnly /></div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <label className="form-label" style={{ marginTop: "12px" }}>Agregar nuevas imágenes</label>
-            <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
-            {formEditar.imagenesFiles?.length > 0 && (
-              <div className="new-images-list">
-                {formEditar.imagenesFiles.map((file, idx) => (
-                  <div key={idx} className="new-image-item">
-                    <span>{file.name}</span>
-                    <button
-                      type="button"
-                      className="ab delete small"
-                      onClick={() => {
-                        setFormEditar(prev => ({
-                          ...prev,
-                          imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx)
-                        }));
-                      }}
-                    >
-                      Quitar
-                    </button>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>
+              <button className="btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VER (sin cambios relevantes) */}
+      {modalVer && (
+        <div className="overlay" onClick={cerrarVer}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">{modalVer.nombre}</div>
+              <button className="modal-close" onClick={cerrarVer}>✕</button>
+            </div>
+            <div className="modal-body two-columns">
+              <div className="view-left">
+                <div className="view-main-image">
+                  <img src={modalVer.imagen} alt={modalVer.nombre} onClick={() => { const allImages = [{ url: modalVer.imagen, alt: modalVer.nombre }, ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))]; openLightbox(allImages, 0); }} style={{ cursor: 'pointer' }} />
+                  <button className="image-zoom-btn" onClick={() => { const allImages = [{ url: modalVer.imagen, alt: modalVer.nombre }, ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))]; openLightbox(allImages, 0); }}>⤢</button>
+                </div>
+                {modalVer.galeria && modalVer.galeria.length > 0 && (
+                  <div className="view-gallery">
+                    <label className="form-label">Galería de imágenes</label>
+                    <div className="gallery-grid">
+                      {modalVer.galeria.map((img, idx) => (
+                        <div key={img.id} className="gallery-item">
+                          <img src={img.url} alt={`galería ${idx}`} onClick={() => { const allImages = [{ url: modalVer.imagen, alt: modalVer.nombre }, ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))]; openLightbox(allImages, idx + 1); }} style={{ cursor: 'pointer' }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="view-right">
+                <div className="view-badges">
+                  <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
+                  <span className={`bst ${modalVer.estado.toLowerCase()}`}><span className={`dot ${modalVer.estado === "Registrado" ? "green" : "amber"}`} />{modalVer.estado}</span>
+                </div>
+                {modalVer.descripcion && (
+                  <div className="view-description"><h3 className="section-title-small">Descripción</h3><p>{modalVer.descripcion}</p></div>
+                )}
+                <div className="view-tags"><h3 className="section-title-small">Tags</h3><div className="tags-list">{modalVer.tags && modalVer.tags.length > 0 ? modalVer.tags.map((tag, idx) => (<span key={idx} className="tag-badge">{typeof tag === 'object' ? tag.nombre : tag}</span>)) : (<span className="tag-badge">Sin tags</span>)}</div></div>
+                <div className="view-location"><h3 className="section-title-small">Ubicación</h3><div className="location-coords"><div><strong>Municipio:</strong> {modalVer.ubicacion}</div><div><strong>Latitud:</strong> <span className="mono">{modalVer.latitud}</span></div><div><strong>Longitud:</strong> <span className="mono">{modalVer.longitud}</span></div></div>{modalVer.latitud && modalVer.longitud && (<a href={`https://www.google.com/maps?q=${modalVer.latitud},${modalVer.longitud}`} target="_blank" rel="noreferrer noopener" className="maps-link">Abrir en Google Maps</a>)}</div>
+                <div className="view-dates"><div><strong>Fecha de registro:</strong> {modalVer.fechaRegistro}</div><div><strong>Última actualización:</strong> {modalVer.fechaActualizacion}</div></div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
+              <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR PATRIMONIO (con tags visuales) */}
+      {modalEditar && (
+        <div className="overlay" onClick={cerrarEditar}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Editar Patrimonio</div>
+              <button className="modal-close" onClick={cerrarEditar}>✕</button>
+            </div>
+            <div className="modal-body two-columns">
+              <div className="edit-left">
+                <div className="form-group">
+                  <label className="form-label">Imagen de portada actual</label>
+                  {modalEditar?.imagen && (
+                    <div className="edit-portada-wrapper">
+                      <img src={modalEditar.imagen} alt="portada actual" className="edit-portada-preview" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }} style={{ cursor: 'pointer' }} />
+                      <button className="image-zoom-btn-small" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }}>⤢</button>
+                    </div>
+                  )}
+                  <label className="form-label" style={{ marginTop: "12px" }}>Cambiar portada</label>
+                  <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
+                  {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Galería actual</label>
+                  <div className="gallery-grid">
+                    {formEditar.galeriaActual?.map((img, idx) => (
+                      <div key={img.id} className="gallery-item">
+                        <img src={img.url} alt="galería" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, idx + 1); }} style={{ cursor: 'pointer' }} />
+                        <label className="gallery-check"><input type="checkbox" checked={formEditar.imagenesAEliminar?.includes(img.id)} onChange={() => toggleEliminarImagen(img.id)} /> Eliminar</label>
+                      </div>
+                    ))}
+                  </div>
+                  <label className="form-label" style={{ marginTop: "12px" }}>Agregar nuevas imágenes</label>
+                  <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
+                  {formEditar.imagenesFiles?.length > 0 && (
+                    <div className="new-images-list">
+                      {formEditar.imagenesFiles.map((file, idx) => (
+                        <div key={idx} className="new-image-item"><span>{file.name}</span><button type="button" className="ab delete small" onClick={() => { setFormEditar(prev => ({ ...prev, imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx) })); }}>Quitar</button></div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nombre</label>
+                  <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Descripción</label>
+                  <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Categoría</label>
+                    <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
+                      <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
+                    </select>
+                  </div>
+                  {/* Tags visuales en edición */}
+                  <div className="form-group">
+                    <label className="form-label">Tags</label>
+                    <div className="current-tags">
+                      {formEditar.tags?.map(tag => (
+                        <span key={tag} className="tag-badge editable">
+                          {tag}
+                          <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formEditar, setFormEditar, tag)}>✕</button>
+                        </span>
+                      ))}
+                      {(!formEditar.tags || formEditar.tags.length === 0) && <span className="no-tags">Sin tags</span>}
+                    </div>
+                    <div className="add-tag-row">
+                      <input type="text" className="form-input" placeholder="Nuevo tag" value={formEditar.newTagInput || ""} onChange={e => setFormEditar(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)} />
+                      <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)}>Agregar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="edit-right">
+                <div className="form-group">
+                  <label className="form-label">Municipio</label>
+                  <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
+                    <option value="">Selecciona</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
+                  <MapPicker key={`${formEditar.latitud}-${formEditar.longitud}`} latitud={formEditar.latitud} longitud={formEditar.longitud} onLocationSelect={handleMapSelectEditar} />
+                  {formEditar.latitud && formEditar.longitud && (
+                    <div className="form-row" style={{ marginTop: "12px" }}>
+                      <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
+                      <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
+              <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GESTIÓN GLOBAL DE TAGS */}
+      {modalTagsOpen && (
+        <div className="overlay" onClick={() => setModalTagsOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Administrar Tags</div>
+              <button className="modal-close" onClick={() => setModalTagsOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="tags-management-list">
+                {tagsList.map(tag => (
+                  <div key={tag.id} className="tag-management-item">
+                    <span className="tag-name">{tag.nombre}</span>
+                    <div className="tag-actions">
+                      <button className="ab edit small" onClick={() => handleEditTag(tag)}>Editar</button>
+                      <button className="ab delete small" onClick={() => handleDeleteTag(tag)}>Eliminar</button>
+                    </div>
                   </div>
                 ))}
+                {tagsList.length === 0 && <div className="empty">No hay tags creados</div>}
               </div>
-            )}
-          </div>
-
-          {/* Resto del formulario (nombre, descripción, categoría, tags) - sin cambios */}
-          <div className="form-group">
-            <label className="form-label">Nombre</label>
-            <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Descripción</label>
-            <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Categoría</label>
-              <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
-                <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
-              </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Tags (separados por coma)</label>
-              <input className="form-input" value={formEditar.tagsInput || ""} onChange={e => setFormEditar({...formEditar, tagsInput: e.target.value})} placeholder="Ej: colonial, museo" />
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setModalTagsOpen(false)}>Cerrar</button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Columna derecha: mapa y municipio (sin cambios) */}
-        <div className="edit-right">
-          <div className="form-group">
-            <label className="form-label">Municipio</label>
-            <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
-              <option value="">Selecciona</option>
-              {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-            <MapPicker
-              key={`${formEditar.latitud}-${formEditar.longitud}`}
-              latitud={formEditar.latitud}
-              longitud={formEditar.longitud}
-              onLocationSelect={handleMapSelectEditar}
-            />
-            {formEditar.latitud && formEditar.longitud && (
-              <div className="form-row" style={{ marginTop: "12px" }}>
-                <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
-                <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
-              </div>
-            )}
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <div className="lightbox-overlay" onClick={closeLightbox}>
+          <div className="lightbox-container" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={closeLightbox}>✕</button>
+            <button className="lightbox-prev" onClick={prevImage}>‹</button>
+            <img className="lightbox-image" src={lightboxImages[lightboxIndex]?.url} alt={lightboxImages[lightboxIndex]?.alt || 'Imagen'} />
+            <button className="lightbox-next" onClick={nextImage}>›</button>
+            <div className="lightbox-counter">{lightboxIndex + 1} / {lightboxImages.length}</div>
           </div>
         </div>
-      </div>
-      <div className="modal-footer">
-        <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</button>
-        <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
-{/* Lightbox / Galería modal */}
-{lightboxOpen && (
-  <div className="lightbox-overlay" onClick={closeLightbox}>
-    <div className="lightbox-container" onClick={(e) => e.stopPropagation()}>
-      <button className="lightbox-close" onClick={closeLightbox}>✕</button>
-      <button className="lightbox-prev" onClick={prevImage}>‹</button>
-      <img
-        className="lightbox-image"
-        src={lightboxImages[lightboxIndex]?.url}
-        alt={lightboxImages[lightboxIndex]?.alt || 'Imagen'}
-      />
-      <button className="lightbox-next" onClick={nextImage}>›</button>
-      <div className="lightbox-counter">
-        {lightboxIndex + 1} / {lightboxImages.length}
-      </div>
-    </div>
-  </div>
-)}
-
-      {/* PÁGINA PRINCIPAL (sin cambios) */}
+      {/* PÁGINA PRINCIPAL */}
       <div className="page">
         <div className="page-header">
           <div className="page-title">Patrimonios</div>
@@ -864,39 +763,13 @@ useEffect(() => {
 
         <div className="card">
           <div className="tbar">
-            <div className="fpill">
-              <select className="fsel" value={filtro.municipio} onChange={e => setFiltro({...filtro, municipio: e.target.value})}>
-                <option value="Todos">Todos</option>
-                {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
-            </div>
-            <div className="fpill">
-              <select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}>
-                <option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Biocultural</option>
-              </select>
-            </div>
-            <div className="fpill">
-              <select className="fsel" value={filtro.estado} onChange={e => setFiltro({...filtro, estado: e.target.value})}>
-                <option value="Todos">Todos</option><option>Pendiente</option><option>Registrado</option>
-              </select>
-            </div>
+            <div className="fpill"><select className="fsel" value={filtro.municipio} onChange={e => setFiltro({...filtro, municipio: e.target.value})}><option value="Todos">Todos</option>{municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select></div>
+            <div className="fpill"><select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}><option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Biocultural</option></select></div>
+            <div className="fpill"><select className="fsel" value={filtro.estado} onChange={e => setFiltro({...filtro, estado: e.target.value})}><option value="Todos">Todos</option><option>Pendiente</option><option>Registrado</option></select></div>
+            <div className="fpill" style={{ flex: '1 1 240px' }}><input type="text" className="fsel" placeholder="Buscar por nombre, descripción, municipio o tag..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '5px 8px' }} /></div>
             <div className="spacer" />
-            <button
-              className="fpill"
-              onClick={descargarExcelPatrimonios}
-              style={{
-                background: 'var(--gray-50)',
-                border: '1.5px solid var(--gray-200)',
-                borderRadius: '20px',
-                padding: '5px 10px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              title="Exportar a Excel">
-              <img src="/xls.png" alt="Exportar Excel" style={{ width: '20px', height: '20px' }} />
-            </button>
+            <button className="fpill" onClick={() => setModalTagsOpen(true)} style={{ background: 'var(--gray-50)', border: '1.5px solid var(--gray-200)', borderRadius: '20px', padding: '5px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🏷️ Gestionar Tags</button>
+            <button className="fpill" onClick={descargarExcelPatrimonios} style={{ background: 'var(--gray-50)', border: '1.5px solid var(--gray-200)', borderRadius: '20px', padding: '5px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} title="Exportar a Excel"><img src="/xls.png" alt="Exportar Excel" style={{ width: '20px', height: '20px' }} /></button>
             <span className="cnt">{filtrados.length} registros</span>
           </div>
           <div className="table-scroll">
@@ -1301,6 +1174,83 @@ const STYLE = `
   font-size: 12px;
   color: var(--gray-700);
 }
+/* Nuevos estilos para badges editables y gestión de tags */
+.current-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tag-badge.editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.remove-tag {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gray-600);
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+}
+.remove-tag:hover {
+  color: var(--red-600);
+}
+.add-tag-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-secondary.small {
+  padding: 5px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.no-tags {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-style: italic;
+}
+
+/* Gestión global de tags */
+.tags-management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.tag-management-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gray-200);
+}
+.tag-name {
+  font-weight: 500;
+  color: var(--gray-900);
+}
+.tag-actions {
+  display: flex;
+  gap: 8px;
+}
+.ab.small {
+  padding: 4px 12px;
+  font-size: 11px;
+  width: auto;
+  height: auto;
+}
+
 .location-coords {
   background: var(--gray-50);
   padding: 12px;
@@ -1445,3 +1395,4 @@ const STYLE = `
   .lightbox-counter { bottom: -30px; }
 }
 `;
+
