@@ -42,36 +42,47 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
       });
 
       if (interactive) {
-        const popupContent = document.createElement("div");
-        popupContent.className = "patrimonio-popup";
+        // Detectar si es dispositivo móvil
+        const isMobile = window.innerWidth <= 768;
 
-        if (item.imagen) {
-          const img = document.createElement("img");
-          img.src = item.imagen;
-          img.alt = item.nombre;
-          img.className = "popup-thumb";
-          img.onerror = () => {
-            img.style.display = "none";
-          };
-          popupContent.appendChild(img);
+        if (isMobile) {
+          // En móvil: navegar directamente al detalle
+          circle.on('click', () => {
+            navigate(`/patrimonio/${item.id}`);
+          });
+        } else {
+          // En desktop: mostrar popup
+          const popupContent = document.createElement("div");
+          popupContent.className = "patrimonio-popup";
+
+          if (item.imagen) {
+            const img = document.createElement("img");
+            img.src = item.imagen;
+            img.alt = item.nombre;
+            img.className = "popup-thumb";
+            img.onerror = () => {
+              img.style.display = "none";
+            };
+            popupContent.appendChild(img);
+          }
+
+          const title = document.createElement("strong");
+          title.textContent = item.nombre;
+          popupContent.appendChild(title);
+          
+          const desc = document.createElement("p");
+          desc.className = "popup-desc";
+          desc.textContent = truncateText(item.descripcion);
+          popupContent.appendChild(desc);
+
+          const button = document.createElement("button");
+          button.className = "popup-cta";
+          button.textContent = "Ver detalles";
+          button.onclick = () => navigate(`/patrimonio/${item.id}`);
+          popupContent.appendChild(button);
+
+          circle.bindPopup(popupContent);
         }
-
-        const title = document.createElement("strong");
-        title.textContent = item.nombre;
-        popupContent.appendChild(title);
-        
-        const desc = document.createElement("p");
-        desc.className = "popup-desc";
-        desc.textContent = truncateText(item.descripcion);
-        popupContent.appendChild(desc);
-
-        const button = document.createElement("button");
-        button.className = "popup-cta";
-        button.textContent = "Ver detalles";
-        button.onclick = () => navigate(`/patrimonio/${item.id}`);
-        popupContent.appendChild(button);
-
-        circle.bindPopup(popupContent);
       }
 
       clusterGroup.addLayer(circle);

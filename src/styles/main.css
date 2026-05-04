@@ -100,7 +100,7 @@ header a{text-decoration:none}
 }
 
 .location-button {
-  padding: 10px 16px; /* El tamaño crece automáticamente según el texto */
+  padding: 10px 16px;
   border-radius: 999px;
   border: 0;
   background: rgba(255, 255, 255, 0.95);
@@ -109,10 +109,10 @@ header a{text-decoration:none}
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px; /* Espacio entre el icono y el texto */
-  font-size: 0.95rem; /* Un poco más pequeño que 1.2rem para que se vea elegante */
-  font-weight: 600; /* Un poco de peso para que resalte */
-  white-space: nowrap; /* Evita que "Mi" y "ubicación" se separen */
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.18s ease, background 0.18s ease;
 }
@@ -121,6 +121,13 @@ header a{text-decoration:none}
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 1);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Ocultar botón de ubicación en móviles */
+@media (max-width: 768px) {
+  .location-button-container {
+    display: none;
+  }
 }
 
 /* Map marker glow */
@@ -143,9 +150,30 @@ header a{text-decoration:none}
 .popup-cta:hover{transform:translateY(-2px)}
 
 /* Popup content (Leaflet) */
-.patrimonio-popup .popup-thumb{width:100%;height:auto;border-radius:10px;margin-bottom:0.6rem;display:block}
+.patrimonio-popup .popup-thumb{width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:0.6rem;display:block}
 .patrimonio-popup .popup-desc{margin:0.45rem 0 0.75rem;color:var(--muted);font-size:0.95rem;line-height:1.4}
-.leaflet-popup-content-wrapper{max-width:320px}
+.leaflet-popup-content-wrapper{max-width:320px;max-height:480px;overflow-y:auto}
+.leaflet-popup-content{padding:0.75rem !important}
+.patrimonio-popup strong{display:block;font-size:1rem;color:var(--green-700);margin-bottom:0.5rem;line-height:1.3;word-break:break-word}
+
+/* Mobile popup adjustments */
+@media (max-width: 640px) {
+  .leaflet-popup-content-wrapper{max-width:280px;max-height:420px}
+  .patrimonio-popup .popup-thumb{height:140px}
+  .patrimonio-popup .popup-desc{font-size:0.9rem;margin:0.3rem 0 0.5rem}
+  .leaflet-popup-content{padding:0.6rem !important}
+  .patrimonio-popup strong{font-size:0.95rem;margin-bottom:0.3rem}
+  .popup-cta{padding:6px 10px;font-size:0.85rem;margin-top:6px}
+}
+
+@media (max-width: 480px) {
+  .leaflet-popup-content-wrapper{max-width:240px;max-height:380px}
+  .patrimonio-popup .popup-thumb{height:120px;margin-bottom:0.4rem}
+  .patrimonio-popup .popup-desc{font-size:0.85rem;margin:0.2rem 0 0.4rem;line-height:1.3}
+  .leaflet-popup-content{padding:0.5rem !important}
+  .patrimonio-popup strong{font-size:0.9rem;margin-bottom:0.25rem}
+  .popup-cta{padding:5px 8px;font-size:0.8rem;margin-top:4px}
+}
 
 /* Detail & content helpers */
 .page-inner{max-width:900px;margin:0 auto}
@@ -397,7 +425,7 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
     max-height: 350px;
   }
   .contacto-grid{grid-template-columns:1fr}
-  .map-wrapper{height:380px}
+  .map-wrapper{height:480px}
   .contacto-container{padding:1.5rem}
   .detail-layout{grid-template-columns:1fr}
   .detail-map{height:280px}
@@ -416,7 +444,7 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   .logo .mark{width:40px;height:40px;font-size:0.9rem}
   .hero-title{font-size:1.8rem}
   .hero-sub{font-size:0.95rem;margin:0 auto 1.25rem}
-  .map-wrapper{height:340px}
+  .map-wrapper{height:400px}
   .page-hero{padding:1.75rem 0}
 }
 
@@ -431,7 +459,7 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   .feature-icon{width:40px;height:40px;font-size:0.95rem}
   .feature-title{font-size:0.95rem}
   .feature-desc{font-size:0.88rem}
-  .map-wrapper{height:300px;margin:0 auto 1rem}
+  .map-wrapper{height:380px;margin:0 auto 1rem}
   .contacto-container{padding:1rem}
   .contacto-title{font-size:1.8rem;margin-bottom:1rem}
   .contacto-grid{gap:1rem}
