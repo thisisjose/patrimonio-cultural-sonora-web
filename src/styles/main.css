@@ -362,6 +362,9 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
 @media (max-width:980px){
   .features-grid{gap:0.8rem}
   .feature-card{padding:1rem}
+  .patrimonio-search-input {
+    min-width: 240px;
+  }
 }
 
 @media (max-width:900px){
@@ -377,6 +380,22 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   .features-grid{margin:0 auto 1.5rem;grid-template-columns:1fr;gap:0.75rem}
   .feature-card{padding:1rem}
   .feature-card:hover{transform:translateY(-4px)}
+  .municipio-selector-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-box-container,
+  .municipio-selector-content > div {
+    width: 100%;
+  }
+  .patrimonio-search-input,
+  .municipio-select-main {
+    width: 100%;
+    min-width: unset;
+  }
+  .search-results-dropdown {
+    max-height: 350px;
+  }
   .contacto-grid{grid-template-columns:1fr}
   .map-wrapper{height:380px}
   .contacto-container{padding:1.5rem}
@@ -490,6 +509,168 @@ footer{padding:1.75rem 0;background:transparent;color:var(--muted);text-align:ce
   padding:0.5rem;
   color:#111;
   background:#fff;
+}
+
+/* Search box styles */
+.search-box-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.search-box-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.patrimonio-search-input {
+  min-width: 280px;
+  padding: 0.8rem 2.8rem 0.8rem 1.2rem;
+  border-radius: 8px;
+  border: 2px solid var(--green-500);
+  background: var(--card);
+  color: #111;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(15, 61, 41, 0.08);
+  transition: all 0.2s ease;
+}
+
+.patrimonio-search-input:hover {
+  border-color: var(--green-700);
+  box-shadow: 0 4px 12px rgba(15, 61, 41, 0.12);
+}
+
+.patrimonio-search-input:focus {
+  outline: none;
+  border-color: var(--green-700);
+  box-shadow: 0 4px 12px rgba(15, 61, 41, 0.15);
+}
+
+.patrimonio-search-input::placeholder {
+  color: #999;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.8rem;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.search-clear-btn:hover {
+  color: var(--green-700);
+}
+
+.search-results-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--green-500);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 24px rgba(15, 61, 41, 0.15);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1001;
+}
+
+.search-result-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid rgba(15, 61, 41, 0.06);
+}
+
+.search-result-item:hover {
+  background: rgba(15, 61, 41, 0.04);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #eee, #ddd);
+}
+
+.result-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  font-weight: 600;
+  color: var(--green-700);
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-category {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.result-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #fff;
+}
+
+.result-badge.material {
+  background: rgba(231, 76, 60, 0.8);
+}
+
+.result-badge.inmaterial {
+  background: rgba(52, 152, 219, 0.8);
+}
+
+.result-badge.biocultural {
+  background: rgba(39, 174, 96, 0.8);
+}
+
+.search-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  border: 1px solid var(--green-500);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: rgba(15, 61, 41, 0.02);
 }
 
 .muted{color:var(--muted)}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
@@ -7,12 +7,17 @@ import infoIcon from "../Icons/info.png";
 import { getPatrimonios, getMunicipios } from "../services/patrimonioService";
 
 function Home() {
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
   const [searchParams] = useSearchParams();
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [todosPatrimonios, setTodosPatrimonios] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
+  const [mostrarResultados, setMostrarResultados] = useState(false);
 
   const API_BASE = "http://localhost:3000";
 
@@ -74,6 +79,43 @@ function Home() {
     setPatrimonios(filtered);
   }, [categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
 
+  // Manejar búsqueda en tiempo real
+  useEffect(() => {
+    if (busqueda.trim() === "") {
+      setResultadosBusqueda([]);
+      setMostrarResultados(false);
+      return;
+    }
+
+    const termino = busqueda.toLowerCase();
+    const resultados = todosPatrimonios.filter((item) =>
+      item.nombre.toLowerCase().includes(termino) ||
+      (item.descripcion && item.descripcion.toLowerCase().includes(termino))
+    );
+
+    setResultadosBusqueda(resultados);
+    setMostrarResultados(true);
+  }, [busqueda, todosPatrimonios]);
+
+  // Cerrar resultados cuando se hace click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(e.target)) {
+        setMostrarResultados(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Manejar navegación a detalle desde búsqueda
+  const handleSelectResultado = (id) => {
+    setBusqueda("");
+    setMostrarResultados(false);
+    navigate(`/patrimonio/${id}`);
+  };
+
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
 
@@ -122,6 +164,69 @@ function Home() {
 
       <div className="municipio-selector-wrapper">
         <div className="municipio-selector-content">
+          <div className="search-box-container" ref={searchInputRef}>
+            <div className="filter-header">
+              <span className="filter-label">Buscar patrimonio</span>
+            </div>
+            <div className="search-box-input-wrapper">
+              <input
+                type="text"
+                placeholder="Escribe el nombre..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onFocus={() => busqueda.trim() !== "" && setMostrarResultados(true)}
+                className="patrimonio-search-input"
+              />
+              {busqueda && (
+                <button
+                  className="search-clear-btn"
+                  onClick={() => {
+                    setBusqueda("");
+                    setMostrarResultados(false);
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            
+            {mostrarResultados && resultadosBusqueda.length > 0 && (
+              <div className="search-results-dropdown">
+                {resultadosBusqueda.map((item) => (
+                  <div
+                    key={item.id}
+                    className="search-result-item"
+                    onClick={() => handleSelectResultado(item.id)}
+                  >
+                    <div className="result-image">
+                      <img
+                        src={item.imagen}
+                        alt={item.nombre}
+                        onError={(e) => {
+                          e.target.src = "https://placehold.co/50x50?text=Sin+img";
+                        }}
+                      />
+                    </div>
+                    <div className="result-content">
+                      <div className="result-name">{item.nombre}</div>
+                      <div className="result-category">
+                        <span className={`result-badge ${String(item.categoria).toLowerCase()}`}>
+                          {item.categoria}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {mostrarResultados && busqueda.trim() !== "" && resultadosBusqueda.length === 0 && (
+              <div className="search-no-results">
+                No se encontraron patrimonios
+              </div>
+            )}
+          </div>
+
           <div>
             <div className="filter-header">
               <span className="filter-label">Filtrar por municipio</span>
