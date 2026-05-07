@@ -274,10 +274,6 @@ function Home() {
         <div className="popular-row">
           {todosPatrimonios.slice(0, 6).map((item) => (
             <article key={item.id} className="popular-card">
-              <div className="popular-content">
-                <h3 className="popular-name">{item.nombre}</h3>
-                <p className="popular-meta">{item.descripcion}</p>
-              </div>
               <div className="popular-thumb">
                 <img 
                   src={item.imagen} 
@@ -287,6 +283,9 @@ function Home() {
                   }}
                 />
                 <span className={`category-badge popular-badge ${showCategoryClass(item.categoria)}`}>{item.categoria}</span>
+              </div>
+              <div className="popular-content">
+                <h3 className="popular-name">{item.nombre}</h3>
               </div>
             </article>
           ))}
