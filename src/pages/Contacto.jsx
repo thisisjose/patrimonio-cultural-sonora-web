@@ -1,10 +1,11 @@
 import ubicacionIcon from "../Icons/ubicaciontelefono.png";
 import emailIcon from "../Icons/gmailcirculo.png";
 import telefonoIcon from "../Icons/telefonocirculo.png";
+import "../styles/pages/Contacto.css";
 
 function Contacto() {
   return (
-    <section className="contacto-container">
+    <section className="contacto-page contacto-container">
       <h1 className="hero-title" style={{ textAlign: 'center' }}>Contáctanos</h1>
 
       <div className="contacto-grid">

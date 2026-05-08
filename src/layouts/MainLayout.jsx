@@ -19,7 +19,7 @@ function MainLayout() {
 
           <nav className="nav-links" role="navigation" aria-label="Main">
             <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end>
-              Mapa
+              Inicio
             </NavLink>
             <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Acerca

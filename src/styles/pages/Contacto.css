@@ -1,0 +1,128 @@
+/* Estilos de la página Contacto */
+.contacto-page {
+  padding: 2rem 0;
+}
+
+.contacto-container {
+  max-width: 980px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 2rem;
+}
+
+.contacto-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.contacto-card {
+  border-radius: 18px;
+  background: rgba(244,249,245,0.92);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contacto-title {
+  font-size: 2rem;
+  color: var(--green-700);
+  margin-bottom: 0.25rem;
+}
+
+.contacto-text {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.contacto-details {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.contacto-detail {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.contacto-detail strong {
+  display: inline-block;
+  min-width: 90px;
+  color: var(--green-700);
+}
+
+.contacto-detail span {
+  color: #3d523f;
+}
+
+.contacto-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contacto-form label {
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.contacto-form input,
+.contacto-form textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(15,61,41,0.17);
+  background: #fff;
+  padding: 0.95rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: #111;
+}
+
+.contacto-form textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.contacto-form button {
+  align-self: flex-start;
+  padding: 0.95rem 1.4rem;
+  background: var(--green-500);
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+
+.contacto-form button:hover {
+  background: var(--green-700);
+}
+
+.contacto-phone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.contacto-phone strong {
+  color: var(--green-700);
+}
+
+@media (max-width: 768px) {
+  .contacto-grid { grid-template-columns: 1fr; }
+  .contacto-container { padding: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .contacto-page { padding: 1.25rem 0; }
+  .contacto-container { padding: 1.1rem; }
+  .contacto-title { font-size: 1.75rem; }
+}

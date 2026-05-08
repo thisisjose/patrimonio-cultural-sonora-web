@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
+import "../styles/pages/Detail.css";
 import { getPatrimonioById, getMunicipios, getPatrimonios } from "../services/patrimonioService";
 
 const API_BASE = "http://localhost:3000";
@@ -48,11 +49,59 @@ const buildImageList = (item) => {
   return list;
 };
 
-function normalizePatrimonioData(item) {
+const parseUbicaciones = (ubicaciones) => {
+  if (!ubicaciones) return [];
+  if (typeof ubicaciones === "string") {
+    try {
+      const parsed = JSON.parse(ubicaciones);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(ubicaciones) ? ubicaciones : [];
+};
+
+const normalizeLocation = (ubi) => ({
+  ...ubi,
+  lat: ubi.latitud ?? ubi.lat ?? null,
+  lng: ubi.longitud ?? ubi.lng ?? null,
+  nombre_punto: ubi.nombre_punto || ubi.nombre || ubi.label || "",
+  municipio: ubi.municipio || ubi.municipioId || "",
+});
+
+const buildLocationList = (item) => {
+  const rawLocations = parseUbicaciones(item.ubicaciones);
+  const locations = rawLocations
+    .map(normalizeLocation)
+    .filter((loc) => loc.lat != null && loc.lng != null);
+
+  if (locations.length > 0) {
+    return locations;
+  }
+
+  const lat = item.latitud ?? item.lat ?? null;
+  const lng = item.longitud ?? item.lng ?? null;
+  if (lat != null && lng != null) {
+    return [{
+      lat,
+      lng,
+      nombre_punto: item.nombre || "Ubicación",
+      municipio: item.municipio || item.municipioId || "",
+    }];
+  }
+
+  return [];
+};
+
+const normalizePatrimonioData = (item) => {
+  const ubicaciones = buildLocationList(item);
+
   return {
     ...item,
-    lat: item.latitud ?? item.lat ?? null,
-    lng: item.longitud ?? item.lng ?? null,
+    ubicaciones,
+    lat: ubicaciones[0]?.lat ?? item.latitud ?? item.lat ?? null,
+    lng: ubicaciones[0]?.lng ?? item.longitud ?? item.lng ?? null,
     imagen: normalizeImage(item.imagen_url || item.imagen || item.portada) || "https://placehold.co/600x400?text=Sin+imagen",
     tags: Array.isArray(item.tags) ? item.tags : item.tags ? [item.tags] : [],
     galeria: Array.isArray(item.galeria)
@@ -63,7 +112,7 @@ function normalizePatrimonioData(item) {
       ? item.imagenes
       : [],
   };
-}
+};
 
 // Función para convertir imagen URL a base64
 const urlToBase64 = async (url) => {
@@ -199,15 +248,24 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
   const images = useMemo(() => buildImageList(item), [item]);
 
   const tags = Array.isArray(item.tags) ? item.tags : [];
+  const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
+  const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
+
   const formatTag = (tag) => {
     if (typeof tag === "string") return tag;
     if (tag && typeof tag.nombre === "string") return tag.nombre;
     return String(tag ?? "");
   };
 
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${item.lat},${item.lng}`
-  )}`;
+  const formatCoordinate = (value) => {
+    if (typeof value === "number") return value.toFixed(5);
+    if (value == null || value === "") return "";
+    return String(value);
+  };
+
+  const googleMapsUrl = mainLocation.lat != null && mainLocation.lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
+    : null;
 
   const prevImage = () => {
     setCurrentImageIndex((current) => (current - 1 + images.length) % images.length);
@@ -311,27 +369,53 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           <div className="detail-map">
             <MapView
               patrimonios={[item]}
-              center={[item.lat, item.lng]}
+              center={[mainLocation.lat ?? 29.0729, mainLocation.lng ?? -110.9559]}
               zoom={15}
               interactive={false}
             />
           </div>
-          <a
+          {ubicaciones.length > 0 && (
+            <div className="detail-location-list">
+              <h3 className="section-subtitle">Ubicaciones</h3>
+              <ul>
+                {ubicaciones.map((ubi, index) => (
+                  <li key={`${ubi.lat}-${ubi.lng}-${index}`} className="location-item">
+                    <div className="location-name">
+                      {ubi.nombre_punto || `Ubicación ${index + 1}`}
+                    </div>
+                    <div className="location-meta">
+                      {ubi.municipio || municipioNombre}
+                      {ubi.lat != null && ubi.lng != null && (
+                        <span>
+                          {ubi.municipio || municipioNombre ? " · " : ""}
+                          {formatCoordinate(ubi.lat)}, {formatCoordinate(ubi.lng)}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {googleMapsUrl && (
+            <a
+              className="detail-map-link"
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Abrir en Google Maps
+            </a>
+          )}
+          <button
             className="detail-map-link"
-            href={googleMapsUrl}
-            target="_blank"
-            rel="noreferrer noopener"
+            type="button"
+            onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
+            aria-label="Descargar información en PDF"
+            title="Descargar información del patrimonio"
           >
-            Abrir en Google Maps
-          </a>
-         <a
-          className="detail-map-link"
-          onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
-          aria-label="Descargar información en PDF"
-          title="Descargar información del patrimonio"
-        >
-          Descargar PDF
-        </a>
+            Descargar PDF
+          </button>
         </aside>
       </div>
 

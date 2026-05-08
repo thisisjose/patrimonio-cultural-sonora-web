@@ -1,6 +1,8 @@
+import "../styles/pages/Acerca.css";
+
 function Acerca() {
   return (
-    <section className="page-inner">
+    <section className="page-inner acerca-page">
       <h1 className="hero-title" style={{ textAlign: 'center' }}>Acerca del proyecto</h1>
 
       <div className="card" style={{ marginTop: '1rem' }}>

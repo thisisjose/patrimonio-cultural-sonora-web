@@ -1,0 +1,49 @@
+/* Estilos de la página Acerca */
+.acerca-page {
+  padding: 2rem 0;
+}
+
+.acerca-content {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.75rem;
+  line-height: 1.7;
+  color: #2f3f31;
+}
+
+.acerca-section {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow);
+}
+
+.acerca-section h2,
+.acerca-section h3 {
+  color: var(--green-700);
+  margin-top: 0;
+}
+
+.acerca-text {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.acerca-list {
+  margin: 1rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.acerca-item {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .acerca-content { padding: 0 1rem; }
+}
+
+@media (max-width: 480px) {
+  .acerca-page { padding: 1.5rem 0; }
+  .acerca-section { padding: 1.25rem; }
+}

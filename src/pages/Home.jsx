@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
+import "../styles/pages/Home.css";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
@@ -21,6 +22,48 @@ function Home() {
 
   const API_BASE = "http://localhost:3000";
 
+  const parseUbicaciones = (ubicaciones) => {
+    if (!ubicaciones) return [];
+    if (typeof ubicaciones === "string") {
+      try {
+        const parsed = JSON.parse(ubicaciones);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(ubicaciones) ? ubicaciones : [];
+  };
+
+  const normalizePatrimonioItem = (item) => {
+    const ubicaciones = parseUbicaciones(item.ubicaciones)
+      .map((ubi) => ({
+        ...ubi,
+        latitud: ubi.latitud ?? ubi.lat ?? null,
+        longitud: ubi.longitud ?? ubi.lng ?? null,
+        nombre_punto: ubi.nombre_punto || ubi.nombre || "",
+      }))
+      .filter((ubi) => ubi.latitud != null && ubi.longitud != null);
+
+    const primeraUbicacion = ubicaciones[0];
+    const lat = item.latitud ?? item.lat ?? primeraUbicacion?.latitud ?? null;
+    const lng = item.longitud ?? item.lng ?? primeraUbicacion?.longitud ?? null;
+
+    const imagen = item.imagen_url
+      ? item.imagen_url.startsWith("http")
+        ? item.imagen_url
+        : `${API_BASE}${item.imagen_url}`
+      : "https://placehold.co/600x400?text=Sin+imagen";
+
+    return {
+      ...item,
+      ubicaciones,
+      lat,
+      lng,
+      imagen,
+    };
+  };
+
   // Cargar municipios y todos los patrimonios al montar el componente
   useEffect(() => {
     const cargarDatos = async () => {
@@ -35,17 +78,7 @@ function Home() {
         }
 
         if (Array.isArray(patrimoniosData)) {
-          // Procesar patrimonios igual que en Dashboard
-          const procesados = patrimoniosData.map((item) => ({
-            ...item,
-            lat: item.latitud,
-            lng: item.longitud,
-            imagen: item.imagen_url
-              ? item.imagen_url.startsWith("http")
-                ? item.imagen_url
-                : `${API_BASE}${item.imagen_url}`
-              : "https://placehold.co/600x400?text=Sin+imagen",
-          }));
+          const procesados = patrimoniosData.map((item) => normalizePatrimonioItem(item));
           setTodosPatrimonios(procesados);
         }
       } catch (error) {

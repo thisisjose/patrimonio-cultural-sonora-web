@@ -1,7 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import "./styles/main.css";
+import "./styles/base/reset.css";
+import "./styles/base/variables.css";
+import "./styles/base/global.css";
+import "./styles/layouts/MainLayout.css";
+import "./styles/components/MapView.css";
 import "leaflet/dist/leaflet.css";
 
 

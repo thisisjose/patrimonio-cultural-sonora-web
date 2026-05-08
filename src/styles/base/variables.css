@@ -1,0 +1,16 @@
+/* Variables globales */
+:root {
+  --bg: #e9f1ea;
+  --card: #ffffff;
+  --muted: #6b6b6b;
+  --green-700: #0f3d29;
+  --green-500: #1a5f3e;
+  --accent: #d89b3a;
+  --glass: rgba(255,255,255,0.6);
+  --shadow: 0 10px 30px rgba(15,61,41,0.06);
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-heading: 'Playfair Display', serif;
+  --radius-base: 12px;
+  --radius-xl: 18px;
+  --transition-base: 0.18s ease;
+}

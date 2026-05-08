@@ -19,6 +19,36 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const parseUbicaciones = (ubicaciones) => {
+  if (!ubicaciones) return [];
+  if (typeof ubicaciones === "string") {
+    try {
+      const parsed = JSON.parse(ubicaciones);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(ubicaciones) ? ubicaciones : [];
+};
+
+const getItemLocations = (item) => {
+  const ubicaciones = parseUbicaciones(item.ubicaciones).map((ubi) => ({
+    lat: ubi.latitud ?? ubi.lat ?? null,
+    lng: ubi.longitud ?? ubi.lng ?? null,
+    label: ubi.nombre_punto || ubi.nombre || ubi.label || "",
+    data: ubi,
+  })).filter((loc) => loc.lat != null && loc.lng != null);
+
+  if (ubicaciones.length > 0) {
+    return ubicaciones;
+  }
+
+  const lat = item.latitud ?? item.lat ?? null;
+  const lng = item.longitud ?? item.lng ?? null;
+  return lat != null && lng != null ? [{ lat, lng, label: "", data: item }] : [];
+};
+
 function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, interactive }) {
   const map = useMap();
 
@@ -32,60 +62,68 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
     });
 
     patrimonios.forEach((item) => {
-      const circle = L.circleMarker([item.lat, item.lng], {
-        radius: 9,
-        color: "#fff",
-        fillColor: getCircleColor(item.categoria),
-        fillOpacity: 0.95,
-        weight: 2,
-        interactive,
-      });
+      const locations = getItemLocations(item);
+      locations.forEach((location) => {
+        const circle = L.circleMarker([location.lat, location.lng], {
+          radius: 9,
+          color: "#fff",
+          fillColor: getCircleColor(item.categoria),
+          fillOpacity: 0.95,
+          weight: 2,
+          interactive,
+        });
 
-      if (interactive) {
-        // Detectar si es dispositivo móvil
-        const isMobile = window.innerWidth <= 768;
+        if (interactive) {
+          const markerTitle = location.label ? `${item.nombre} — ${location.label}` : item.nombre;
+          const isMobile = window.innerWidth <= 768;
 
-        if (isMobile) {
-          // En móvil: navegar directamente al detalle
-          circle.on('click', () => {
-            navigate(`/patrimonio/${item.id}`);
-          });
-        } else {
-          // En desktop: mostrar popup
-          const popupContent = document.createElement("div");
-          popupContent.className = "patrimonio-popup";
+          if (isMobile) {
+            circle.on("click", () => {
+              navigate(`/patrimonio/${item.id}`);
+            });
+          } else {
+            const popupContent = document.createElement("div");
+            popupContent.className = "patrimonio-popup";
 
-          if (item.imagen) {
-            const img = document.createElement("img");
-            img.src = item.imagen;
-            img.alt = item.nombre;
-            img.className = "popup-thumb";
-            img.onerror = () => {
-              img.style.display = "none";
-            };
-            popupContent.appendChild(img);
+            if (item.imagen) {
+              const img = document.createElement("img");
+              img.src = item.imagen;
+              img.alt = item.nombre;
+              img.className = "popup-thumb";
+              img.onerror = () => {
+                img.style.display = "none";
+              };
+              popupContent.appendChild(img);
+            }
+
+            const title = document.createElement("strong");
+            title.textContent = markerTitle;
+            popupContent.appendChild(title);
+
+            if (location.label) {
+              const subtitle = document.createElement("div");
+              subtitle.className = "popup-location-label";
+              subtitle.textContent = location.label;
+              popupContent.appendChild(subtitle);
+            }
+
+            const desc = document.createElement("p");
+            desc.className = "popup-desc";
+            desc.textContent = truncateText(item.descripcion);
+            popupContent.appendChild(desc);
+
+            const button = document.createElement("button");
+            button.className = "popup-cta";
+            button.textContent = "Ver detalles";
+            button.onclick = () => navigate(`/patrimonio/${item.id}`);
+            popupContent.appendChild(button);
+
+            circle.bindPopup(popupContent);
           }
-
-          const title = document.createElement("strong");
-          title.textContent = item.nombre;
-          popupContent.appendChild(title);
-          
-          const desc = document.createElement("p");
-          desc.className = "popup-desc";
-          desc.textContent = truncateText(item.descripcion);
-          popupContent.appendChild(desc);
-
-          const button = document.createElement("button");
-          button.className = "popup-cta";
-          button.textContent = "Ver detalles";
-          button.onclick = () => navigate(`/patrimonio/${item.id}`);
-          popupContent.appendChild(button);
-
-          circle.bindPopup(popupContent);
         }
-      }
 
-      clusterGroup.addLayer(circle);
+        clusterGroup.addLayer(circle);
+      });
     });
 
     map.addLayer(clusterGroup);

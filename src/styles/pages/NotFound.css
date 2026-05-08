@@ -1,0 +1,68 @@
+/* Estilos de la página NotFound */
+.notfound-page {
+  padding: 2rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 150px);
+}
+
+.notfound-card {
+  max-width: 760px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 24px;
+  padding: 2rem 2.5rem;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.notfound-title {
+  font-size: 3rem;
+  margin: 0 0 0.8rem;
+  color: var(--green-700);
+}
+
+.notfound-text {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.75;
+}
+
+.notfound-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.notfound-actions a,
+.notfound-actions button {
+  padding: 0.95rem 1.5rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--green-500);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.notfound-actions a:hover,
+.notfound-actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(15,61,41,0.14);
+}
+
+@media (max-width: 768px) {
+  .notfound-card { padding: 1.6rem 1.8rem; }
+  .notfound-title { font-size: 2.4rem; }
+}
+
+@media (max-width: 480px) {
+  .notfound-page { min-height: auto; padding: 1.5rem 0; }
+  .notfound-card { padding: 1.25rem 1rem; }
+  .notfound-title { font-size: 2rem; }
+  .notfound-text { font-size: 1rem; }
+}
