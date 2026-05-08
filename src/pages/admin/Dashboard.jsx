@@ -12,7 +12,7 @@ import {
 } from "../../services/patrimonioService";
 
 // ----- Importaciones para el mapa -----
-import { MapContainer, TileLayer, useMapEvents, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -23,23 +23,24 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function MapPicker({ latitud, longitud, onLocationSelect }) {
-  const [position, setPosition] = useState(() => {
-    if (latitud && longitud) {
-      return { lat: parseFloat(latitud), lng: parseFloat(longitud) };
-    }
-    return { lat: 29.0729, lng: -110.9559 };
-  });
+// Componente Mapa: permite agregar puntos al hacer clic y muestra los puntos existentes
+function MapPicker({ ubicaciones = [], onLocationAdd }) {
+  // Determinar el centro del mapa: si hay ubicaciones, usa la primera; si no, usa un centro por defecto
+  const defaultCenter = ubicaciones.length > 0
+    ? [ubicaciones[0].latitud, ubicaciones[0].longitud]
+    : [29.0729, -110.9559];
 
   const handleClick = (e) => {
-    const newPos = { lat: e.latlng.lat, lng: e.latlng.lng };
-    setPosition(newPos);
-    onLocationSelect(newPos);
+    const { lat, lng } = e.latlng;
+    const nombre = window.prompt("Nombre opcional para este punto (ej: Entrada principal)", "");
+    if (nombre !== null) { // Si el usuario cancela no se agrega
+      onLocationAdd({ lat, lng }, nombre || "");
+    }
   };
 
   return (
     <MapContainer
-      center={[position.lat, position.lng]}
+      center={defaultCenter}
       zoom={13}
       style={{ height: "300px", width: "100%", borderRadius: "var(--radius-sm)", zIndex: 0 }}
     >
@@ -48,7 +49,15 @@ function MapPicker({ latitud, longitud, onLocationSelect }) {
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
       />
       <MapClickHandler onClick={handleClick} />
-      <Marker position={[position.lat, position.lng]} />
+      {/* Mostrar todos los marcadores de las ubicaciones */}
+      {ubicaciones.map((ubi, idx) => (
+        <Marker key={idx} position={[ubi.latitud, ubi.longitud]}>
+          <Popup>
+            {ubi.nombre_punto || "Sin nombre"}<br />
+            {ubi.es_principal && <strong>📍 Principal</strong>}
+          </Popup>
+        </Marker>
+      ))}
     </MapContainer>
   );
 }
@@ -58,10 +67,37 @@ function MapClickHandler({ onClick }) {
   return null;
 }
 
+// Componente para mostrar un mapa estático (solo lectura) en el modal Ver
+function StaticMap({ ubicaciones }) {
+  const center = ubicaciones.length > 0
+    ? [ubicaciones[0].latitud, ubicaciones[0].longitud]
+    : [29.0729, -110.9559];
+
+  return (
+    <MapContainer
+      center={center}
+      zoom={13}
+      style={{ height: "250px", width: "100%", borderRadius: "var(--radius-sm)", marginTop: "12px" }}
+      zoomControl={false}
+      dragging={false}
+      touchZoom={false}
+      doubleClickZoom={false}
+      scrollWheelZoom={false}
+    >
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" />
+      {ubicaciones.map((ubi, idx) => (
+        <Marker key={idx} position={[ubi.latitud, ubi.longitud]}>
+          <Popup>{ubi.nombre_punto || "Punto"}</Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
+}
+
 export default function AdminDashboard() {
   const [patrimonios, setPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
-  const [tagsList, setTagsList] = useState([]); // Lista global de tags
+  const [tagsList, setTagsList] = useState([]);
 
   const [filtro, setFiltro] = useState({
     municipio: "Todos",
@@ -73,8 +109,18 @@ export default function AdminDashboard() {
   const [modalVer, setModalVer] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
   const [formEditar, setFormEditar] = useState({
-    tags: [],           // Array de strings (nombres de tags)
-    newTagInput: "",    // Input para agregar tag
+    id: null,
+    nombre: "",
+    municipioId: "",
+    categoria: "Material",
+    descripcion: "",
+    ubicaciones: [],      // array de objetos { nombre_punto, latitud, longitud, es_principal }
+    tags: [],
+    newTagInput: "",
+    portadaFile: null,
+    imagenesFiles: [],
+    galeriaActual: [],
+    imagenesAEliminar: [],
   });
 
   const [modalNuevo, setModalNuevo] = useState(false);
@@ -83,16 +129,14 @@ export default function AdminDashboard() {
     municipioId: "",
     categoria: "Material",
     descripcion: "",
-    latitud: "",
-    longitud: "",
-    tags: [],           // Array de strings
-    newTagInput: "",    // Input para agregar tag
+    ubicaciones: [],
+    tags: [],
+    newTagInput: "",
     portadaFile: null,
     imagenesFiles: [],
   });
 
-  const [modalTagsOpen, setModalTagsOpen] = useState(false); // Modal de gestión global de tags
-
+  const [modalTagsOpen, setModalTagsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -105,7 +149,7 @@ export default function AdminDashboard() {
     return map;
   }, [municipios]);
 
-  // Cargar patrimonios, municipios y tags
+  // Cargar datos iniciales
   const cargarDatos = async () => {
     try {
       setLoading(true);
@@ -137,7 +181,7 @@ export default function AdminDashboard() {
     if (nuevoNombre && nuevoNombre.trim() !== tag.nombre) {
       try {
         await updateTag(tag.id, nuevoNombre.trim());
-        await cargarDatos(); // refresca todo
+        await cargarDatos();
       } catch (err) {
         console.error(err);
         alert("Error al actualizar el tag.");
@@ -161,7 +205,6 @@ export default function AdminDashboard() {
   const cerrarVer = () => setModalVer(null);
 
   const abrirEditar = (item) => {
-    // Convertir tags a array de strings
     const tagsActuales = (item.tags || []).map(t => typeof t === 'object' ? t.nombre : t);
     setFormEditar({
       id: item.id,
@@ -169,8 +212,7 @@ export default function AdminDashboard() {
       municipioId: item.municipioId,
       categoria: item.categoria,
       descripcion: item.descripcion,
-      latitud: item.latitud,
-      longitud: item.longitud,
+      ubicaciones: item.ubicaciones || [],
       tags: tagsActuales,
       newTagInput: "",
       portadaFile: null,
@@ -186,7 +228,7 @@ export default function AdminDashboard() {
     setFormEditar({});
   };
 
-  // Helper para agregar/quitar tags en formularios
+  // Helper para agregar/quitar tags
   const addTagToForm = (form, setForm, tagNombre) => {
     const nuevo = tagNombre.trim().toLowerCase();
     if (nuevo && !form.tags.includes(nuevo)) {
@@ -196,6 +238,41 @@ export default function AdminDashboard() {
 
   const removeTagFromForm = (form, setForm, tagNombre) => {
     setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagNombre) }));
+  };
+
+  // Funciones para manejar ubicaciones
+  const agregarUbicacion = (form, setForm, coords, nombrePunto = "") => {
+    const nuevasUbicaciones = [...form.ubicaciones];
+    const esPrincipal = nuevasUbicaciones.length === 0;
+    nuevasUbicaciones.push({
+      nombre_punto: nombrePunto,
+      latitud: coords.lat,
+      longitud: coords.lng,
+      es_principal: esPrincipal,
+    });
+    setForm(prev => ({ ...prev, ubicaciones: nuevasUbicaciones }));
+  };
+
+  const eliminarUbicacion = (form, setForm, index) => {
+    const nuevas = form.ubicaciones.filter((_, i) => i !== index);
+    if (nuevas.length > 0 && !nuevas.some(u => u.es_principal)) {
+      nuevas[0].es_principal = true;
+    }
+    setForm(prev => ({ ...prev, ubicaciones: nuevas }));
+  };
+
+  const actualizarNombreUbicacion = (form, setForm, index, nuevoNombre) => {
+    const nuevas = [...form.ubicaciones];
+    nuevas[index].nombre_punto = nuevoNombre;
+    setForm(prev => ({ ...prev, ubicaciones: nuevas }));
+  };
+
+  const marcarPrincipal = (form, setForm, index) => {
+    const nuevas = form.ubicaciones.map((ubi, i) => ({
+      ...ubi,
+      es_principal: i === index,
+    }));
+    setForm(prev => ({ ...prev, ubicaciones: nuevas }));
   };
 
   // Manejadores para creación
@@ -224,14 +301,10 @@ export default function AdminDashboard() {
       formData.append("nombre", formNuevo.nombre);
       formData.append("categoria", formNuevo.categoria);
       formData.append("descripcion", formNuevo.descripcion);
-      formData.append("latitud", formNuevo.latitud);
-      formData.append("longitud", formNuevo.longitud);
       formData.append("municipioId", formNuevo.municipioId);
+      formData.append("ubicaciones", JSON.stringify(formNuevo.ubicaciones));
       if (formNuevo.portadaFile) formData.append("portada", formNuevo.portadaFile);
-      formNuevo.imagenesFiles.forEach(file => {
-        formData.append("imagenes", file);
-      });
-      // Tags como array
+      formNuevo.imagenesFiles.forEach(file => formData.append("imagenes", file));
       formNuevo.tags.forEach(tag => formData.append("tags[]", tag));
       await createPatrimonio(formData);
       setModalNuevo(false);
@@ -240,8 +313,7 @@ export default function AdminDashboard() {
         municipioId: "",
         categoria: "Material",
         descripcion: "",
-        latitud: "",
-        longitud: "",
+        ubicaciones: [],
         tags: [],
         newTagInput: "",
         portadaFile: null,
@@ -290,18 +362,13 @@ export default function AdminDashboard() {
         fd.append("nombre", formEditar.nombre);
         fd.append("categoria", formEditar.categoria);
         fd.append("descripcion", formEditar.descripcion);
-        fd.append("latitud", formEditar.latitud);
-        fd.append("longitud", formEditar.longitud);
         fd.append("municipioId", formEditar.municipioId);
-        
-        // 🔥 Manejo de tags: si no hay tags, enviamos un string vacío
+        fd.append("ubicaciones", JSON.stringify(formEditar.ubicaciones));
         if (formEditar.tags && formEditar.tags.length > 0) {
           formEditar.tags.forEach(tag => fd.append("tags[]", tag));
         } else {
-          // Forzamos el envío de un campo "tags" vacío para indicar que se deben borrar todos
           fd.append("tags", "");
         }
-        
         if (formEditar.portadaFile) fd.append("portada", formEditar.portadaFile);
         formEditar.imagenesFiles.forEach(file => fd.append("imagenes", file));
         if (formEditar.imagenesAEliminar.length) {
@@ -309,15 +376,13 @@ export default function AdminDashboard() {
         }
         dataToSend = fd;
       } else {
-        // Para peticiones sin archivos, enviamos objeto JSON con tags como array (puede ser vacío)
         dataToSend = {
           nombre: formEditar.nombre,
           categoria: formEditar.categoria,
           descripcion: formEditar.descripcion,
-          latitud: formEditar.latitud,
-          longitud: formEditar.longitud,
           municipioId: formEditar.municipioId,
-          tags: formEditar.tags || [],   // array vacío si no hay tags
+          ubicaciones: formEditar.ubicaciones,
+          tags: formEditar.tags || [],
         };
       }
       await updatePatrimonio(formEditar.id, dataToSend);
@@ -345,33 +410,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleMapSelectNuevo = (coords) => {
-    setFormNuevo(prev => ({
-      ...prev,
-      latitud: coords.lat.toString(),
-      longitud: coords.lng.toString(),
-    }));
-  };
-
-  const handleMapSelectEditar = (coords) => {
-    setFormEditar(prev => ({
-      ...prev,
-      latitud: coords.lat.toString(),
-      longitud: coords.lng.toString(),
-    }));
-  };
-
+  // Transformar datos para la UI
   const patrimoniosUI = useMemo(() => {
-    const mapPatrimonio = (item) => {
-      const municipioId = item.municipioId ?? item.municipio?.id ?? "";
-      const municipioNombre = municipioNombrePorId.get(String(municipioId)) || "Sin municipio";
+    return patrimonios.map((item) => {
+      const ubicaciones = item.ubicaciones || [];
+      const principal = ubicaciones.find(u => u.es_principal) || ubicaciones[0];
       return {
         id: item.id,
         nombre: item.nombre ?? "",
         categoria: item.categoria ?? "Material",
         descripcion: item.descripcion ?? "",
-        latitud: item.latitud ?? "",
-        longitud: item.longitud ?? "",
+        ubicaciones: ubicaciones,
+        latitud: principal?.latitud || "",
+        longitud: principal?.longitud || "",
         imagen: item.imagen_url
           ? item.imagen_url.startsWith("http")
             ? item.imagen_url
@@ -381,15 +432,14 @@ export default function AdminDashboard() {
           id: g.id,
           url: g.url.startsWith("http") ? g.url : `${API_BASE}${g.url}`
         })),
-        municipioId,
-        ubicacion: municipioNombre,
+        municipioId: item.municipioId,
+        ubicacion: municipioNombrePorId.get(String(item.municipioId)) || "Sin municipio",
         estado: "Registrado",
         fechaRegistro: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "—",
         fechaActualizacion: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—",
         tags: item.tags || [],
       };
-    };
-    return patrimonios.map(mapPatrimonio);
+    });
   }, [patrimonios, municipioNombrePorId, API_BASE]);
 
   const filtrados = patrimoniosUI.filter((p) => {
@@ -454,7 +504,7 @@ export default function AdminDashboard() {
     <>
       <style>{STYLE}</style>
 
-      {/* MODAL NUEVO PATRIMONIO (con tags visuales) */}
+      {/* MODAL NUEVO PATRIMONIO */}
       {modalNuevo && (
         <div className="overlay" onClick={() => setModalNuevo(false)}>
           <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
@@ -510,7 +560,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Tags visuales */}
+                {/* Tags */}
                 <div className="form-group">
                   <label className="form-label">Tags</label>
                   <div className="current-tags">
@@ -532,13 +582,40 @@ export default function AdminDashboard() {
                   <label className="form-label">Descripción</label>
                   <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })} />
                 </div>
+
+                {/* Ubicaciones múltiples con mapa y marcadores */}
                 <div className="form-group">
-                  <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                  <MapPicker latitud={formNuevo.latitud} longitud={formNuevo.longitud} onLocationSelect={handleMapSelectNuevo} />
-                  {formNuevo.latitud && formNuevo.longitud && (
-                    <div className="form-row" style={{ marginTop: "12px" }}>
-                      <div className="form-group"><label>Latitud</label><input className="form-input" value={formNuevo.latitud} readOnly /></div>
-                      <div className="form-group"><label>Longitud</label><input className="form-input" value={formNuevo.longitud} readOnly /></div>
+                  <label className="form-label">📍 Puntos de ubicación (haz clic en el mapa para agregar)</label>
+                  <MapPicker 
+                    ubicaciones={formNuevo.ubicaciones}
+                    onLocationAdd={(coords, nombre) => agregarUbicacion(formNuevo, setFormNuevo, coords, nombre)} 
+                  />
+                  {formNuevo.ubicaciones.length > 0 && (
+                    <div className="ubicaciones-list">
+                      {formNuevo.ubicaciones.map((ubi, idx) => (
+                        <div key={idx} className="ubicacion-item">
+                          <div className="ubicacion-header">
+                            <input
+                              type="text"
+                              className="form-input ubicacion-nombre"
+                              value={ubi.nombre_punto || ""}
+                              placeholder="Nombre del punto"
+                              onChange={(e) => actualizarNombreUbicacion(formNuevo, setFormNuevo, idx, e.target.value)}
+                            />
+                            <div className="ubicacion-actions">
+                              {!ubi.es_principal && (
+                                <button type="button" className="ab small" onClick={() => marcarPrincipal(formNuevo, setFormNuevo, idx)}>★ Principal</button>
+                              )}
+                              {ubi.es_principal && <span className="principal-badge">Principal</span>}
+                              <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formNuevo, setFormNuevo, idx)}>Eliminar</button>
+                            </div>
+                          </div>
+                          <div className="ubicacion-coords">
+                            <span>Lat: {ubi.latitud}</span>
+                            <span>Lng: {ubi.longitud}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -552,7 +629,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL VER (sin cambios relevantes) */}
+      {/* MODAL VER */}
       {modalVer && (
         <div className="overlay" onClick={cerrarVer}>
           <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
@@ -588,7 +665,29 @@ export default function AdminDashboard() {
                   <div className="view-description"><h3 className="section-title-small">Descripción</h3><p>{modalVer.descripcion}</p></div>
                 )}
                 <div className="view-tags"><h3 className="section-title-small">Tags</h3><div className="tags-list">{modalVer.tags && modalVer.tags.length > 0 ? modalVer.tags.map((tag, idx) => (<span key={idx} className="tag-badge">{typeof tag === 'object' ? tag.nombre : tag}</span>)) : (<span className="tag-badge">Sin tags</span>)}</div></div>
-                <div className="view-location"><h3 className="section-title-small">Ubicación</h3><div className="location-coords"><div><strong>Municipio:</strong> {modalVer.ubicacion}</div><div><strong>Latitud:</strong> <span className="mono">{modalVer.latitud}</span></div><div><strong>Longitud:</strong> <span className="mono">{modalVer.longitud}</span></div></div>{modalVer.latitud && modalVer.longitud && (<a href={`https://www.google.com/maps?q=${modalVer.latitud},${modalVer.longitud}`} target="_blank" rel="noreferrer noopener" className="maps-link">Abrir en Google Maps</a>)}</div>
+                
+                {/* Mostrar todas las ubicaciones con mapa estático */}
+                <div className="view-location">
+                  <h3 className="section-title-small">Ubicaciones</h3>
+                  {modalVer.ubicaciones && modalVer.ubicaciones.length > 0 ? (
+                    <>
+                      {modalVer.ubicaciones.map((ubi, idx) => (
+                        <div key={idx} className="location-item">
+                          <div><strong>{ubi.nombre_punto || `Punto ${idx+1}`}</strong> {ubi.es_principal && <span className="principal-badge">Principal</span>}</div>
+                          <div className="location-coords">
+                            <span>Lat: {ubi.latitud}</span>
+                            <span>Lng: {ubi.longitud}</span>
+                          </div>
+                          <a href={`https://www.google.com/maps?q=${ubi.latitud},${ubi.longitud}`} target="_blank" rel="noreferrer" className="maps-link">Ver en mapa</a>
+                        </div>
+                      ))}
+                      <StaticMap ubicaciones={modalVer.ubicaciones} />
+                    </>
+                  ) : (
+                    <div className="no-tags">Sin ubicaciones registradas</div>
+                  )}
+                </div>
+                
                 <div className="view-dates"><div><strong>Fecha de registro:</strong> {modalVer.fechaRegistro}</div><div><strong>Última actualización:</strong> {modalVer.fechaActualizacion}</div></div>
               </div>
             </div>
@@ -600,7 +699,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL EDITAR PATRIMONIO (con tags visuales) */}
+      {/* MODAL EDITAR */}
       {modalEditar && (
         <div className="overlay" onClick={cerrarEditar}>
           <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
@@ -657,7 +756,6 @@ export default function AdminDashboard() {
                       <option>Material</option><option>Inmaterial</option><option>Biocultural</option>
                     </select>
                   </div>
-                  {/* Tags visuales en edición */}
                   <div className="form-group">
                     <label className="form-label">Tags</label>
                     <div className="current-tags">
@@ -684,13 +782,40 @@ export default function AdminDashboard() {
                     {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                   </select>
                 </div>
+                
+                {/* Ubicaciones múltiples con mapa y marcadores */}
                 <div className="form-group">
-                  <label className="form-label">📍 Selecciona la ubicación en el mapa</label>
-                  <MapPicker key={`${formEditar.latitud}-${formEditar.longitud}`} latitud={formEditar.latitud} longitud={formEditar.longitud} onLocationSelect={handleMapSelectEditar} />
-                  {formEditar.latitud && formEditar.longitud && (
-                    <div className="form-row" style={{ marginTop: "12px" }}>
-                      <div className="form-group"><label>Latitud</label><input className="form-input" value={formEditar.latitud} readOnly /></div>
-                      <div className="form-group"><label>Longitud</label><input className="form-input" value={formEditar.longitud} readOnly /></div>
+                  <label className="form-label">📍 Puntos de ubicación (haz clic en el mapa para agregar)</label>
+                  <MapPicker 
+                    ubicaciones={formEditar.ubicaciones}
+                    onLocationAdd={(coords, nombre) => agregarUbicacion(formEditar, setFormEditar, coords, nombre)} 
+                  />
+                  {formEditar.ubicaciones.length > 0 && (
+                    <div className="ubicaciones-list">
+                      {formEditar.ubicaciones.map((ubi, idx) => (
+                        <div key={idx} className="ubicacion-item">
+                          <div className="ubicacion-header">
+                            <input
+                              type="text"
+                              className="form-input ubicacion-nombre"
+                              value={ubi.nombre_punto || ""}
+                              placeholder="Nombre del punto"
+                              onChange={(e) => actualizarNombreUbicacion(formEditar, setFormEditar, idx, e.target.value)}
+                            />
+                            <div className="ubicacion-actions">
+                              {!ubi.es_principal && (
+                                <button type="button" className="ab small" onClick={() => marcarPrincipal(formEditar, setFormEditar, idx)}>★ Principal</button>
+                              )}
+                              {ubi.es_principal && <span className="principal-badge">Principal</span>}
+                              <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formEditar, setFormEditar, idx)}>Eliminar</button>
+                            </div>
+                          </div>
+                          <div className="ubicacion-coords">
+                            <span>Lat: {ubi.latitud}</span>
+                            <span>Lng: {ubi.longitud}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -704,7 +829,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL GESTIÓN GLOBAL DE TAGS */}
+      {/* MODAL GESTIÓN TAGS */}
       {modalTagsOpen && (
         <div className="overlay" onClick={() => setModalTagsOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1393,5 +1518,59 @@ const STYLE = `
   .lightbox-next { right: 10px; font-size: 32px; width: 40px; height: 60px; }
   .lightbox-close { top: 10px; right: 10px; }
   .lightbox-counter { bottom: -30px; }
+}
+
+/* Estilos para múltiples ubicaciones */
+.ubicaciones-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ubicacion-item {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.ubicacion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ubicacion-nombre {
+  flex: 2;
+  min-width: 150px;
+}
+.ubicacion-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.principal-badge {
+  background: var(--green-100);
+  color: var(--green-800);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ubicacion-coords {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--gray-600);
+}
+.location-item {
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 12px;
+}
+.location-item:last-child {
+  border-bottom: none;
 }
 `;
