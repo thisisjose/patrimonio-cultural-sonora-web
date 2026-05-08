@@ -39,6 +39,36 @@
   color: #0f3d29;
 }
 
+.leaflet-bottom.leaflet-left {
+  left: 0 !important;
+  right: auto !important;
+  bottom: 0.75rem !important;
+  width: auto !important;
+  max-width: calc(100% - 1rem);
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 0.75rem;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.92);
+  color: #4b4b4b;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  white-space: normal;
+  max-width: 100%;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 768px) {
+  .leaflet-control-attribution {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+  }
+}
+
 .location-button-container {
   position: absolute;
   top: 1rem;
