@@ -1,16 +1,55 @@
-/* Variables globales */
+/* Variables globales - Inspiradas en Sonora */
 :root {
-  --bg: #e9f1ea;
-  --card: #ffffff;
-  --muted: #6b6b6b;
-  --green-700: #0f3d29;
-  --green-500: #1a5f3e;
-  --accent: #d89b3a;
-  --glass: rgba(255,255,255,0.6);
-  --shadow: 0 10px 30px rgba(15,61,41,0.06);
+  /* Colores primarios - Verde desierto y azul cielo */
+  --primary-dark: #2F5F52;
+  --primary: #3D7D68;
+  --primary-light: #5F8A5D;
+  --green-700: #2F5F52;
+  --green-500: #3D7D68;
+  
+  /* Colores secundarios - Azul y terracota */
+  --secondary-blue: #2B8B9C;
+  --secondary-terracota: #D26540;
+  
+  /* Colores de acentos - Arena y terracota cálida */
+  --accent-sand: #D4A574;
+  --accent-terracota: #E8674B;
+  --accent-warm: #D89B3A;
+  
+  /* Colores neutros */
+  --bg: #F5F3F0;
+  --bg-light: #FAFAF8;
+  --card: #FFFFFF;
+  --text-primary: #1F1F1F;
+  --text-secondary: #5F5F5F;
+  --text-muted: #8B8B8B;
+  --border: #E8E6E3;
+  
+  /* Colores de estado */
+  --error: #D32F2F;
+  --success: #388E3C;
+  --warning: #F57C00;
+  
+  /* Efectos visuales */
+  --glass: rgba(255,255,255,0.7);
+  --glass-dark: rgba(47, 95, 82, 0.05);
+  --shadow-sm: 0 4px 12px rgba(31, 31, 31, 0.06);
+  --shadow: 0 8px 24px rgba(31, 31, 31, 0.1);
+  --shadow-lg: 0 16px 40px rgba(31, 31, 31, 0.15);
+  --shadow-xl: 0 24px 48px rgba(31, 31, 31, 0.2);
+  
+  /* Tipografía */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --font-heading: 'Playfair Display', serif;
+  
+  /* Espaciado y bordes */
   --radius-base: 12px;
-  --radius-xl: 18px;
-  --transition-base: 0.18s ease;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+  
+  /* Transiciones */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s ease;
 }

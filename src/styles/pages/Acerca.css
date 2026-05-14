@@ -1,49 +1,135 @@
-/* Estilos de la página Acerca */
+/* ==================== ACERCA PAGE ==================== */
 .acerca-page {
   padding: 2rem 0;
 }
 
 .acerca-content {
-  max-width: 960px;
+  max-width: 1000px;
   margin: 0 auto;
   display: grid;
-  gap: 1.75rem;
-  line-height: 1.7;
-  color: #2f3f31;
+  gap: 2rem;
+  line-height: 1.8;
+  color: var(--text-primary);
 }
 
 .acerca-section {
   background: var(--card);
-  border-radius: 18px;
-  padding: 1.75rem;
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: all var(--transition-base);
+}
+
+.acerca-section:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent-sand);
+}
+
+.acerca-section::before {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-sand), var(--accent-terracota));
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
 }
 
 .acerca-section h2,
 .acerca-section h3 {
-  color: var(--green-700);
+  color: var(--primary-dark);
   margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.acerca-section h2 {
+  font-size: 1.8rem;
+}
+
+.acerca-section h3 {
+  font-size: 1.3rem;
+  color: var(--primary);
 }
 
 .acerca-text {
-  color: var(--muted);
+  color: var(--text-secondary);
   font-size: 1rem;
+  line-height: 1.8;
+  margin-bottom: 1rem;
 }
 
 .acerca-list {
-  margin: 1rem 0 0;
-  padding-left: 1.25rem;
+  margin: 1.5rem 0 0;
+  padding-left: 1.5rem;
+  list-style: none;
 }
 
 .acerca-item {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--text-secondary);
+  line-height: 1.7;
 }
 
+.acerca-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--accent-sand);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.acerca-item strong {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-  .acerca-content { padding: 0 1rem; }
+  .acerca-content {
+    padding: 0 1rem;
+    gap: 1.5rem;
+  }
+
+  .acerca-section {
+    padding: 1.75rem;
+  }
+
+  .acerca-section h2 {
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .acerca-page { padding: 1.5rem 0; }
-  .acerca-section { padding: 1.25rem; }
+  .acerca-page {
+    padding: 1.5rem 0;
+  }
+
+  .acerca-section {
+    padding: 1.5rem;
+  }
+
+  .acerca-section::before {
+    margin-bottom: 1rem;
+  }
+
+  .acerca-section h2 {
+    font-size: 1.3rem;
+  }
+
+  .acerca-section h3 {
+    font-size: 1.1rem;
+  }
+
+  .acerca-text {
+    font-size: 0.95rem;
+  }
+
+  .acerca-item {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
 }

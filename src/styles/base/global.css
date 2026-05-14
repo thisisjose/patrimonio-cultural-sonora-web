@@ -1,14 +1,21 @@
 /* Estilos globales */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+/* Base */
+html {
+  scroll-behavior: smooth;
+}
 
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(180deg, var(--bg), #e6f0e8);
-  color: #111;
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
-  min-height: 100%;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
+/* Estructura principal */
 .app-container {
   min-height: 100vh;
   display: flex;
@@ -17,58 +24,156 @@ body {
 
 .content {
   flex: 1;
-  padding: 2.25rem 1rem;
+  padding: 2.5rem 1rem;
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
-.card {
-  background: var(--card);
-  border-radius: var(--radius-base);
-  padding: 1rem;
-  box-shadow: var(--shadow);
+/* Tipografía */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--primary-dark);
 }
 
+h1 { font-size: 2.8rem; }
+h2 { font-size: 2.2rem; }
+h3 { font-size: 1.8rem; }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1.1rem; }
+
+a {
+  color: var(--secondary-blue);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-terracota);
+}
+
+/* Elementos */
 .page-inner {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
+/* Tarjetas */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Títulos */
 .hero-title {
   font-family: var(--font-heading);
-  font-size: 2.6rem;
-  color: var(--green-700);
-  line-height: 1.02;
-  margin-bottom: 0.6rem;
+  font-size: 3rem;
+  color: var(--primary-dark);
+  line-height: 1.1;
+  margin-bottom: 0.8rem;
+  font-weight: 700;
 }
 
 .heading-2 {
-  color: var(--green-500);
+  color: var(--primary);
+  margin-bottom: 1.2rem;
+  font-size: 1.8rem;
+}
+
+.heading-3 {
+  color: var(--primary-dark);
   margin-bottom: 1rem;
+  font-size: 1.3rem;
 }
 
+/* Texto */
 .lead {
-  line-height: 1.6;
-  font-size: 1.05rem;
-  color: #333;
+  line-height: 1.8;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 750px;
 }
 
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-accent {
+  color: var(--accent-terracota);
+}
+
+/* Imágenes */
 .image-card {
   width: 100%;
   max-height: 420px;
   object-fit: cover;
-  border-radius: 10px;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
 }
 
-.muted {
-  color: var(--muted);
+/* Botones */
+button, .button {
+  font-family: var(--font-sans);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border-radius: var(--radius-base);
+  font-weight: 600;
 }
 
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.95rem 1.8rem;
+  font-size: 1rem;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--secondary-blue);
+  color: white;
+  padding: 0.95rem 1.8rem;
+  font-size: 1rem;
+}
+
+.btn-secondary:hover {
+  background: #1F6B7A;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 0.85rem 1.6rem;
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* Utility */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -79,4 +184,30 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.visually-hidden {
+  display: none;
+}
+
+/* Accesibilidad */
+:focus-visible {
+  outline: 2px solid var(--accent-sand);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-title { font-size: 2.2rem; }
+  h2 { font-size: 1.8rem; }
+  h3 { font-size: 1.5rem; }
+  .lead { font-size: 1rem; }
+  .content { padding: 1.5rem 1rem; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 1.8rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.2rem; }
+  .card { padding: 1.25rem; }
 }

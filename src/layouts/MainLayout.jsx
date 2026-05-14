@@ -5,15 +5,19 @@ import RSicono from "../Icons/RSicono.png";
 function MainLayout() {
   const [open, setOpen] = useState(false);
 
+  const currentYear = new Date().getFullYear();
+
   return (
     <div className="app-container">
       <header className="site-header">
         <div className="container">
           <div className="logo">
-            <img src={RSicono} alt="Redescubramos Sonora" style={{ width: "44px", height: "44px", objectFit: "contain", filter: "invert(1)" }} />
-            <div>
-              <div>Redescubramos</div>
-              <div style={{ fontSize: "0.85rem", opacity: 0.9 }}>Sonora</div>
+            <div className="logo-mark">
+              <img src={RSicono} alt="Redescubramos Sonora" />
+            </div>
+            <div className="logo-text">
+              <div className="logo-main">Redescubramos</div>
+              <div className="logo-sub">Sonora</div>
             </div>
           </div>
 
@@ -35,7 +39,9 @@ function MainLayout() {
             onClick={() => setOpen((v) => !v)}
             aria-label="Abrir menú"
           >
-            ☰
+            <span></span>
+            <span></span>
+            <span></span>
           </button>
         </div>
 
@@ -44,7 +50,7 @@ function MainLayout() {
             <div className="container mobile-menu-inner">
               <div className="mobile-menu-nav">
                 <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={() => setOpen(false)}>
-                  Mapa
+                  Inicio
                 </NavLink>
                 <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
                   Acerca
@@ -64,8 +70,51 @@ function MainLayout() {
         </div>
       </main>
 
-      <footer>
-        <small>Diseño y desarrollo — patrimonio cultural de Sonora</small>
+      <footer className="site-footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">
+                <img src={RSicono} alt="Redescubramos Sonora" />
+                <div>
+                  <div className="footer-logo-main">Redescubramos</div>
+                  <div className="footer-logo-sub">Sonora</div>
+                </div>
+              </div>
+              <p className="footer-desc">
+                Plataforma digital dedicada a la difusión, preservación y localización del patrimonio cultural material del estado de Sonora.
+              </p>
+            </div>
+
+            <div className="footer-section">
+              <h4>Navegación</h4>
+              <ul className="footer-links">
+                <li><NavLink to="/">Inicio</NavLink></li>
+                <li><NavLink to="/acerca">Acerca</NavLink></li>
+                <li><NavLink to="/contacto">Contacto</NavLink></li>
+              </ul>
+            </div>
+
+            <div className="footer-section">
+              <h4>Contacto</h4>
+              <p>
+                <strong>Ubicación:</strong><br />
+                C. Obregón, Sonora, México
+              </p>
+              <p>
+                <strong>Email:</strong><br />
+                <a href="mailto:olavo.rojas@redescubramossonar.mx">olavo.rojas@redescubramossonar.mx</a>
+              </p>
+            </div>
+          </div>
+
+          <div className="footer-divider"></div>
+
+          <div className="footer-bottom">
+            <p>&copy; {currentYear} Redescubramos Sonora. Todos los derechos reservados.</p>
+            <p className="footer-credits">Diseñado para preservar y difundir el patrimonio cultural de Sonora</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

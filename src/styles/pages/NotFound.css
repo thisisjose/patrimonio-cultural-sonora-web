@@ -1,33 +1,55 @@
-/* Estilos de la página NotFound */
+/* ==================== NOT FOUND PAGE ==================== */
 .notfound-page {
   padding: 2rem 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 150px);
+  min-height: calc(100vh - 200px);
 }
 
 .notfound-card {
-  max-width: 760px;
+  max-width: 700px;
   width: 100%;
   background: var(--card);
-  border-radius: 24px;
-  padding: 2rem 2.5rem;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-xl);
+  padding: 3.5rem 2.5rem;
+  box-shadow: var(--shadow-lg);
   text-align: center;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.notfound-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent-sand), var(--accent-terracota), var(--secondary-blue));
 }
 
 .notfound-title {
-  font-size: 3rem;
-  margin: 0 0 0.8rem;
-  color: var(--green-700);
+  font-size: 3.5rem;
+  margin: 0 0 1rem;
+  color: var(--primary-dark);
+  font-family: var(--font-heading);
+  font-weight: 700;
 }
 
 .notfound-text {
-  color: var(--muted);
-  font-size: 1.05rem;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
   margin: 0 0 1.5rem;
-  line-height: 1.75;
+  line-height: 1.8;
+}
+
+.notfound-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0 0 2rem;
+  font-style: italic;
 }
 
 .notfound-actions {
@@ -35,34 +57,89 @@
   justify-content: center;
   gap: 1rem;
   flex-wrap: wrap;
+  margin-top: 2rem;
 }
 
 .notfound-actions a,
 .notfound-actions button {
-  padding: 0.95rem 1.5rem;
-  border-radius: 999px;
+  padding: 0.95rem 1.8rem;
+  border-radius: var(--radius-base);
   border: 0;
-  background: var(--green-500);
+  background: var(--primary);
   color: #fff;
   font-weight: 700;
   text-decoration: none;
-  transition: transform .18s ease, box-shadow .18s ease;
+  transition: all var(--transition-base);
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .notfound-actions a:hover,
 .notfound-actions button:hover {
+  background: var(--primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(15,61,41,0.14);
+  box-shadow: var(--shadow-lg);
 }
 
+.notfound-actions a:active,
+.notfound-actions button:active {
+  transform: translateY(0);
+}
+
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-  .notfound-card { padding: 1.6rem 1.8rem; }
-  .notfound-title { font-size: 2.4rem; }
+  .notfound-card {
+    padding: 2.5rem 2rem;
+    margin: 0 1rem;
+  }
+
+  .notfound-title {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .notfound-text {
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .notfound-page { min-height: auto; padding: 1.5rem 0; }
-  .notfound-card { padding: 1.25rem 1rem; }
-  .notfound-title { font-size: 2rem; }
-  .notfound-text { font-size: 1rem; }
+  .notfound-page {
+    min-height: auto;
+    padding: 1.5rem 0;
+  }
+
+  .notfound-card {
+    padding: 2rem 1.5rem;
+    margin: 0 0.75rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .notfound-title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .notfound-text {
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+  }
+
+  .notfound-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .notfound-actions {
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .notfound-actions a,
+  .notfound-actions button {
+    padding: 0.85rem 1.4rem;
+    font-size: 0.9rem;
+  }
 }

@@ -23,16 +23,16 @@
 
 /* ==================== FEATURES GRID ==================== */
 .features-grid {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto 3rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.1rem;
+  gap: 1.5rem;
 }
 
 .feature-card {
   background: var(--card);
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   display: flex;
@@ -385,9 +385,8 @@
 
 /* ==================== POPULAR SECTION ==================== */
 .popular-section {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 3rem auto;
-  padding: 0 0.5rem;
 }
 
 .section-title {
@@ -411,9 +410,8 @@
 
 .popular-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.8rem;
-  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
 }
 
 .popular-card {
@@ -424,8 +422,6 @@
   transition: all var(--transition-base);
   border: 1px solid var(--border);
   cursor: pointer;
-  max-width: 280px;
-  margin: 0 auto;
 }
 
 .popular-card:hover {
@@ -437,10 +433,9 @@
 .popular-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background: linear-gradient(135deg, var(--border), rgba(212, 165, 116, 0.2));
-  max-height: 220px;
 }
 
 .popular-thumb img {
@@ -456,12 +451,12 @@
 }
 
 .popular-content {
-  padding: 0.85rem 0.75rem;
+  padding: 1.2rem 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 60px;
+  min-height: 80px;
 }
 
 .popular-name {
