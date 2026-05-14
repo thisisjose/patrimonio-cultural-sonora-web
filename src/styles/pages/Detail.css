@@ -133,6 +133,18 @@
   color: var(--muted);
 }
 
+.location-open-link {
+  display: inline-block;
+  margin-top: 0.55rem;
+  color: var(--green-500);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.location-open-link:hover {
+  text-decoration: underline;
+}
+
 .detail-map {
   height: 340px;
   border-radius: 18px;

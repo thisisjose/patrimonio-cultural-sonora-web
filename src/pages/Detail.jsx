@@ -376,7 +376,9 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           </div>
           {ubicaciones.length > 0 && (
             <div className="detail-location-list">
-              <h3 className="section-subtitle">Ubicaciones</h3>
+              <h3 className="section-subtitle">
+                {ubicaciones.length === 1 ? "Ubicación" : "Ubicaciones"}
+              </h3>
               <ul>
                 {ubicaciones.map((ubi, index) => (
                   <li key={`${ubi.lat}-${ubi.lng}-${index}`} className="location-item">
@@ -392,6 +394,16 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                         </span>
                       )}
                     </div>
+                    {ubi.lat != null && ubi.lng != null && (
+                      <a
+                        className="location-open-link"
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ubi.lat},${ubi.lng}`)}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        Abrir ubicación
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

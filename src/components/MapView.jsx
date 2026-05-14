@@ -109,7 +109,9 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
             const desc = document.createElement("p");
             desc.className = "popup-desc";
-            desc.textContent = truncateText(item.descripcion);
+            desc.textContent = item.descripcion
+              ? truncateText(item.descripcion, 70)
+              : "Sin descripción disponible.";
             popupContent.appendChild(desc);
 
             const button = document.createElement("button");
