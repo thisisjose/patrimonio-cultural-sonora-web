@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
-import { getPatrimonioById, getMunicipios, getPatrimonios } from "../services/patrimonioService";
+import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService";
+import { getMunicipios } from "../services/municipioService";
 
 const API_BASE = "http://localhost:3000";
 

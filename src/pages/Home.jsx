@@ -5,7 +5,8 @@ import "../styles/pages/Home.css";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
-import { getPatrimonios, getMunicipios } from "../services/patrimonioService";
+import { getPatrimonios } from "../services/patrimonioService";
+import { getMunicipios } from "../services/municipioService";
 
 function Home() {
   const navigate = useNavigate();
