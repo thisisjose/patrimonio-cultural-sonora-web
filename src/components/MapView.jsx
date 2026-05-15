@@ -5,7 +5,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // ← importar useLocation
 
 // Fix iconos default de Leaflet en Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -49,7 +49,7 @@ const getItemLocations = (item) => {
   return lat != null && lng != null ? [{ lat, lng, label: "", data: item }] : [];
 };
 
-function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, interactive }) {
+function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, interactive, getDetailPath }) {
   const map = useMap();
 
   useEffect(() => {
@@ -76,10 +76,11 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
         if (interactive) {
           const markerTitle = location.label ? `${item.nombre} — ${location.label}` : item.nombre;
           const isMobile = window.innerWidth <= 768;
+          const detailPath = getDetailPath(item.id); // ← ruta dinámica
 
           if (isMobile) {
             circle.on("click", () => {
-              navigate(`/patrimonio/${item.id}`);
+              navigate(detailPath);
             });
           } else {
             const popupContent = document.createElement("div");
@@ -117,7 +118,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
             const button = document.createElement("button");
             button.className = "popup-cta";
             button.textContent = "Ver detalles";
-            button.onclick = () => navigate(`/patrimonio/${item.id}`);
+            button.onclick = () => navigate(detailPath);
             popupContent.appendChild(button);
 
             circle.bindPopup(popupContent);
@@ -133,7 +134,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
     return () => {
       map.removeLayer(clusterGroup);
     };
-  }, [map, patrimonios, navigate, getCircleColor, truncateText, interactive]);
+  }, [map, patrimonios, navigate, getCircleColor, truncateText, interactive, getDetailPath]);
 
   return null;
 }
@@ -159,20 +160,17 @@ function LocationButton() {
         const { latitude, longitude } = position.coords;
         const userLatLng = [latitude, longitude];
 
-        // Centrar mapa
         map.setView(userLatLng, 16);
 
-        // Remover marcador anterior
         if (locationMarker) {
           map.removeLayer(locationMarker);
         }
 
-        // Radio ajustado a 120 metros para mayor visibilidad
         const userCircle = L.circle(userLatLng, {
           color: '#007bff',
           fillColor: '#007bff',
           fillOpacity: 0.3,
-          radius: 150, 
+          radius: 150,
           weight: 2
         }).addTo(map);
 
@@ -213,6 +211,15 @@ function LocationButton() {
 
 function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
   const navigate = useNavigate();
+  const location = useLocation(); // ← obtener la URL actual
+
+  // Detectar si estamos en el panel de administración
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
+  // Función que construye la ruta de detalle según el contexto
+  const getDetailPath = (id) => {
+    return isAdminRoute ? `/admin/patrimonio/${id}` : `/patrimonio/${id}`;
+  };
 
   const truncateText = (text = "", max = 90) => {
     if (typeof text !== "string") return "";
@@ -254,6 +261,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         getCircleColor={getCircleColor}
         truncateText={truncateText}
         interactive={interactive}
+        getDetailPath={getDetailPath} // ← pasamos la función
       />
       {interactive && <LocationButton />}
     </MapContainer>

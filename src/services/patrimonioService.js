@@ -1,26 +1,6 @@
-import axios from "axios";
+import api from "./apiService";
 
-const API_URL = "http://localhost:3000/api";
-
-// ⚠️ Token manual solo para pruebas rápidas. Comenta esta línea y usa localStorage en producción.
-const MANUAL_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibm9tYnJlIjoiam9zZTIyMiIsImlhdCI6MTc3ODc5Mjg1NSwiZXhwIjoxNzc4ODc5MjU1fQ.Z6BJM4y00A_38uloktIyZ1FQZ9oLtxkRngDtJuWblas";
-
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-api.interceptors.request.use(
-  (config) => {
-    const token = MANUAL_TOKEN || localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// ========== ENDPOINTS PÚBLICOS ==========
+// Públicos
 export const getPatrimonios = async (params = {}) => {
   const response = await api.get("/patrimonios", { params });
   return response.data;
@@ -31,29 +11,13 @@ export const getPatrimonioById = async (id) => {
   return response.data;
 };
 
-export const getMunicipios = async () => {
-  const response = await api.get("/municipios");
+export const getPatrimonioParaReporte = async (id) => {
+  const response = await api.get(`/patrimonios/${id}/reporte`);
   return response.data;
 };
 
-export const getTags = async () => {
-  const response = await api.get("/tags");
-  return response.data;
-};
-
-export const updateTag = async (id, nombre) => {
-  const response = await api.put(`/admin/tags/${id}`, { nombre });
-  return response.data;
-};
-
-export const deleteTag = async (id) => {
-  const response = await api.delete(`/admin/tags/${id}`);
-  return response.data;
-};
-
-// ========== ENDPOINTS DE ADMINISTRACIÓN ==========
+// Admin (requieren auth + rol admin)
 export const createPatrimonio = async (formData) => {
-  // Asegurar que "ubicaciones" sea un JSON string si existe
   const ubicacionesRaw = formData.get("ubicaciones");
   if (ubicacionesRaw && typeof ubicacionesRaw !== "string") {
     formData.set("ubicaciones", JSON.stringify(ubicacionesRaw));
@@ -76,7 +40,6 @@ export const updatePatrimonio = async (id, data) => {
     });
     return response.data;
   } else {
-    // Objeto JSON plano
     const response = await api.put(`/admin/patrimonios/${id}`, data);
     return response.data;
   }
