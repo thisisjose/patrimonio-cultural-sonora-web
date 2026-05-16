@@ -388,12 +388,6 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                     </div>
                     <div className="location-meta">
                       {ubi.municipio || municipioNombre}
-                      {ubi.lat != null && ubi.lng != null && (
-                        <span>
-                          {ubi.municipio || municipioNombre ? " · " : ""}
-                          {formatCoordinate(ubi.lat)}, {formatCoordinate(ubi.lng)}
-                        </span>
-                      )}
                     </div>
                     {ubi.lat != null && ubi.lng != null && (
                       <a

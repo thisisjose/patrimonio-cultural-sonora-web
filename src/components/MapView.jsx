@@ -33,15 +33,24 @@ const parseUbicaciones = (ubicaciones) => {
 };
 
 const getItemLocations = (item) => {
-  const ubicaciones = parseUbicaciones(item.ubicaciones).map((ubi) => ({
-    lat: ubi.latitud ?? ubi.lat ?? null,
-    lng: ubi.longitud ?? ubi.lng ?? null,
-    label: ubi.nombre_punto || ubi.nombre || ubi.label || "",
-    data: ubi,
-  })).filter((loc) => loc.lat != null && loc.lng != null);
+  const raw = parseUbicaciones(item.ubicaciones);
 
-  if (ubicaciones.length > 0) {
-    return ubicaciones;
+  if (Array.isArray(raw) && raw.length > 0) {
+    const principal = raw.find((ubi) =>
+      ubi?.es_principal === true ||
+      ubi?.es_principal === "true" ||
+      ubi?.es_principal === 1 ||
+      ubi?.es_principal === "1"
+    );
+    const chosen = principal || raw[0];
+
+    const lat = chosen.latitud ?? chosen.lat ?? null;
+    const lng = chosen.longitud ?? chosen.lng ?? null;
+    const label = chosen.nombre_punto || chosen.nombre || chosen.label || "";
+
+    if (lat != null && lng != null) {
+      return [{ lat, lng, label, data: chosen }];
+    }
   }
 
   const lat = item.latitud ?? item.lat ?? null;
@@ -59,6 +68,8 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
       spiderfyOnMaxZoom: interactive,
       disableClusteringAtZoom: 13,
       maxClusterRadius: 45,
+      // Evitar que se dibujen las líneas (spider legs) al expandir marcadores
+      spiderLegPolylineOptions: { opacity: 0, weight: 0 },
     });
 
     patrimonios.forEach((item) => {
@@ -74,7 +85,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
         });
 
         if (interactive) {
-          const markerTitle = location.label ? `${item.nombre} — ${location.label}` : item.nombre;
+          const markerTitle = item.nombre;
           const isMobile = window.innerWidth <= 768;
           const detailPath = getDetailPath(item.id); // ← ruta dinámica
 
@@ -100,13 +111,6 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
             const title = document.createElement("strong");
             title.textContent = markerTitle;
             popupContent.appendChild(title);
-
-            if (location.label) {
-              const subtitle = document.createElement("div");
-              subtitle.className = "popup-location-label";
-              subtitle.textContent = location.label;
-              popupContent.appendChild(subtitle);
-            }
 
             const desc = document.createElement("p");
             desc.className = "popup-desc";
