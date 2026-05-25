@@ -1,6 +1,5 @@
 import api from "./apiService";
 
-// Solo para admin_supremo (el interceptor ya añade el token)
 export const listarAdmins = async () => {
   const response = await api.get("/supremo/admins");
   return response.data;

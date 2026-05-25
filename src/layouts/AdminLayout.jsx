@@ -1,14 +1,13 @@
-// src/layouts/AdminLayout.jsx
-import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../Hooks/useAuth";
 import RSicono from "../Icons/RSicono.png";
-import "../styles/layouts/AdminLayout.css"; 
 
 const AdminLayout = () => {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
 
   const handleLogout = () => {
     logout();
@@ -22,36 +21,50 @@ const AdminLayout = () => {
       <header className="site-header">
         <div className="container">
           <div className="logo">
-            <img
-              src={RSicono}
-              alt="Redescubramos Sonora"
-              style={{ width: "44px", height: "44px", objectFit: "contain", filter: "invert(1)" }}
-            />
-            <div>
-              <div>Redescubramos Sonora</div>
-              <div className="mobile-user-welcome">Bienvenido, {user?.nombre} ({user?.rol})</div>
+            <div className="logo-mark">
+              <img src={RSicono} alt="Redescubramos Sonora" />
+            </div>
+            <div className="logo-text">
+              <div className="logo-main">Redescubramos Sonora</div>
+              <div className="admin-badge">Panel de administración</div>
             </div>
           </div>
 
           <nav className="nav-links" role="navigation" aria-label="Admin">
-            <NavLink to="/admin" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")} end>
-              Home
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              end
+            >
+              Inicio
             </NavLink>
-            <NavLink to="/admin/acerca" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            <NavLink
+              to="/admin/acerca"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
               Acerca
             </NavLink>
-            <NavLink to="/admin/contacto" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            <NavLink
+              to="/admin/contacto"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
               Contacto
             </NavLink>
-            <NavLink to="/admin/dashboard" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            <NavLink
+              to="/admin/dashboard"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
               Dashboard
             </NavLink>
             {isSupremo && (
-              <NavLink to="/admin/usuarios" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <NavLink
+                to="/admin/usuarios"
+                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              >
                 Usuarios
               </NavLink>
             )}
-            <button onClick={handleLogout} className="nav-link logout-btn" style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <button onClick={handleLogout} className="nav-link logout-btn">
               Cerrar sesión
             </button>
           </nav>
@@ -62,7 +75,9 @@ const AdminLayout = () => {
             onClick={() => setOpen((v) => !v)}
             aria-label="Abrir menú"
           >
-            ☰
+            <span></span>
+            <span></span>
+            <span></span>
           </button>
         </div>
 
@@ -70,24 +85,51 @@ const AdminLayout = () => {
           <div className="mobile-menu">
             <div className="container mobile-menu-inner">
               <div className="mobile-menu-nav">
-                <NavLink to="/admin" end onClick={() => setOpen(false)}>
-                  Home
+                <NavLink
+                  to="/admin"
+                  end
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  onClick={() => setOpen(false)}
+                >
+                  Inicio
                 </NavLink>
-                <NavLink to="/admin/acerca" onClick={() => setOpen(false)}>
+                <NavLink
+                  to="/admin/acerca"
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  onClick={() => setOpen(false)}
+                >
                   Acerca
                 </NavLink>
-                <NavLink to="/admin/contacto" onClick={() => setOpen(false)}>
+                <NavLink
+                  to="/admin/contacto"
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  onClick={() => setOpen(false)}
+                >
                   Contacto
                 </NavLink>
-                <NavLink to="/admin/dashboard" onClick={() => setOpen(false)}>
+                <NavLink
+                  to="/admin/dashboard"
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  onClick={() => setOpen(false)}
+                >
                   Dashboard
                 </NavLink>
                 {isSupremo && (
-                  <NavLink to="/admin/usuarios" onClick={() => setOpen(false)}>
+                  <NavLink
+                    to="/admin/usuarios"
+                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                    onClick={() => setOpen(false)}
+                  >
                     Usuarios
                   </NavLink>
                 )}
-                <button onClick={() => { handleLogout(); setOpen(false); }} className="logout-mobile">
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setOpen(false);
+                  }}
+                  className="logout-mobile"
+                >
                   Cerrar sesión
                 </button>
               </div>
@@ -102,8 +144,52 @@ const AdminLayout = () => {
         </div>
       </main>
 
-      <footer>
-        <small>Panel de administración — Patrimonio cultural de Sonora</small>
+      <footer className="site-footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">
+                <img src={RSicono} alt="Redescubramos Sonora" />
+                <div>
+                  <div className="footer-logo-main">Redescubramos</div>
+                  <div className="footer-logo-sub">Sonora</div>
+                </div>
+              </div>
+              <p className="footer-desc">
+                Panel de administración — Gestión y difusión del patrimonio cultural material del estado de Sonora.
+              </p>
+            </div>
+
+            <div className="footer-section">
+              <h4>Navegación</h4>
+              <ul className="footer-links">
+                <li><NavLink to="/admin">Inicio</NavLink></li>
+                <li><NavLink to="/admin/acerca">Acerca</NavLink></li>
+                <li><NavLink to="/admin/contacto">Contacto</NavLink></li>
+                <li><NavLink to="/admin/dashboard">Dashboard</NavLink></li>
+                {isSupremo && <li><NavLink to="/admin/usuarios">Usuarios</NavLink></li>}
+              </ul>
+            </div>
+
+            <div className="footer-section">
+              <h4>Usuario</h4>
+              <p><strong>Bienvenido,</strong><br />{user?.nombre} ({user?.rol})</p>
+              <p>
+                <strong>Email:</strong><br />
+                <a href={`mailto:${user?.email || "admin@redescubramossonora.mx"}`}>
+                  {user?.email || "admin@redescubramossonora.mx"}
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="footer-divider"></div>
+
+          <div className="footer-bottom">
+            <p>&copy; {currentYear} Redescubramos Sonora. Todos los derechos reservados.</p>
+            <p className="footer-credits">Panel administrativo · Patrimonio cultural de Sonora</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -65,7 +65,6 @@ function Home() {
     };
   };
 
-  // Cargar municipios y todos los patrimonios al montar el componente
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -90,7 +89,6 @@ function Home() {
     cargarDatos();
   }, []);
 
-  // Leer parámetro municipioId de la URL y establecer el filtro
   useEffect(() => {
     const municipioIdParam = searchParams.get("municipioId");
     if (municipioIdParam) {
@@ -98,7 +96,6 @@ function Home() {
     }
   }, [searchParams]);
 
-  // Filtrar patrimonios cuando se selecciona un municipio o categoría
   useEffect(() => {
     const filtered = todosPatrimonios.filter((item) => {
       const matchMunicipio = municipioSeleccionado
@@ -113,7 +110,6 @@ function Home() {
     setPatrimonios(filtered);
   }, [categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
 
-  // Manejar búsqueda en tiempo real
   useEffect(() => {
     if (busqueda.trim() === "") {
       setResultadosBusqueda([]);
@@ -131,7 +127,6 @@ function Home() {
     setMostrarResultados(true);
   }, [busqueda, todosPatrimonios]);
 
-  // Cerrar resultados cuando se hace click fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchInputRef.current && !searchInputRef.current.contains(e.target)) {
@@ -143,7 +138,6 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Manejar navegación a detalle desde búsqueda
   const handleSelectResultado = (id) => {
     setBusqueda("");
     setMostrarResultados(false);
@@ -153,7 +147,6 @@ function Home() {
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
 
-  // Obtener nombre del municipio seleccionado
   const nombreMunicipio = municipioSeleccionado
     ? municipios.find(m => String(m.id) === String(municipioSeleccionado))?.nombre || ""
     : "";

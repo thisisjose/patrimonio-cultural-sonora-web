@@ -112,6 +112,7 @@ const normalizePatrimonioData = (item) => {
       : Array.isArray(item.imagenes)
       ? item.imagenes
       : [],
+    links: Array.isArray(item.links) ? item.links : [],  
   };
 };
 
@@ -131,7 +132,6 @@ const urlToBase64 = async (url) => {
   }
 };
 
-// Función para generar y descargar PDF
 const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
   try {
     const doc = new jsPDF("p", "mm", "a4");
@@ -139,7 +139,6 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     const margin = 15;
     let currentY = 20;
 
-    // Helper para dibujar líneas divisorias
     const drawLine = (y) => {
       doc.setDrawColor(220, 220, 220);
       doc.line(margin, y, pageWidth - margin, y);
@@ -148,7 +147,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     // ===== TÍTULO =====
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.setTextColor(41, 128, 185); // Azul profesional
+    doc.setTextColor(41, 128, 185);
     const titleLines = doc.splitTextToSize(item.nombre, pageWidth - margin * 2);
     doc.text(titleLines, margin, currentY);
     currentY += (titleLines.length * 10) + 5;
@@ -193,6 +192,27 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.text(descLines, margin, currentY);
     currentY += (descLines.length * 5) + 15;
 
+    // ===== ENLACES RELACIONADOS =====
+    if (item.links && item.links.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(41, 128, 185);
+      doc.text("Enlaces relacionados", margin, currentY);
+      currentY += 7;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 255);
+      for (let i = 0; i < item.links.length; i++) {
+        const link = item.links[i];
+        const linkText = `${link.titulo}: ${link.url}`;
+        const linkLines = doc.splitTextToSize(linkText, pageWidth - margin * 2);
+        doc.textWithLink(linkLines, margin, currentY, { url: link.url });
+        currentY += (linkLines.length * 5) + 3;
+      }
+      currentY += 10;
+    }
+
     // ===== GALERÍA =====
     if (images && images.length > 0) {
       doc.setFont("helvetica", "bold");
@@ -202,7 +222,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       currentY += 8;
 
       const imagesPerRow = 3;
-      const gap = 3; // Espacio entre imágenes
+      const gap = 3;
       const availableWidth = pageWidth - (margin * 2) - (gap * (imagesPerRow - 1));
       const imageWidth = availableWidth / imagesPerRow;
       const imageHeight = imageWidth * 0.75; 
@@ -221,7 +241,6 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
               rowY += imageHeight + gap;
             }
 
-            // Validar que no se salga de la hoja
             if (rowY + imageHeight > doc.internal.pageSize.getHeight() - margin) {
               doc.addPage();
               rowY = margin;
@@ -242,7 +261,6 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
   }
 };
 
-
 function PatrimonioDetailEntry({ item, municipioNombre }) {
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -250,6 +268,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
+  const links = Array.isArray(item.links) ? item.links : [];   // ← NUEVO
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
   const formatTag = (tag) => {
@@ -343,6 +362,22 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
           <div className="detail-info">
             <p className="detail-description">{item.descripcion}</p>
+
+            {/* ENLACES RELACIONADOS */}
+            {links.length > 0 && (
+              <div className="detail-links">
+                <h3 className="section-title-small">Enlaces relacionados</h3>
+                <ul className="links-list">
+                  {links.map((link, idx) => (
+                    <li key={idx}>
+                      <a href={link.url} target="_blank" rel="noopener noreferrer">
+                        {link.titulo}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="detail-category-below">
               Categoría: <span className="category-badge">{item.categoria}</span>

@@ -1,83 +1,90 @@
-/* Contenedor principal y layout base */
-.app-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.content {
-  flex: 1;
-  padding: 2.25rem 1rem;
-}
-
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-/* Header con gradiente y sombras (igual al MainLayout) */
+/* ==================== HEADER ==================== */
 .site-header {
-  background: linear-gradient(90deg, var(--green-700), var(--green-500));
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   color: #fff;
   padding: 1rem 0;
-  box-shadow: 0 6px 18px rgba(15, 61, 41, 0.08);
+  box-shadow: var(--shadow);
   position: sticky;
   top: 0;
   z-index: 1000;
+  border-bottom: 3px solid var(--accent-sand);
 }
 
 .site-header .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 2rem;
 }
 
-/* Logo y elementos de identidad */
+/* Logo */
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: inherit;
   font-weight: 700;
-  font-size: 1.15rem;
-  flex-wrap: wrap;
+  transition: all var(--transition-base);
+  cursor: pointer;
 }
 
-.logo img {
-  width: 44px;
-  height: 44px;
+.logo-mark {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--accent-sand) 0%, var(--accent-terracota) 100%);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-mark img {
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-  filter: invert(1);
-  border-radius: 10px;
+  filter: brightness(2);
 }
 
-.mobile-user-welcome {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: normal;
-  margin-top: 0.2rem;
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
-/* Navegación de escritorio */
+.logo-main {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.logo-sub {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+/* Navegación */
 .nav-links {
   display: flex;
-  gap: 1.15rem;
+  gap: 2.5rem;
   align-items: center;
+  flex: 1;
+  justify-content: center;
 }
 
 .nav-link {
   color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
+  font-size: 1rem;
   padding: 0.5rem 0;
   position: relative;
   text-decoration: none;
-  transition: color 0.25s ease;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: inherit;
+  transition: color var(--transition-fast);
+  display: inline-block;
 }
 
 .nav-link::after {
@@ -85,12 +92,13 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -0.4rem;
+  bottom: -0.35rem;
   height: 3px;
-  background: var(--accent);
+  background: var(--accent-sand);
+  border-radius: var(--radius-base);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.25s ease;
+  transition: transform var(--transition-base);
 }
 
 .nav-link:hover {
@@ -106,35 +114,251 @@
   color: #fff;
 }
 
-/* Botón de cierre de sesión en desktop (mismo comportamiento que nav-link) */
-.logout-btn {
-  background: none;
-  border: none;
-  font-weight: 600;
-  padding: 0.5rem 0;
-}
-
-/* Controles móviles */
+/* Menú móvil */
 .mobile-toggle {
   display: none;
   background: transparent;
-  border: 0;
+  border: none;
   color: #fff;
-  font-size: 1.25rem;
   cursor: pointer;
+  padding: 0.5rem;
+  gap: 0.35rem;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mobile-toggle span {
+  width: 26px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 2px;
+  transition: all var(--transition-base);
 }
 
 .mobile-menu {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  /* Cactus de fondo semitransparentes */
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-menu::before,
+.mobile-menu::after {
+  content: '🌵';
+  position: absolute;
+  font-size: 3rem;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.mobile-menu::before {
+  top: -10px;
+  left: 5%;
+  transform: rotate(-15deg);
+}
+
+.mobile-menu::after {
+  bottom: -15px;
+  right: 8%;
+  transform: rotate(20deg) scaleX(-1);
 }
 
 .mobile-menu-inner {
-  padding: 0.75rem 1rem;
+  padding: 1rem;
 }
 
 .mobile-menu-nav {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+/* ==================== FOOTER ==================== */
+.site-footer {
+  background: linear-gradient(180deg, var(--primary-dark) 0%, rgba(47, 95, 82, 0.95) 100%);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 3rem 0 1.5rem;
+  margin-top: auto;
+  border-top: 3px solid var(--accent-sand);
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-section h4 {
+  color: var(--accent-sand);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.footer-section p {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.footer-desc {
+  max-width: 300px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.footer-logo img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: brightness(2);
+}
+
+.footer-logo-main {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.footer-logo-sub {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  letter-spacing: 0.6px;
+  font-weight: 600;
+}
+
+.footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  display: inline-block;
+}
+
+.footer-links a:hover {
+  color: var(--accent-sand);
+  transform: translateX(4px);
+}
+
+.footer-links li {
+  display: list-item;
+}
+
+.footer-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0.5rem 0;
+}
+
+.footer-credits {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .site-header .container {
+    gap: 1rem;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .mobile-toggle {
+    display: flex;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .footer-logo {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-main {
+    font-size: 1rem;
+  }
+
+  .logo-sub {
+    font-size: 0.7rem;
+  }
+
+  .logo-mark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .logo-mark img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .footer-section h4 {
+    font-size: 1rem;
+  }
+
+  .footer-desc,
+  .footer-section p {
+    font-size: 0.9rem;
+  }
+
+  .site-footer {
+    padding: 2rem 0 1rem;
+  }
+
+  .footer-content {
+    gap: 1.5rem;
+  }
+
+  .footer-divider {
+    margin-bottom: 1rem;
+  }
+
+  .footer-bottom p {
+    font-size: 0.8rem;
+  }
+}
   gap: 0.75rem;
 }
 
@@ -148,23 +372,10 @@
   bottom: 0;
 }
 
-.logout-mobile {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 600;
-  padding: 0.75rem 0;
-  text-align: left;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
+header a {
+  text-decoration: none;
 }
 
-.logout-mobile:hover {
-  color: #fff;
-}
-
-/* Footer (transparente, texto sutil) */
 footer {
   padding: 1.75rem 0;
   background: transparent;
@@ -173,7 +384,6 @@ footer {
   font-size: 0.95rem;
 }
 
-/* Ajustes responsivos (mismo breakpoint que MainLayout) */
 @media (max-width: 720px) {
   .nav-links {
     display: none;
@@ -183,7 +393,7 @@ footer {
     display: block;
   }
 
-  .site-header {
+  header {
     padding: 0.75rem 0;
   }
 
@@ -193,29 +403,33 @@ footer {
 
   .logo {
     font-size: 1rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
   }
 
-  .logo img {
+  .logo .mark {
     width: 40px;
     height: 40px;
-  }
-
-  .mobile-user-welcome {
-    font-size: 0.7rem;
-    margin-top: 0;
-  }
-
-  .container {
-    padding: 0 0.75rem;
+    font-size: 0.9rem;
   }
 }
 
-/* Ajuste fino para pantallas muy pequeñas */
-@media (max-width: 480px) {
-  .logo {
-    font-size: 0.9rem;
-  }
+.nav-link.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0.5rem 0; 
+  position: relative;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+}
+
+.nav-link.logout-btn:hover::after,
+.nav-link.logout-btn:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.nav-link.logout-btn:active {
+  transform: translateY(1px);
 }

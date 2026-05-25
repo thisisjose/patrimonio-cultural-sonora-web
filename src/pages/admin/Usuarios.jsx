@@ -21,12 +21,11 @@ export default function Usuarios() {
     nombre: "",
     apellido_paterno: "",
     apellido_materno: "",
-    email: "",         // cambiado de correo a email
+    email: "",       
     telefono: "",
     password: "",
   });
 
-  // Cargar admins desde el backend
   const cargarAdmins = async () => {
     try {
       setLoading(true);
@@ -67,7 +66,7 @@ export default function Usuarios() {
       nombre: user.nombre,
       apellido_paterno: user.apellido_paterno || "",
       apellido_materno: user.apellido_materno || "",
-      email: user.email,     // cambiado de correo a email
+      email: user.email,    
       telefono: user.telefono || "",
     });
     setModalEditar(user);
@@ -111,7 +110,7 @@ export default function Usuarios() {
         nombre: formNuevo.nombre,
         apellido_paterno: formNuevo.apellido_paterno,
         apellido_materno: formNuevo.apellido_materno,
-        email: formNuevo.email,     // ya usamos email
+        email: formNuevo.email,    
         telefono: formNuevo.telefono,
         password: formNuevo.password,
       };
@@ -134,12 +133,10 @@ export default function Usuarios() {
     }
   };
 
-  // Filtro (aunque todos son administradores, se mantiene por si en futuro hay roles)
   const filtrados = users.filter((u) =>
     filtroRol === "Todos" ? true : u.rol === filtroRol
   );
 
-  // Función para obtener nombre completo
   const getNombreCompleto = (user) => {
     const paterno = user.apellido_paterno || "";
     const materno = user.apellido_materno || "";
@@ -407,7 +404,7 @@ export default function Usuarios() {
                         <div className="ttitle">{getNombreCompleto(user)}</div>
                       </td>
                       <td>
-                        <span className="tdate">{user.email}</span>   {/* cambia a email */}
+                        <span className="tdate">{user.email}</span>  
                       </td>
                       <td>
                         <span className="tdate">{user.telefono || "—"}</span>

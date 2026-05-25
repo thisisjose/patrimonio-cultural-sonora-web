@@ -8,7 +8,6 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  // ✅ Estado inicial leído directamente de localStorage
   const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token');
     const rol = localStorage.getItem('rol');
@@ -19,14 +18,11 @@ export const AuthProvider = ({ children }) => {
     return null;
   });
 
-  // Ya no necesitas loading porque la lectura es sincrónica.
-  // Si quieres mantener loading por compatibilidad, fíjalo en false.
   const loading = false;
 
   const login = async (email, password) => {
     try {
       const data = await loginService(email, password);
-      // loginService ya guarda en localStorage, pero actualizamos el estado
       setUser({ token: data.token, rol: data.rol, nombre: data.nombre });
       return { success: true, rol: data.rol };
     } catch (error) {

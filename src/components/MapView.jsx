@@ -5,9 +5,8 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom"; // ← importar useLocation
+import { useNavigate, useLocation } from "react-router-dom"; 
 
-// Fix iconos default de Leaflet en Vite
 delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -68,7 +67,6 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
       spiderfyOnMaxZoom: interactive,
       disableClusteringAtZoom: 13,
       maxClusterRadius: 45,
-      // Evitar que se dibujen las líneas (spider legs) al expandir marcadores
       spiderLegPolylineOptions: { opacity: 0, weight: 0 },
     });
 
@@ -87,7 +85,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
         if (interactive) {
           const markerTitle = item.nombre;
           const isMobile = window.innerWidth <= 768;
-          const detailPath = getDetailPath(item.id); // ← ruta dinámica
+          const detailPath = getDetailPath(item.id); 
 
           if (isMobile) {
             circle.on("click", () => {
@@ -215,12 +213,9 @@ function LocationButton() {
 
 function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
   const navigate = useNavigate();
-  const location = useLocation(); // ← obtener la URL actual
-
-  // Detectar si estamos en el panel de administración
+  const location = useLocation(); 
   const isAdminRoute = location.pathname.startsWith("/admin");
 
-  // Función que construye la ruta de detalle según el contexto
   const getDetailPath = (id) => {
     return isAdminRoute ? `/admin/patrimonio/${id}` : `/patrimonio/${id}`;
   };
@@ -265,7 +260,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         getCircleColor={getCircleColor}
         truncateText={truncateText}
         interactive={interactive}
-        getDetailPath={getDetailPath} // ← pasamos la función
+        getDetailPath={getDetailPath} 
       />
       {interactive && <LocationButton />}
     </MapContainer>
