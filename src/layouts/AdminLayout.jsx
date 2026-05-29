@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../Hooks/useAuth";
-import RSicono from "../Icons/RSicono.png";
+import "../styles/layouts/AdminLayout.css";
 
 const AdminLayout = () => {
   const [open, setOpen] = useState(false);
@@ -22,11 +22,11 @@ const AdminLayout = () => {
         <div className="container">
           <div className="logo">
             <div className="logo-mark">
-              <img src={RSicono} alt="Redescubramos Sonora" />
+              <span>PS</span>
             </div>
             <div className="logo-text">
-              <div className="logo-main">Redescubramos Sonora</div>
-              <div className="admin-badge">Panel de administración</div>
+              <div className="logo-main">Patrimonio</div>
+              <div className="admin-badge">Sonorense · Panel de administración</div>
             </div>
           </div>
 
@@ -149,10 +149,12 @@ const AdminLayout = () => {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <img src={RSicono} alt="Redescubramos Sonora" />
+                <div className="logo-mark">
+                  <span>PS</span>
+                </div>
                 <div>
-                  <div className="footer-logo-main">Redescubramos</div>
-                  <div className="footer-logo-sub">Sonora</div>
+                  <div className="footer-logo-main">Patrimonio</div>
+                  <div className="footer-logo-sub">Sonorense</div>
                 </div>
               </div>
               <p className="footer-desc">
@@ -186,7 +188,7 @@ const AdminLayout = () => {
           <div className="footer-divider"></div>
 
           <div className="footer-bottom">
-            <p>&copy; {currentYear} Redescubramos Sonora. Todos los derechos reservados.</p>
+            <p>&copy; {currentYear} Patrimonio Sonorense. Todos los derechos reservados.</p>
             <p className="footer-credits">Panel administrativo · Patrimonio cultural de Sonora</p>
           </div>
         </div>

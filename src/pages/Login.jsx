@@ -30,7 +30,7 @@ const Login = () => {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <h2>Redescubramos Sonora</h2>
+          <h2>Patrimonio Sonorense</h2>
           <p>Acceso al panel de administración</p>
         </div>
 

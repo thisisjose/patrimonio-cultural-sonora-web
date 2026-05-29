@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import "../styles/pages/Home.css";
@@ -146,6 +146,20 @@ function Home() {
 
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
+
+  const getRandomItems = (items, count) => {
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, count);
+  };
+
+  const patrimoniosAleatorios = useMemo(
+    () => getRandomItems(todosPatrimonios, 6),
+    [todosPatrimonios]
+  );
 
   const nombreMunicipio = municipioSeleccionado
     ? municipios.find(m => String(m.id) === String(municipioSeleccionado))?.nombre || ""
@@ -297,9 +311,9 @@ function Home() {
       </div>
 
       <section className="popular-section">
-        <h2 className="section-title">Lo más popular</h2>
+        <h2 className="section-title">Quizás te interese</h2>
         <div className="popular-row">
-          {todosPatrimonios.slice(0, 6).map((item) => (
+          {patrimoniosAleatorios.map((item) => (
             <article key={item.id} className="popular-card">
               <div className="popular-thumb">
                 <img 

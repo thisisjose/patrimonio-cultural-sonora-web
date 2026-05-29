@@ -7,7 +7,7 @@ function Acerca() {
 
       <div className="card" style={{ marginTop: '1rem' }}>
         <p className="lead">
-          <strong>Redescubramos Sonora</strong> es una plataforma digital dedicada a la difusión, preservación y localización del patrimonio cultural material del estado de Sonora. Nuestro objetivo es poner al alcance del público una herramienta sencilla, intuitiva y accesible que permita explorar, conocer y valorar la riqueza histórica y cultural de nuestra región.
+          <strong>Patrimonio Sonorense</strong> es una plataforma digital dedicada a la difusión, preservación y localización del patrimonio cultural material del estado de Sonora. Nuestro objetivo es poner al alcance del público una herramienta sencilla, intuitiva y accesible que permita explorar, conocer y valorar la riqueza histórica y cultural de nuestra región.
         </p>
         <p style={{ marginTop: '0.75rem', color: 'var(--muted)' }}>
           Reunimos datos verificados, fotografías y descripciones breves que ayudan tanto a turistas como a estudiantes y gestores culturales a localizar y entender cada sitio.

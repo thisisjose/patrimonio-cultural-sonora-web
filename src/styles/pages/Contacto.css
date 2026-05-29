@@ -44,17 +44,35 @@
   margin-bottom: 0.5rem;
 }
 
+.contacto-card {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(61, 125, 104, 0.05) 0%, rgba(212, 165, 116, 0.05) 100%);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  transition: all var(--transition-base);
+  min-width: 0;
+}
+
+.contacto-card > div {
+  min-width: 0;
+}
+
 .contacto-card p {
   color: var(--text-secondary);
   font-size: 0.95rem;
   line-height: 1.7;
   margin: 0;
+  word-break: break-word;
 }
 
 .contacto-card a {
   color: var(--secondary-blue);
   font-weight: 600;
   transition: color var(--transition-fast);
+  word-break: break-word;
 }
 
 .contacto-card a:hover {
@@ -178,8 +196,6 @@
     font-size: 0.9rem;
   }
 }
-  transition: background .2s ease;
-}
 
 .contacto-form button:hover {
   background: var(--green-700);
@@ -190,6 +206,7 @@
   flex-direction: column;
   gap: 0.6rem;
   margin-top: 0.75rem;
+  min-width: 0;
 }
 
 .contacto-phone strong {

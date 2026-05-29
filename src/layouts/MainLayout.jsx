@@ -1,6 +1,5 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
 import { useState } from "react";
-import RSicono from "../Icons/RSicono.png";
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
@@ -13,11 +12,11 @@ function MainLayout() {
         <div className="container">
           <div className="logo">
             <div className="logo-mark">
-              <img src={RSicono} alt="Redescubramos Sonora" />
+              <span>PS</span>
             </div>
             <div className="logo-text">
-              <div className="logo-main">Redescubramos</div>
-              <div className="logo-sub">Sonora</div>
+              <div className="logo-main">Patrimonio</div>
+              <div className="logo-sub">Sonorense</div>
             </div>
           </div>
 
@@ -75,10 +74,12 @@ function MainLayout() {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <img src={RSicono} alt="Redescubramos Sonora" />
+                <div className="logo-mark">
+                  <span>PS</span>
+                </div>
                 <div>
-                  <div className="footer-logo-main">Redescubramos</div>
-                  <div className="footer-logo-sub">Sonora</div>
+                  <div className="footer-logo-main">Patrimonio</div>
+                  <div className="footer-logo-sub">Sonorense</div>
                 </div>
               </div>
               <p className="footer-desc">
@@ -111,7 +112,7 @@ function MainLayout() {
           <div className="footer-divider"></div>
 
           <div className="footer-bottom">
-            <p>&copy; {currentYear} Redescubramos Sonora. Todos los derechos reservados.</p>
+            <p>&copy; {currentYear} Patrimonio Sonorense. Todos los derechos reservados.</p>
             <p className="footer-credits">Diseñado para preservar y difundir el patrimonio cultural de Sonora</p>
           </div>
         </div>

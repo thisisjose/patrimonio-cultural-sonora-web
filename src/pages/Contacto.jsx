@@ -25,7 +25,7 @@ function Contacto() {
             <div>
               <h3>Email</h3>
               <p>
-                <a href="mailto:olavo.rojas@redescubramossonar.mx">olavo.rojas@redescubramossonar.mx</a>
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=olavo.rojas@redescubramossonar.mx" target="_blank" rel="noopener noreferrer">olavo.rojas@redescubramossonar.mx</a>
               </p>
             </div>
           </div>
@@ -38,7 +38,7 @@ function Contacto() {
           <div>
             <h3>Teléfono</h3>
             <p>
-              <strong>+52 6441-00-59-80</strong><br />Disponible de lunes a viernes, 9:00 AM - 5:00 PM
+              <strong>+52 6441 35 24 29</strong><br />Disponible de lunes a viernes, 9:00 AM - 5:00 PM
             </p>
           </div>
         </div>
@@ -46,7 +46,7 @@ function Contacto() {
 
       <div style={{ marginTop: '1.75rem', padding: '1.5rem', background: 'linear-gradient(180deg, rgba(26,95,62,0.04), rgba(216,155,58,0.03))', borderRadius: '10px' }}>
         <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', margin: '0' }}>
-          <strong style={{ color: 'var(--green-700)' }}>Aceptamos sugerencias:</strong> Si conoces un sitio cultural que debería estar en el mapa, o tienes información para mejorar algún registro, nos encantaría escucharte. Tu contribución ayuda a que Redescubramos Sonora sea más completo y preciso.
+          <strong style={{ color: 'var(--green-700)' }}>Aceptamos sugerencias:</strong> Si conoces un sitio cultural que debería estar en el mapa, o tienes información para mejorar algún registro, nos encantaría escucharte. Tu contribución ayuda a que Patrimonio Sonorense sea más completo y preciso.
         </p>
       </div>
     </section>
