@@ -238,20 +238,27 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 1.5rem 0;
   flex-wrap: wrap;
   min-height: 60px;
 }
 
 .detail-carousel-controls button {
-  padding: 0.75rem 1.4rem;
+  flex: 1 1 130px;
+  min-width: 120px;
+  padding: 0.75rem 1.2rem;
   border-radius: var(--radius-base);
   border: 0;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-base);
   font-size: 0.95rem;
+}
+
+.carousel-counter {
+  flex: 0 1 auto;
+  white-space: nowrap;
 }
 
 .btn-secondary {
@@ -425,7 +432,7 @@
   box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: transparent;
 }
 
 .image-modal-img {
@@ -436,7 +443,7 @@
   object-fit: contain;
   object-position: center;
   flex-shrink: 0;
-  background: #111;
+  background: transparent;
 }
 
 .image-modal-nav {
@@ -520,7 +527,15 @@
   .detail-map { height: 280px; }
   .detail-image-container { height: 280px; }
   .image-modal-img { max-height: 50vh; }
-  .detail-carousel-controls { padding: 1rem 0; }
+  .detail-carousel-controls {
+    padding: 1rem 0;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+  .detail-carousel-controls button {
+    flex: 1 1 120px;
+    min-width: 110px;
+  }
   .detail-header { flex-direction: column; text-align: center; }
   .detail-header-content { text-align: center; }
   .btn-download-pdf { width: 100%; }

@@ -84,47 +84,40 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
         if (interactive) {
           const markerTitle = item.nombre;
-          const isMobile = window.innerWidth <= 768;
-          const detailPath = getDetailPath(item.id); 
+          const detailPath = getDetailPath(item.id);
 
-          if (isMobile) {
-            circle.on("click", () => {
-              navigate(detailPath);
-            });
-          } else {
-            const popupContent = document.createElement("div");
-            popupContent.className = "patrimonio-popup";
+          const popupContent = document.createElement("div");
+          popupContent.className = "patrimonio-popup";
 
-            if (item.imagen) {
-              const img = document.createElement("img");
-              img.src = item.imagen;
-              img.alt = item.nombre;
-              img.className = "popup-thumb";
-              img.onerror = () => {
-                img.style.display = "none";
-              };
-              popupContent.appendChild(img);
-            }
-
-            const title = document.createElement("strong");
-            title.textContent = markerTitle;
-            popupContent.appendChild(title);
-
-            const desc = document.createElement("p");
-            desc.className = "popup-desc";
-            desc.textContent = item.descripcion
-              ? truncateText(item.descripcion, 70)
-              : "Sin descripción disponible.";
-            popupContent.appendChild(desc);
-
-            const button = document.createElement("button");
-            button.className = "popup-cta";
-            button.textContent = "Ver detalles";
-            button.onclick = () => navigate(detailPath);
-            popupContent.appendChild(button);
-
-            circle.bindPopup(popupContent);
+          if (item.imagen) {
+            const img = document.createElement("img");
+            img.src = item.imagen;
+            img.alt = item.nombre;
+            img.className = "popup-thumb";
+            img.onerror = () => {
+              img.style.display = "none";
+            };
+            popupContent.appendChild(img);
           }
+
+          const title = document.createElement("strong");
+          title.textContent = markerTitle;
+          popupContent.appendChild(title);
+
+          const desc = document.createElement("p");
+          desc.className = "popup-desc";
+          desc.textContent = item.descripcion
+            ? truncateText(item.descripcion, 70)
+            : "Sin descripción disponible.";
+          popupContent.appendChild(desc);
+
+          const button = document.createElement("button");
+          button.className = "popup-cta";
+          button.textContent = "Ver detalles";
+          button.onclick = () => navigate(detailPath);
+          popupContent.appendChild(button);
+
+          circle.bindPopup(popupContent);
         }
 
         clusterGroup.addLayer(circle);
