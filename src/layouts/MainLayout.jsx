@@ -104,7 +104,7 @@ function MainLayout() {
               </p>
               <p>
                 <strong>Email:</strong><br />
-                <a href="mailto:olavo.rojas@redescubramossonar.mx">olavo.rojas@redescubramossonar.mx</a>
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=olavo.rojas@redescubramossonora.mx" target="_blank" rel="noopener noreferrer">olavo.rojas@redescubramossonora.mx</a>
               </p>
             </div>
           </div>

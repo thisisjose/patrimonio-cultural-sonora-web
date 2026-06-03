@@ -25,7 +25,7 @@ function Contacto() {
             <div>
               <h3>Email</h3>
               <p>
-                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=olavo.rojas@redescubramossonar.mx" target="_blank" rel="noopener noreferrer">olavo.rojas@redescubramossonar.mx</a>
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=olavo.rojas@redescubramossonora.mx" target="_blank" rel="noopener noreferrer">olavo.rojas@redescubramossonora.mx</a>
               </p>
             </div>
           </div>
