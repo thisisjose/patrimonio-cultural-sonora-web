@@ -236,17 +236,17 @@
 
 .detail-carousel-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-height: 60px;
 }
 
 .detail-carousel-controls button {
-  flex: 0 1 130px;
-  min-width: 110px;
+  flex: 1 1 130px;
+  min-width: 120px;
   padding: 0.75rem 1.2rem;
   border-radius: var(--radius-base);
   border: 0;
