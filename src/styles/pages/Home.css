@@ -394,7 +394,7 @@
   font-family: var(--font-heading);
   font-size: 2.4rem;
   color: var(--primary-dark);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
   text-align: center;
   letter-spacing: -0.5px;
 }
@@ -412,8 +412,9 @@
 .popular-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.8rem;
+  gap: 1.5rem;
   justify-content: center;
+  margin-top: 1rem;
 }
 
 .popular-card {
@@ -431,7 +432,7 @@
 .popular-card:hover {
   transform: translateY(-8px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--accent-sand);
+  border-color: rgba(212, 165, 116, 0.45);
 }
 
 .popular-thumb {

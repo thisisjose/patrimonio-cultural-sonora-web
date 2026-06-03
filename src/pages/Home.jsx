@@ -144,6 +144,10 @@ function Home() {
     navigate(`/patrimonio/${id}`);
   };
 
+  const handleNavigateToDetalle = (id) => {
+    navigate(`/patrimonio/${id}`);
+  };
+
   const showCategoryClass = (categoria) =>
     typeof categoria === "string" ? categoria.toLowerCase() : "";
 
@@ -314,7 +318,19 @@ function Home() {
         <h2 className="section-title">Quizás te interese</h2>
         <div className="popular-row">
           {patrimoniosAleatorios.map((item) => (
-            <article key={item.id} className="popular-card">
+            <article
+              key={item.id}
+              className="popular-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => handleNavigateToDetalle(item.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleNavigateToDetalle(item.id);
+                }
+              }}
+            >
               <div className="popular-thumb">
                 <img 
                   src={item.imagen} 

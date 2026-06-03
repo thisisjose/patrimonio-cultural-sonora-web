@@ -236,17 +236,17 @@
 
 .detail-carousel-controls {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-height: 60px;
 }
 
 .detail-carousel-controls button {
-  flex: 1 1 130px;
-  min-width: 120px;
+  flex: 0 1 130px;
+  min-width: 110px;
   padding: 0.75rem 1.2rem;
   border-radius: var(--radius-base);
   border: 0;
@@ -530,11 +530,16 @@
   .detail-carousel-controls {
     padding: 1rem 0;
     gap: 0.75rem;
-    justify-content: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
   }
   .detail-carousel-controls button {
-    flex: 1 1 120px;
-    min-width: 110px;
+    flex: 0 1 100px;
+    min-width: 90px;
+  }
+  .carousel-counter {
+    flex: 1 1 auto;
+    text-align: center;
   }
   .detail-header { flex-direction: column; text-align: center; }
   .detail-header-content { text-align: center; }
