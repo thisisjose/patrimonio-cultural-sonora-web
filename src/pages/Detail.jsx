@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
@@ -12,6 +12,14 @@ const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
   return value.startsWith("http") ? value : `${API_BASE}${value}`;
+};
+
+const displayCategoryLabel = (categoria) => {
+  const normalized = String(categoria || "").trim().toLowerCase();
+  if (normalized === "biocultural") return "Natural";
+  if (normalized === "material") return "Material";
+  if (normalized === "inmaterial") return "Inmaterial";
+  return categoria || "Sin categoría";
 };
 
 const normalizeImage = (image) => {
@@ -271,10 +279,25 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
   const links = Array.isArray(item.links) ? item.links : [];   // ← NUEVO
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "";
+
   const formatTag = (tag) => {
     if (typeof tag === "string") return tag;
     if (tag && typeof tag.nombre === "string") return tag.nombre;
     return String(tag ?? "");
+  };
+
+  const handleCategoryClick = (categoria) => {
+    if (!categoria) return;
+    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(String(categoria).trim().toLowerCase())}`);
+  };
+
+  const handleTagClick = (tag) => {
+    const value = formatTag(tag).trim();
+    if (!value) return;
+    navigate(`${adminBase}/explorar/tag/${encodeURIComponent(value.toLowerCase())}`);
   };
 
   const formatCoordinate = (value) => {
@@ -380,7 +403,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             )}
 
             <div className="detail-category-below">
-              Categoría: <span className="category-badge">{item.categoria}</span>
+              Categoría: <button type="button" className={`category-badge ${String(item.categoria || "").toLowerCase()}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
             </div>
 
             <div className="detail-tags-below">
@@ -388,9 +411,9 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                 <>
                   Tag{tags.length > 1 ? "s" : ""}: {" "}
                   {tags.map((tag, index) => (
-                    <span key={index} className="tag-badge">
+                    <button key={index} type="button" className="tag-badge" onClick={() => handleTagClick(tag)}>
                       {formatTag(tag)}
-                    </span>
+                    </button>
                   ))}
                 </>
               ) : (

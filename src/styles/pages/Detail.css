@@ -364,6 +364,13 @@
   font-size: 0.85rem;
 }
 
+button.category-badge,
+button.tag-badge {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
 .category-badge.material { background: var(--accent-terracota); color: #fff; }
 .category-badge.inmaterial { background: var(--secondary-blue); color: #fff; }
 .category-badge.biocultural { background: var(--primary-light); color: #fff; }

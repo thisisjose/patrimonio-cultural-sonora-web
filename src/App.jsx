@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Acerca from './pages/Acerca';
 import Contacto from './pages/Contacto';
 import Detail from './pages/Detail';
+import Explore from './pages/Explore';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
@@ -28,12 +29,9 @@ function App() {
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
             <Route path="patrimonio/:id" element={<Detail />} />
+            <Route path="explorar/:mode/:value" element={<Explore />} />
           </Route>
 
-          {/* Login público */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Rutas protegidas (AdminLayout) */}
           <Route path="/admin" element={
             <PrivateRoute>
               <AdminLayout />
@@ -43,6 +41,7 @@ function App() {
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
             <Route path="patrimonio/:id" element={<Detail />} />
+            <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="patrimonio" element={<PatrimonioAdmin />} />
             <Route path="usuarios" element={
@@ -51,6 +50,9 @@ function App() {
               </PrivateRoute>
             } />
           </Route>
+
+          {/* Login público */}
+          <Route path="/login" element={<Login />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
