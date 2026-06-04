@@ -223,3 +223,111 @@
   .contacto-container { padding: 1.1rem; }
   .contacto-title { font-size: 1.75rem; }
 }
+
+.contacto-form {
+  margin-top: 2rem;
+  display: grid;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.contacto-form h2 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 1.4rem;
+}
+
+.contacto-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.contacto-form-group {
+  display: grid;
+  gap: 0.5rem;
+  min-height: auto;
+}
+
+.contacto-form-label {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.contacto-form-input,
+.contacto-form-textarea {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-base);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.contacto-form-input:focus,
+.contacto-form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-terracota);
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.16);
+}
+
+.contacto-form-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.contacto-form-field-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.contacto-form-feedback {
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-base);
+  font-size: 0.95rem;
+}
+
+.contacto-form-error {
+  background: rgba(211, 47, 47, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(211, 47, 47, 0.18);
+}
+
+.contacto-form-success {
+  background: rgba(56, 142, 60, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(56, 142, 60, 0.18);
+}
+
+.contacto-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.contacto-form button {
+  width: auto;
+  padding: 0.95rem 1.35rem;
+}
+
+@media (max-width: 768px) {
+  .contacto-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .contacto-form-group {
+    min-height: auto;
+  }
+
+  .contacto-form-field-error {
+    font-size: 0.92rem;
+  }
+}
