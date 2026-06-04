@@ -1,0 +1,214 @@
+/* PatrimonioStatsCard Styles */
+.patrimonio-stats-container {
+  position: relative;
+  background: linear-gradient(135deg, #2A3F3A 0%, #1E2E2B 100%);
+  border-radius: 24px;
+  padding: 2.5rem 1rem;
+  margin: 3rem auto;
+  max-width: 1000px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+.stats-badge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FFFFFF;
+  color: #1F1F1F;
+  padding: 0.6rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.stats-content {
+  display: grid;
+  grid-template-columns: 1fr 0.5px 1fr 0.5px 1fr;
+  gap: 0;
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  column-gap: 0.1rem;
+}
+
+.stat-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  line-height: 1;
+}
+
+.material-color {
+  color: #FFFFFF;
+}
+
+.inmaterial-color {
+  color: #E8674B;
+}
+
+.biocultural-color {
+  color: #5F8A5D;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.stat-divider {
+  height: 50px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0;
+}
+
+/* Responsive Tablet */
+@media (max-width: 900px) {
+  .patrimonio-stats-container {
+    padding: 2rem 1.5rem;
+    margin: 2.5rem auto;
+  }
+
+  .stat-number {
+    font-size: 2.4rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .stat-column {
+    padding: 0.7rem 0.05rem;
+  }
+
+  .stat-divider {
+    height: 45px;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+}
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+  .patrimonio-stats-container {
+    padding: 2rem 1rem;
+    margin: 2rem auto;
+    max-width: 100%;
+  }
+
+  .stats-badge {
+    font-size: 0.65rem;
+    padding: 0.5rem 1.2rem;
+    top: -12px;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-column {
+    padding: 0.6rem 0.05rem;
+  }
+
+  .stat-divider {
+    height: 40px;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+  }
+}
+
+/* Responsive Small Mobile */
+@media (max-width: 600px) {
+  .patrimonio-stats-container {
+    padding: 1.8rem 0.8rem;
+    margin: 1.5rem auto;
+    border-radius: 18px;
+  }
+
+  .stats-badge {
+    font-size: 0.6rem;
+    padding: 0.4rem 1rem;
+    letter-spacing: 0.8px;
+    top: -12px;
+  }
+
+  .stat-number {
+    font-size: 1.6rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-column {
+    padding: 0.5rem 0.02rem;
+  }
+
+  .stat-divider {
+    height: 35px;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+  }
+}
+
+/* Responsive Extra Small Mobile */
+@media (max-width: 480px) {
+  .patrimonio-stats-container {
+    padding: 1.5rem 0.6rem;
+    margin: 1.5rem auto;
+    border-radius: 16px;
+  }
+
+  .stats-badge {
+    font-size: 0.55rem;
+    padding: 0.35rem 0.8rem;
+    letter-spacing: 0.6px;
+  }
+
+  .stat-number {
+    font-size: 1.4rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-column {
+    padding: 0.6rem 0.2rem;
+  }
+
+  .stat-divider {
+    height: 35px;
+    margin: 0 0.08rem;
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+  }
+}

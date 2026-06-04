@@ -24,7 +24,7 @@
 /* ==================== FEATURES GRID ==================== */
 .features-grid {
   max-width: 1040px;
-  margin: 0 auto 3rem;
+  margin: 2rem auto 3rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.1rem;
@@ -411,10 +411,13 @@
 
 .popular-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   justify-content: center;
   margin-top: 1rem;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .popular-card {

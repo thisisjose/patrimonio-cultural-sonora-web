@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
+import PatrimonioStatsCard from "../components/PatrimonioStatsCard";
 import "../styles/pages/Home.css";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
@@ -20,6 +21,7 @@ function Home() {
   const [busqueda, setBusqueda] = useState("");
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
+  const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, biocultural: 0 });
 
   const API_BASE = "http://localhost:3000";
 
@@ -111,6 +113,24 @@ function Home() {
   }, [categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
 
   useEffect(() => {
+    const materialCount = todosPatrimonios.filter(
+      (item) => String(item.categoria).toLowerCase() === "material"
+    ).length;
+    const inmaterialCount = todosPatrimonios.filter(
+      (item) => String(item.categoria).toLowerCase() === "inmaterial"
+    ).length;
+    const bioculturalCount = todosPatrimonios.filter(
+      (item) => String(item.categoria).toLowerCase() === "biocultural"
+    ).length;
+
+    setStatsData({
+      material: materialCount,
+      inmaterial: inmaterialCount,
+      biocultural: bioculturalCount,
+    });
+  }, [todosPatrimonios]);
+
+  useEffect(() => {
     if (busqueda.trim() === "") {
       setResultadosBusqueda([]);
       setMostrarResultados(false);
@@ -181,31 +201,11 @@ function Home() {
         )}
       </div>
 
-      <div className="features-grid">
-        <div className="feature-card">
-          <div className="feature-icon"><img src={mapaIcon} alt="Explorar mapa" /></div>
-          <div>
-            <div className="feature-title">Explora el   mapa</div>
-            <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
-          </div>
-        </div>
-
-        <div className="feature-card">
-          <div className="feature-icon"><img src={historiaIcon} alt="Aprender historia" /></div>
-          <div>
-            <div className="feature-title">Aprende sobre la historia</div>
-            <div className="feature-desc">Cada punto incluye contexto histórico breve y referencias para profundizar en el patrimonio.</div>
-          </div>
-        </div>
-
-        <div className="feature-card">
-          <div className="feature-icon"><img src={infoIcon} alt="Información accesible" /></div>
-          <div>
-            <div className="feature-title">Información accesible</div>
-            <div className="feature-desc">Datos completos y verificados de cada sitio: Nombre, ubicación y descripción.</div>
-          </div>
-        </div>
-      </div>
+      <PatrimonioStatsCard
+        material={statsData.material}
+        inmaterial={statsData.inmaterial}
+        biocultural={statsData.biocultural}
+      />
 
       <div className="municipio-selector-wrapper">
         <div className="municipio-selector-content">
@@ -348,6 +348,32 @@ function Home() {
           ))}
         </div>
       </section>
+
+      <div className="features-grid">
+        <div className="feature-card">
+          <div className="feature-icon"><img src={mapaIcon} alt="Explorar mapa" /></div>
+          <div>
+            <div className="feature-title">Explora el mapa</div>
+            <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
+          </div>
+        </div>
+
+        <div className="feature-card">
+          <div className="feature-icon"><img src={historiaIcon} alt="Aprender historia" /></div>
+          <div>
+            <div className="feature-title">Aprende sobre la historia</div>
+            <div className="feature-desc">Cada punto incluye contexto histórico breve y referencias para profundizar en el patrimonio.</div>
+          </div>
+        </div>
+
+        <div className="feature-card">
+          <div className="feature-icon"><img src={infoIcon} alt="Información accesible" /></div>
+          <div>
+            <div className="feature-title">Información accesible</div>
+            <div className="feature-desc">Datos completos y verificados de cada sitio: Nombre, ubicación y descripción.</div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
