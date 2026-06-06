@@ -334,10 +334,15 @@
 }
 
 .detail-description {
-  line-height: 1.8;
-  font-size: 1.05rem;
-  color: var(--text-primary);
-  margin: 0;
+  margin: 0 0 1rem 0;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 1.02rem;
+  text-align: justify;
+  text-justify: inter-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .detail-category-below,
@@ -352,16 +357,27 @@
   align-items: center;
 }
 
-.category-badge,
-.tag-badge {
+/* Category and tag button styling: keep sizes consistent */
+button.category-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+}
+
+.tag-badge,
+button.tag-badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 5px 10px;
   border-radius: 6px;
   background: rgba(242, 249, 244, 0.95);
   color: var(--primary-dark);
   text-transform: capitalize;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 .category-badge.material { background: var(--accent-terracota); color: #fff; }

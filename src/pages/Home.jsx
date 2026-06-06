@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import MapView from "../components/MapView";
 import PatrimonioStatsCard from "../components/PatrimonioStatsCard";
 import "../styles/pages/Home.css";
@@ -11,6 +11,7 @@ import { getMunicipios } from "../services/municipioService";
 
 function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const searchInputRef = useRef(null);
   const [searchParams] = useSearchParams();
   const [patrimonios, setPatrimonios] = useState([]);
@@ -158,14 +159,16 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "";
+
   const handleSelectResultado = (id) => {
     setBusqueda("");
     setMostrarResultados(false);
-    navigate(`/patrimonio/${id}`);
+    navigate(`${adminBase}/patrimonio/${id}`);
   };
 
   const handleNavigateToDetalle = (id) => {
-    navigate(`/patrimonio/${id}`);
+    navigate(`${adminBase}/patrimonio/${id}`);
   };
 
   const showCategoryClass = (categoria) =>

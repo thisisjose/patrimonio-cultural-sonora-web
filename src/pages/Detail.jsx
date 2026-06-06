@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
@@ -12,6 +12,14 @@ const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
   return value.startsWith("http") ? value : `${API_BASE}${value}`;
+};
+
+const displayCategoryLabel = (categoria) => {
+  const normalized = String(categoria || "").trim().toLowerCase();
+  if (normalized === "biocultural") return "Natural";
+  if (normalized === "material") return "Material";
+  if (normalized === "inmaterial") return "Inmaterial";
+  return categoria || "Sin categoría";
 };
 
 const normalizeImage = (image) => {
@@ -144,6 +152,100 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.line(margin, y, pageWidth - margin, y);
     };
 
+    // Helper to draw justified text by distributing extra space between words
+    const drawJustifiedText = (doc, text, x, y, maxWidth, lineHeight) => {
+      const paragraphs = String(text || "").split("\n").map(p => p.trim());
+      let cursorY = y;
+
+      paragraphs.forEach((para) => {
+        if (!para) {
+          cursorY += lineHeight; // empty line
+          return;
+        }
+
+        const words = para.split(/\s+/).filter(Boolean);
+        let lineWords = [];
+
+        // helper to split a very long word into chunks that fit maxWidth
+        const splitLongWord = (word) => {
+          const parts = [];
+          let chunk = "";
+          for (let k = 0; k < word.length; k++) {
+            const test = chunk + word[k];
+            if (doc.getTextWidth(test) <= maxWidth) {
+              chunk = test;
+            } else {
+              if (chunk) parts.push(chunk);
+              chunk = word[k];
+            }
+          }
+          if (chunk) parts.push(chunk);
+          return parts;
+        };
+
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i];
+          const testLine = lineWords.length ? lineWords.join(' ') + ' ' + word : word;
+          const testWidth = doc.getTextWidth(testLine);
+
+          if (testWidth <= maxWidth) {
+            lineWords.push(word);
+          } else {
+            // render the current line (justified if possible)
+            if (lineWords.length <= 1) {
+              // single long word that doesn't fit: split it
+              const single = lineWords.length ? lineWords.join(' ') : '';
+              const longWord = single || word;
+              const parts = splitLongWord(longWord);
+
+              for (let p = 0; p < parts.length; p++) {
+                if (cursorY > doc.internal.pageSize.getHeight() - margin) {
+                  doc.addPage();
+                  cursorY = margin;
+                }
+                doc.text(parts[p], x, cursorY);
+                cursorY += lineHeight;
+              }
+              lineWords = [];
+              // if we split the current `word` we should continue to next
+              if (single) {
+                // we already rendered the 'single' line, push current word as next
+                lineWords = [word];
+                continue;
+              } else {
+                continue;
+              }
+            } else {
+              const wordsWidth = lineWords.reduce((s, w) => s + doc.getTextWidth(w), 0);
+              const spaces = lineWords.length - 1;
+              const extra = maxWidth - wordsWidth;
+              const spaceWidth = extra / spaces;
+              let currentX = x;
+              for (let j = 0; j < lineWords.length; j++) {
+                const w = lineWords[j];
+                doc.text(w, currentX, cursorY);
+                currentX += doc.getTextWidth(w) + spaceWidth;
+              }
+            }
+
+            cursorY += lineHeight;
+            lineWords = [word];
+          }
+        }
+
+        // render last line of paragraph (left aligned)
+        if (lineWords.length > 0) {
+          doc.text(lineWords.join(' '), x, cursorY);
+          cursorY += lineHeight;
+        }
+
+        // small gap between paragraphs
+        cursorY += 2;
+      });
+
+      return cursorY;
+    };
+
     // ===== TÍTULO =====
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
@@ -188,9 +290,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    const descLines = doc.splitTextToSize(item.descripcion || "Sin descripción", pageWidth - margin * 2);
-    doc.text(descLines, margin, currentY);
-    currentY += (descLines.length * 5) + 15;
+    currentY = drawJustifiedText(doc, item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 6);
+    currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
     if (item.links && item.links.length > 0) {
@@ -271,10 +372,25 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
   const links = Array.isArray(item.links) ? item.links : [];   // ← NUEVO
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "";
+
   const formatTag = (tag) => {
     if (typeof tag === "string") return tag;
     if (tag && typeof tag.nombre === "string") return tag.nombre;
     return String(tag ?? "");
+  };
+
+  const handleCategoryClick = (categoria) => {
+    if (!categoria) return;
+    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(String(categoria).trim().toLowerCase())}`);
+  };
+
+  const handleTagClick = (tag) => {
+    const value = formatTag(tag).trim();
+    if (!value) return;
+    navigate(`${adminBase}/explorar/tag/${encodeURIComponent(value.toLowerCase())}`);
   };
 
   const formatCoordinate = (value) => {
@@ -380,7 +496,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             )}
 
             <div className="detail-category-below">
-              Categoría: <span className="category-badge">{item.categoria}</span>
+              Categoría: <button type="button" className={`category-badge ${String(item.categoria || "").toLowerCase()}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
             </div>
 
             <div className="detail-tags-below">
@@ -388,9 +504,9 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                 <>
                   Tag{tags.length > 1 ? "s" : ""}: {" "}
                   {tags.map((tag, index) => (
-                    <span key={index} className="tag-badge">
+                    <button key={index} type="button" className="tag-badge" onClick={() => handleTagClick(tag)}>
                       {formatTag(tag)}
-                    </span>
+                    </button>
                   ))}
                 </>
               ) : (
