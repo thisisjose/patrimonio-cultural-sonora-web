@@ -654,7 +654,7 @@ export default function AdminDashboard() {
             <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}>
               <option>Material</option>
               <option>Inmaterial</option>
-              <option>Biocultural</option>
+              <option>Natural</option>
             </select>
           </div>
 
@@ -992,7 +992,7 @@ export default function AdminDashboard() {
             <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
               <option>Material</option>
               <option>Inmaterial</option>
-              <option>Biocultural</option>
+              <option>Natural</option>
             </select>
           </div>
 
@@ -1118,7 +1118,7 @@ export default function AdminDashboard() {
         <div className="card">
           <div className="tbar">
             <div className="fpill"><select className="fsel" value={filtro.municipio} onChange={e => setFiltro({...filtro, municipio: e.target.value})}><option value="Todos">Todos</option>{municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select></div>
-            <div className="fpill"><select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}><option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Biocultural</option></select></div>
+            <div className="fpill"><select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}><option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Natural</option></select></div>
             <div className="fpill"><select className="fsel" value={filtro.estado} onChange={e => setFiltro({...filtro, estado: e.target.value})}><option value="Todos">Todos</option><option value="pendiente">Pendiente</option><option value="registrado">Registrado</option></select></div>
             <div className="fpill" style={{ flex: '1 1 240px' }}><input type="text" className="fsel" placeholder="Buscar por nombre, descripción, municipio o tag..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '5px 8px' }} /></div>
             <div className="spacer" />
