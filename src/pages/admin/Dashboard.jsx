@@ -126,6 +126,8 @@ export default function AdminDashboard() {
     links: [],
     newLinkTitulo: "",
     newLinkUrl: "",
+    manualCoordenadas: "",
+    manualNombrePunto: "",
   });
 
   const [modalNuevo, setModalNuevo] = useState(false);
@@ -142,6 +144,8 @@ export default function AdminDashboard() {
     links: [],
     newLinkTitulo: "",
     newLinkUrl: "",
+    manualCoordenadas: "",
+    manualNombrePunto: "",
   });
 
   const [modalTagsOpen, setModalTagsOpen] = useState(false);
@@ -244,6 +248,8 @@ export default function AdminDashboard() {
       links: item.links || [],
       newLinkTitulo: "",
       newLinkUrl: "",
+      manualCoordenadas: "",
+      manualNombrePunto: "",
     });
     setModalEditar(item);
   };
@@ -267,6 +273,8 @@ export default function AdminDashboard() {
       links: [],
       newLinkTitulo: "",
       newLinkUrl: "",
+      manualCoordenadas: "",
+      manualNombrePunto: "",
     });
   };
 
@@ -311,6 +319,55 @@ export default function AdminDashboard() {
       es_principal: esPrincipal,
     });
     setForm(prev => ({ ...prev, ubicaciones: nuevasUbicaciones }));
+  };
+
+  const agregarUbicacionManual = (form, setForm) => {
+    const coordenadas = form.manualCoordenadas.trim();
+    
+    if (!coordenadas) {
+      alert("Por favor ingresa las coordenadas en formato: latitud, longitud (ej: 12.34234234, -12.3543)");
+      return;
+    }
+    
+    const partes = coordenadas.split(",").map(p => p.trim());
+    if (partes.length !== 2) {
+      alert("Por favor ingresa las coordenadas en formato: latitud, longitud (ej: 12.34234234, -12.3543)");
+      return;
+    }
+    
+    const latitud = parseFloat(partes[0]);
+    const longitud = parseFloat(partes[1]);
+    
+    if (isNaN(latitud) || isNaN(longitud)) {
+      alert("Por favor ingresa valores numéricos válidos para latitud y longitud");
+      return;
+    }
+    
+    if (latitud < -90 || latitud > 90) {
+      alert("La latitud debe estar entre -90 y 90");
+      return;
+    }
+    
+    if (longitud < -180 || longitud > 180) {
+      alert("La longitud debe estar entre -180 y 180");
+      return;
+    }
+    
+    const nuevasUbicaciones = [...form.ubicaciones];
+    const esPrincipal = nuevasUbicaciones.length === 0;
+    nuevasUbicaciones.push({
+      nombre_punto: form.manualNombrePunto || "",
+      latitud: latitud,
+      longitud: longitud,
+      es_principal: esPrincipal,
+    });
+    
+    setForm(prev => ({
+      ...prev,
+      ubicaciones: nuevasUbicaciones,
+      manualCoordenadas: "",
+      manualNombrePunto: "",
+    }));
   };
 
   const eliminarUbicacion = (form, setForm, index) => {
@@ -679,6 +736,34 @@ export default function AdminDashboard() {
             <h4 className="section-title-small">Puntos de ubicación</h4>
             <p className="form-hint">Haz clic en el mapa para agregar una ubicación</p>
             <MapPicker ubicaciones={formNuevo.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formNuevo, setFormNuevo, coords, nombre)} />
+            
+            <div className="manual-location-input">
+              <h5 style={{ marginTop: "15px", marginBottom: "10px", fontSize: "14px" }}>O ingresa manualmente las coordenadas:</h5>
+              <input
+                type="text"
+                placeholder="Coordenadas (formato: latitud, longitud. Ej: 12.34234234, -12.3543)"
+                value={formNuevo.manualCoordenadas}
+                onChange={(e) => setFormNuevo(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
+                className="form-input"
+                style={{ marginBottom: "10px" }}
+              />
+              <input
+                type="text"
+                placeholder="Nombre del punto (opcional)"
+                value={formNuevo.manualNombrePunto}
+                onChange={(e) => setFormNuevo(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
+                className="form-input"
+              />
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => agregarUbicacionManual(formNuevo, setFormNuevo)}
+                style={{ marginTop: "10px" }}
+              >
+                Agregar ubicación
+              </button>
+            </div>
+            
             {formNuevo.ubicaciones.length > 0 && (
               <div className="ubicaciones-list">
                 {formNuevo.ubicaciones.map((ubi, idx) => (
@@ -710,7 +795,7 @@ export default function AdminDashboard() {
   </div>
 )}
 
-{/* MODAL VER - CORREGIDO */}
+{/* MODAL VER */}
 {modalVer && (
   <div className="overlay" onClick={cerrarVer}>
     <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
@@ -819,7 +904,7 @@ export default function AdminDashboard() {
               </span>
               {isSupremo && (
                 <button
-                  className="btn-cambiar-estado"
+                  className="ab editar"
                   onClick={() => handleCambiarEstado(modalVer, modalVer.estado === "pendiente" ? "registrado" : "pendiente")}
                 >
                   Cambiar estado
@@ -891,7 +976,7 @@ export default function AdminDashboard() {
         </div>
       </div>
       <div className="modal-footer">
-        <button className="ab edit" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
+        <button className="btn-primary" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
         <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
       </div>
     </div>
@@ -1027,6 +1112,34 @@ export default function AdminDashboard() {
             <h4 className="section-title-small">Puntos de ubicación</h4>
             <p className="form-hint">Haz clic en el mapa para agregar una ubicación</p>
             <MapPicker ubicaciones={formEditar.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formEditar, setFormEditar, coords, nombre)} />
+            
+            <div className="manual-location-input">
+              <h5 style={{ marginTop: "15px", marginBottom: "10px", fontSize: "14px" }}>O ingresa manualmente las coordenadas:</h5>
+              <input
+                type="text"
+                placeholder="Coordenadas (formato: latitud, longitud. Ej: 12.34234234, -12.3543)"
+                value={formEditar.manualCoordenadas}
+                onChange={(e) => setFormEditar(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
+                className="form-input"
+                style={{ marginBottom: "10px" }}
+              />
+              <input
+                type="text"
+                placeholder="Nombre del punto"
+                value={formEditar.manualNombrePunto}
+                onChange={(e) => setFormEditar(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
+                className="form-input"
+              />
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => agregarUbicacionManual(formEditar, setFormEditar)}
+                style={{ marginTop: "10px" }}
+              >
+                Agregar ubicación
+              </button>
+            </div>
+            
             {formEditar.ubicaciones.length > 0 && (
               <div className="ubicaciones-list">
                 {formEditar.ubicaciones.map((ubi, idx) => (
@@ -1146,7 +1259,7 @@ export default function AdminDashboard() {
                       <td><span className={`bst ${item.estado}`}><span className={`dot ${item.estado === "registrado" ? "green" : "amber"}`} />{item.estado === "registrado" ? "Registrado" : "Pendiente"}</span></td>
                       <td><span className="tdate">{item.fechaRegistro}</span></td>
                       <td><span className="tdate">{item.fechaActualizacion}</span></td>
-                      <td><div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <td><div className="action-buttons">
                         <button className="ab view" onClick={() => abrirVer(item)}>Ver</button>
                         <button className="ab edit" onClick={() => abrirEditar(item)}>Editar</button>
                         <button className="ab delete" onClick={() => onDelete(item.id)}>Eliminar</button>
