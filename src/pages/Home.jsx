@@ -318,7 +318,7 @@ function Home() {
       </div>
 
       <section className="popular-section">
-        <h2 className="section-title">Quizás te interese</h2>
+        <h2 className="section-title">Consulta el catálogo</h2>
         <div className="popular-row">
           {patrimoniosAleatorios.map((item) => (
             <article
@@ -349,6 +349,14 @@ function Home() {
               </div>
             </article>
           ))}
+        </div>
+        <div className="catalogo-button-container">
+          <button
+            className="catalogo-view-btn"
+            onClick={() => navigate(`${adminBase}/catalogo`)}
+          >
+            Ver catálogo completo →
+          </button>
         </div>
       </section>
 

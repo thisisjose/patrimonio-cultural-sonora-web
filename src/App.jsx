@@ -10,6 +10,7 @@ import Acerca from './pages/Acerca';
 import Contacto from './pages/Contacto';
 import Detail from './pages/Detail';
 import Explore from './pages/Explore';
+import Catalogo from './pages/Catalogo';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="contacto" element={<Contacto />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
+            <Route path="catalogo" element={<Catalogo />} />
           </Route>
 
           <Route path="/admin" element={
@@ -42,6 +44,7 @@ function App() {
             <Route path="contacto" element={<Contacto />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
+            <Route path="catalogo" element={<Catalogo />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="patrimonio" element={<PatrimonioAdmin />} />
             <Route path="usuarios" element={
