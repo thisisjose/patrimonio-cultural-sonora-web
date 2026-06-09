@@ -345,6 +345,50 @@
   word-break: break-word;
 }
 
+.detail-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.detail-links .section-title-small {
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.links-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.links-list li {
+  margin: 0;
+  padding: 0;
+}
+
+.links-list a {
+  display: inline-block;
+  color: var(--secondary-blue);
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.links-list a:hover {
+  text-decoration: underline;
+  color: var(--accent-terracota);
+}
+
 .detail-category-below,
 .detail-tags-below {
   margin-top: 0.5rem;

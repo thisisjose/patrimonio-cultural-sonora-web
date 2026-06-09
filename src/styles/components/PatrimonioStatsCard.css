@@ -1,14 +1,14 @@
 /* PatrimonioStatsCard Styles */
 .patrimonio-stats-container {
   position: relative;
-  background: linear-gradient(135deg, #2A3F3A 0%, #1E2E2B 100%);
+  background: #4B5563;
   border-radius: 24px;
   padding: 2.5rem 1rem;
   margin: 3rem auto;
   max-width: 1000px;
   width: 100%;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-sizing: border-box;
 }
 
@@ -57,19 +57,19 @@
 }
 
 .material-color {
-  color: #FFFFFF;
+  color: #e74c3c;
 }
 
 .inmaterial-color {
-  color: #E8674B;
+  color: #3498db;
 }
 
 .biocultural-color {
-  color: #5F8A5D;
+  color: #27ae60;
 }
 
 .stat-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: #FFFFFF;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.8px;
