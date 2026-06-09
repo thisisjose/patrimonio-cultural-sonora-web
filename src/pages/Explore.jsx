@@ -2,15 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import { API_HOST } from "../services/apiConfig.js";
 import "../styles/pages/Home.css";
 import "../styles/pages/Explore.css";
-
-const API_BASE = "http://localhost:3000";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
-  return value.startsWith("http") ? value : `${API_BASE}${value}`;
+  return value.startsWith("http") ? value : `${API_HOST}${value}`;
 };
 
 const normalizeImage = (image) => {

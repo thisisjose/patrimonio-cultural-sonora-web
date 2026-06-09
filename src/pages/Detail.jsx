@@ -5,13 +5,12 @@ import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
 import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
-
-const API_BASE = "http://localhost:3000";
+import { API_HOST } from "../services/apiConfig.js";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
-  return value.startsWith("http") ? value : `${API_BASE}${value}`;
+  return value.startsWith("http") ? value : `${API_HOST}${value}`;
 };
 
 const displayCategoryLabel = (categoria) => {

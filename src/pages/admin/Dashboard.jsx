@@ -12,6 +12,7 @@ import {
 import { getMunicipios } from "../../services/municipioService";
 import { getAllTags, updateTag, deleteTag } from "../../services/tagService";
 import { useAuth } from "../../hooks/useAuth";
+import { API_HOST } from "../../services/apiConfig.js";
 
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -152,8 +153,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const API_BASE = "http://localhost:3000";
 
   const municipioNombrePorId = useMemo(() => {
     const map = new Map();
@@ -554,11 +553,11 @@ export default function AdminDashboard() {
         imagen: item.imagen_url
           ? item.imagen_url.startsWith("http")
             ? item.imagen_url
-            : `${API_BASE}${item.imagen_url}`
+            : `${API_HOST}${item.imagen_url}`
           : "https://placehold.co/600x400?text=Sin+imagen",
         galeria: (item.galeria || []).map(g => ({
           id: g.id,
-          url: g.url.startsWith("http") ? g.url : `${API_BASE}${g.url}`
+          url: g.url.startsWith("http") ? g.url : `${API_HOST}${g.url}`
         })),
         municipioId: item.municipioId,
         ubicacion: municipioNombrePorId.get(String(item.municipioId)) || "Sin municipio",
@@ -569,7 +568,7 @@ export default function AdminDashboard() {
         links: item.links || [],
       };
     });
-  }, [patrimonios, municipioNombrePorId, API_BASE]);
+  }, [patrimonios, municipioNombrePorId, API_HOST]);
 
   const filtrados = patrimoniosUI.filter((p) => {
     const matchesMunicipio = filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio);

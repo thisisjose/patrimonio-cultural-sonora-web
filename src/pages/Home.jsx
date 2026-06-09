@@ -8,6 +8,7 @@ import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import { API_HOST } from "../services/apiConfig.js";
 
 function Home() {
   const navigate = useNavigate();
@@ -23,8 +24,6 @@ function Home() {
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, natural: 0 });
-
-  const API_BASE = "http://localhost:3000";
 
   const parseUbicaciones = (ubicaciones) => {
     if (!ubicaciones) return [];
@@ -56,7 +55,7 @@ function Home() {
     const imagen = item.imagen_url
       ? item.imagen_url.startsWith("http")
         ? item.imagen_url
-        : `${API_BASE}${item.imagen_url}`
+        : `${API_HOST}${item.imagen_url}`
       : "https://placehold.co/600x400?text=Sin+imagen";
 
     return {
