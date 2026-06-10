@@ -418,6 +418,8 @@
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
+  align-items: stretch;
+  grid-auto-rows: 1fr; /* asegura filas de igual altura */
 }
 
 .popular-card {
@@ -428,8 +430,10 @@
   transition: all var(--transition-base);
   border: 1px solid var(--border);
   cursor: pointer;
-  max-width: 280px;
-  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .popular-card:hover {
@@ -444,7 +448,7 @@
   aspect-ratio: 4 / 3;
   overflow: hidden;
   background: linear-gradient(135deg, var(--border), rgba(212, 165, 116, 0.2));
-  max-height: 220px;
+  flex: 0 0 auto;
 }
 
 .popular-thumb img {
@@ -453,6 +457,7 @@
   object-fit: cover;
   object-position: center;
   transition: transform var(--transition-base);
+  display: block;
 }
 
 .popular-card:hover .popular-thumb img {
@@ -465,7 +470,9 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 60px;
+  min-height: 64px;
+  flex: 1 1 auto; /* permite que el contenido ocupe el espacio restante */
+  overflow: hidden;
 }
 
 .popular-name {
@@ -474,6 +481,11 @@
   font-weight: 700;
   color: var(--primary-dark);
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* limitar a 2 líneas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popular-badge {
