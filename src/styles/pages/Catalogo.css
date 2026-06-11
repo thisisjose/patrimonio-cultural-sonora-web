@@ -1,0 +1,318 @@
+/* ==================== CATALOGO HEADER ==================== */
+.catalogo-header-section {
+  margin-bottom: 2rem;
+}
+
+/* ==================== FILTERS SECTION ==================== */
+.catalogo-filters-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid #e5e7eb;
+}
+
+.catalogo-explore-card-list {
+  grid-template-columns: repeat(4, minmax(250px, 1fr));
+  align-items: stretch;
+}
+
+.catalogo-explore-card-list .patrimonio-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.catalogo-explore-card-list .patrimonio-thumb {
+  min-height: 180px;
+}
+
+.catalogo-search-box,
+.catalogo-category-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+/* Search Input */
+.catalogo-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.catalogo-search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  color: var(--primary-dark);
+  background: #ffffff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.catalogo-search-input:hover {
+  border-color: #9ca3af;
+}
+
+.catalogo-search-input:focus {
+  outline: none;
+  border-color: var(--secondary-blue);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.catalogo-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.catalogo-search-clear-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: color 0.18s ease;
+}
+
+.catalogo-search-clear-btn:hover {
+  color: #6b7280;
+}
+
+/* Select Input */
+.catalogo-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  color: var(--primary-dark);
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+.catalogo-select:hover {
+  border-color: #9ca3af;
+}
+
+.catalogo-select:focus {
+  outline: none;
+  border-color: var(--secondary-blue);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.catalogo-select option {
+}
+
+/* ==================== MUNICIPIO PAGINATION ==================== */
+.catalogo-municipio-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.catalogo-page-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  color: var(--primary-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.catalogo-page-btn:hover:not(:disabled) {
+  border-color: var(--secondary-blue);
+  color: var(--secondary-blue);
+  background: rgba(52, 152, 219, 0.05);
+}
+
+.catalogo-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.catalogo-page-numbers {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.catalogo-page-num {
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  color: var(--primary-dark);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.catalogo-page-num:hover {
+  border-color: var(--secondary-blue);
+  color: var(--secondary-blue);
+  background: rgba(52, 152, 219, 0.05);
+}
+
+.catalogo-page-num.active {
+  background: var(--secondary-blue);
+  color: #ffffff;
+  border-color: var(--secondary-blue);
+}
+
+.pagination-dots {
+  color: var(--muted);
+  padding: 0 0.25rem;
+}
+
+/* ==================== SCROLL TO TOP BUTTON ==================== */
+.catalogo-scroll-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--secondary-blue);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.catalogo-scroll-top:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+  transform: translateY(10px);
+}
+
+.catalogo-scroll-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 980px) {
+  .catalogo-filters-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .catalogo-explore-card-list {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .catalogo-filters-section {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .catalogo-explore-card-list {
+    grid-template-columns: 1fr;
+  }
+
+  .catalogo-municipio-pagination {
+    gap: 0.35rem;
+    padding-top: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .catalogo-page-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .catalogo-page-num {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .catalogo-scroll-top {
+    width: 45px;
+    height: 45px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalogo-search-input,
+  .catalogo-select {
+    font-size: 16px;
+  }
+
+  .catalogo-municipio-pagination {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .catalogo-page-btn {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .catalogo-page-numbers {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .catalogo-scroll-top {
+    width: 40px;
+    height: 40px;
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 1rem;
+  }
+}

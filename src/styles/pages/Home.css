@@ -418,6 +418,8 @@
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
+  align-items: stretch;
+  grid-auto-rows: 1fr; /* asegura filas de igual altura */
 }
 
 .popular-card {
@@ -428,8 +430,10 @@
   transition: all var(--transition-base);
   border: 1px solid var(--border);
   cursor: pointer;
-  max-width: 280px;
-  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .popular-card:hover {
@@ -444,7 +448,7 @@
   aspect-ratio: 4 / 3;
   overflow: hidden;
   background: linear-gradient(135deg, var(--border), rgba(212, 165, 116, 0.2));
-  max-height: 220px;
+  flex: 0 0 auto;
 }
 
 .popular-thumb img {
@@ -453,6 +457,7 @@
   object-fit: cover;
   object-position: center;
   transition: transform var(--transition-base);
+  display: block;
 }
 
 .popular-card:hover .popular-thumb img {
@@ -465,7 +470,9 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 60px;
+  min-height: 64px;
+  flex: 1 1 auto; /* permite que el contenido ocupe el espacio restante */
+  overflow: hidden;
 }
 
 .popular-name {
@@ -474,6 +481,11 @@
   font-weight: 700;
   color: var(--primary-dark);
   line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* limitar a 2 líneas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popular-badge {
@@ -494,11 +506,42 @@
 .popular-badge.inmaterial { background: var(--secondary-blue); }
 .popular-badge.natural { background: var(--primary-light); }
 
+/* ==================== CATALOGO BUTTON ==================== */
+.catalogo-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.5rem;
+}
+
+.catalogo-view-btn {
+  padding: 1rem 2rem;
+  background: var(--secondary-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.catalogo-view-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+}
+
+.catalogo-view-btn:active {
+  transform: translateY(0);
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 980px) {
   .features-grid { grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
   .patrimonios-grid { grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
   .municipio-selector-content { gap: 1rem; }
+  .catalogo-view-btn { padding: 0.9rem 1.8rem; font-size: 0.95rem; }
 }
 
 @media (max-width: 768px) {
@@ -520,6 +563,8 @@
   .patrimonio-thumb { height: 220px; }
   .popular-row { grid-template-columns: repeat(2, 1fr); }
   .section-title { font-size: 2rem; }
+  .catalogo-button-container { margin-top: 2rem; }
+  .catalogo-view-btn { padding: 0.85rem 1.6rem; font-size: 0.9rem; }
 }
 
 @media (max-width: 480px) {
@@ -537,4 +582,6 @@
   .popular-thumb { height: 240px; }
   .section-title { font-size: 1.6rem; margin-bottom: 0.4rem; }
   .section-subtitle { margin-bottom: 1.2rem; }
+  .catalogo-button-container { margin-top: 1.5rem; }
+  .catalogo-view-btn { padding: 0.75rem 1.4rem; font-size: 0.85rem; width: 100%; }
 }

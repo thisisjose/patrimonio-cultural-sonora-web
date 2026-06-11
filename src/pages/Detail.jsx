@@ -248,7 +248,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     // ===== TÍTULO =====
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.setTextColor(41, 128, 185);
+    doc.setTextColor(0, 0, 0);
     const titleLines = doc.splitTextToSize(item.nombre, pageWidth - margin * 2);
     doc.text(titleLines, margin, currentY);
     currentY += (titleLines.length * 10) + 5;
@@ -256,7 +256,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     // ===== INFORMACIÓN BÁSICA =====
     doc.setFont("helvetica", "italic");
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     const infoText = `Municipio: ${municipioNombre} | Categoría: ${item.categoria || "No especificada"}`;
     doc.text(infoText, margin, currentY);
     currentY += 10;
@@ -267,11 +267,11 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     if (item.tags && item.tags.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.setTextColor(50, 50, 50);
+      doc.setTextColor(0, 0, 0);
       doc.text("Etiquetas:", margin, currentY);
       
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
+      doc.setTextColor(0, 0, 0);
       const tagText = item.tags.map((t) => (typeof t === "string" ? t : t.nombre)).join(", ");
       const tagLines = doc.splitTextToSize(tagText, pageWidth - margin * 2 - 20);
       doc.text(tagLines, margin + 20, currentY);
@@ -282,7 +282,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     currentY += 5;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.setTextColor(41, 128, 185);
+    doc.setTextColor(0, 0, 0);
     doc.text("Descripción", margin, currentY);
     currentY += 7;
 
@@ -296,28 +296,42 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     if (item.links && item.links.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.setTextColor(41, 128, 185);
+      doc.setTextColor(0, 0, 0);
       doc.text("Enlaces relacionados", margin, currentY);
       currentY += 7;
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 255);
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
       for (let i = 0; i < item.links.length; i++) {
         const link = item.links[i];
-        const linkText = `${link.titulo}: ${link.url}`;
-        const linkLines = doc.splitTextToSize(linkText, pageWidth - margin * 2);
-        doc.textWithLink(linkLines, margin, currentY, { url: link.url });
-        currentY += (linkLines.length * 5) + 3;
+        const url = link?.url || link?.href || String(link || "");
+        const title = link?.titulo || link?.title || url;
+        if (!url) continue;
+        const linkText = `${title}: ${url}`;
+        const lineItems = doc.splitTextToSize(linkText, pageWidth - margin * 2);
+        lineItems.forEach((line) => {
+          if (currentY > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            currentY = margin;
+          }
+          doc.textWithLink(line, margin, currentY, { url });
+          currentY += 5;
+        });
+        currentY += 2;
       }
       currentY += 10;
     }
 
     // ===== GALERÍA =====
     if (images && images.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
+        doc.addPage();
+        currentY = margin;
+      }
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.setTextColor(41, 128, 185);
+      doc.setTextColor(0, 0, 0);
       doc.text("Galería", margin, currentY);
       currentY += 8;
 
@@ -352,7 +366,76 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           console.error(`Error procesando imagen ${i}:`, error);
         }
       }
+      currentY = rowY + imageHeight + gap + 15;
+      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
+        doc.addPage();
+        currentY = margin;
+      }
     }
+
+    // ===== FUENTES DE CONSULTA =====
+    if (item.links && item.links.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
+        doc.addPage();
+        currentY = margin;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Fuentes de consulta", margin, currentY);
+      currentY += 7;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      for (let i = 0; i < item.links.length; i++) {
+        const link = item.links[i];
+        const url = link?.url || link?.href || String(link || "");
+        const title = link?.titulo || link?.title || url;
+        if (!url) continue;
+        const sourceText = `${title}: ${url}`;
+        const sourceLines = doc.splitTextToSize(sourceText, pageWidth - margin * 2);
+        sourceLines.forEach((line) => {
+          if (currentY > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            currentY = margin;
+          }
+          doc.textWithLink(line, margin, currentY, { url });
+          currentY += 5;
+        });
+        currentY += 2;
+      }
+      currentY += 10;
+    }
+
+    // ===== FECHA Y HORA DE GENERACIÓN =====
+    const generatedAt = new Date();
+    const formattedDate = generatedAt.toLocaleString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+
+    if (currentY > doc.internal.pageSize.getHeight() - margin - 20) {
+      doc.addPage();
+      currentY = margin;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Fecha y hora de generación", margin, currentY);
+    currentY += 7;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(formattedDate, margin, currentY);
+    currentY += 10;
 
     doc.save(`${item.nombre}.pdf`);
   } catch (error) {

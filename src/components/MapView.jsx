@@ -134,9 +134,13 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
   return null;
 }
 
-function LocationButton() {
+function MapControls({ center, zoom }) {
   const map = useMap();
   const [locationMarker, setLocationMarker] = useState(null);
+
+  const handleCenterClick = () => {
+    map.setView(center, zoom);
+  };
 
   const handleLocationClick = () => {
     if (!navigator.geolocation) {
@@ -191,6 +195,15 @@ function LocationButton() {
 
   return (
     <div className="location-button-container">
+      <button
+        className="location-button"
+        onClick={handleCenterClick}
+        title="Centrar mapa"
+        type="button"
+      >
+        <span>🎯</span>
+        <span>Centrar mapa</span>
+      </button>
       <button
         className="location-button"
         onClick={handleLocationClick}
@@ -255,7 +268,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         interactive={interactive}
         getDetailPath={getDetailPath} 
       />
-      {interactive && <LocationButton />}
+      {interactive && <MapControls center={center} zoom={zoom} />}
     </MapContainer>
   );
 }
