@@ -11,7 +11,7 @@ import {
 
 import { getMunicipios } from "../../services/municipioService";
 import { getAllTags, updateTag, deleteTag } from "../../services/tagService";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../Hooks/useAuth";
 import { API_HOST } from "../../services/apiConfig.js";
 
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
