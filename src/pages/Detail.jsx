@@ -16,7 +16,7 @@ const buildImageUrl = (value) => {
 
 const displayCategoryLabel = (categoria) => {
   const normalized = String(categoria || "").trim().toLowerCase();
-  if (normalized === "biocultural") return "Natural";
+  if (normalized === "natural") return "Natural";
   if (normalized === "material") return "Material";
   if (normalized === "inmaterial") return "Inmaterial";
   return categoria || "Sin categoría";

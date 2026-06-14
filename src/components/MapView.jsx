@@ -237,7 +237,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         return "#e74c3c";
       case "inmaterial":
         return "#3498db";
-      case "biocultural":
+      case "natural":
         return "#27ae60";
       default:
         return "#8e44ad";

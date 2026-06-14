@@ -426,7 +426,7 @@ button.tag-badge {
 
 .category-badge.material { background: var(--accent-terracota); color: #fff; }
 .category-badge.inmaterial { background: var(--secondary-blue); color: #fff; }
-.category-badge.biocultural { background: var(--primary-light); color: #fff; }
+.category-badge.natural { background: var(--primary-light); color: #fff; }
 
 .tag-badge {
   background: rgba(61, 125, 104, 0.1);

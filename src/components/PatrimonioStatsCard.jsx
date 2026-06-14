@@ -1,6 +1,6 @@
 import "../styles/components/PatrimonioStatsCard.css";
 
-function PatrimonioStatsCard({ material = 0, inmaterial = 0, biocultural = 0 }) {
+function PatrimonioStatsCard({ material = 0, inmaterial = 0, natural = 0 }) {
   return (
     <div className="patrimonio-stats-container">
       <div className="stats-badge">PATRIMONIO SONORENSE</div>
@@ -20,7 +20,7 @@ function PatrimonioStatsCard({ material = 0, inmaterial = 0, biocultural = 0 }) 
         <div className="stat-divider"></div>
 
         <div className="stat-column">
-          <div className="stat-number biocultural-color">{biocultural}</div>
+          <div className="stat-number natural-color">{natural}</div>
           <div className="stat-label">NATURAL</div>
         </div>
       </div>

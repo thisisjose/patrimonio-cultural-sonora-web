@@ -306,7 +306,7 @@
 
 .result-badge.material { background: var(--accent-terracota); }
 .result-badge.inmaterial { background: var(--secondary-blue); }
-.result-badge.biocultural { background: var(--primary-light); }
+.result-badge.natural { background: var(--primary-light); }
 
 .search-no-results {
   padding: 1.5rem;
@@ -492,7 +492,7 @@
 
 .popular-badge.material { background: var(--accent-terracota); }
 .popular-badge.inmaterial { background: var(--secondary-blue); }
-.popular-badge.biocultural { background: var(--primary-light); }
+.popular-badge.natural { background: var(--primary-light); }
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 980px) {

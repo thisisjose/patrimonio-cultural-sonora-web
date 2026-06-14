@@ -15,7 +15,6 @@ import NotFound from './pages/NotFound';
 
 //PAGINAS ADMIN
 import AdminDashboard from './pages/admin/Dashboard';
-import PatrimonioAdmin from './pages/admin/PatrimonioAdmin';
 import Usuarios from './pages/admin/Usuarios';
 
 function App() {
@@ -43,7 +42,6 @@ function App() {
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="patrimonio" element={<PatrimonioAdmin />} />
             <Route path="usuarios" element={
               <PrivateRoute requiredRole="admin_supremo">
                 <Usuarios />

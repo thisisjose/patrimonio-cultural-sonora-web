@@ -22,7 +22,7 @@ function Home() {
   const [busqueda, setBusqueda] = useState("");
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
-  const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, biocultural: 0 });
+  const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, natural: 0 });
 
   const API_BASE = "http://localhost:3000";
 
@@ -120,14 +120,14 @@ function Home() {
     const inmaterialCount = todosPatrimonios.filter(
       (item) => String(item.categoria).toLowerCase() === "inmaterial"
     ).length;
-    const bioculturalCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "biocultural"
+    const naturalCount = todosPatrimonios.filter(
+      (item) => String(item.categoria).toLowerCase() === "natural"
     ).length;
 
     setStatsData({
       material: materialCount,
       inmaterial: inmaterialCount,
-      biocultural: bioculturalCount,
+      natural: naturalCount,
     });
   }, [todosPatrimonios]);
 
@@ -207,7 +207,7 @@ function Home() {
       <PatrimonioStatsCard
         material={statsData.material}
         inmaterial={statsData.inmaterial}
-        biocultural={statsData.biocultural}
+        natural={statsData.natural}
       />
 
       <div className="municipio-selector-wrapper">
@@ -307,7 +307,7 @@ function Home() {
               <option value="">Todas las categorías</option>
               <option value="material">Material</option>
               <option value="inmaterial">Inmaterial</option>
-              <option value="biocultural">Biocultural</option>
+              <option value="natural">Natural</option>
             </select>
           </div>
         </div>
