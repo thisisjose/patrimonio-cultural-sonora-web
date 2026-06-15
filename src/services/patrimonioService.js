@@ -34,9 +34,7 @@ export const createPatrimonio = async (formData) => {
   if (linksRaw && typeof linksRaw !== "string") {
     formData.set("links", JSON.stringify(linksRaw));
   }
-  const response = await api.post("/admin/patrimonios", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const response = await api.post("/admin/patrimonios", formData);
   return response.data;
 };
 
@@ -51,9 +49,7 @@ export const updatePatrimonio = async (id, data) => {
     if (linksRaw && typeof linksRaw !== "string") {
       data.set("links", JSON.stringify(linksRaw));
     }
-    const response = await api.put(`/admin/patrimonios/${id}`, data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.put(`/admin/patrimonios/${id}`, data);
     return response.data;
   } else {
     const response = await api.put(`/admin/patrimonios/${id}`, data);

@@ -9,6 +9,7 @@ import infoIcon from "../Icons/info.png";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey, isNaturalCategory } from "../utils/categoryUtils";
 
 function Home() {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ function Home() {
         ? String(item.municipioId) === String(municipioSeleccionado)
         : true;
       const matchCategoria = categoriaSeleccionada
-        ? String(item.categoria).toLowerCase() === categoriaSeleccionada
+        ? normalizeCategoryKey(item.categoria) === categoriaSeleccionada
         : true;
       return matchMunicipio && matchCategoria;
     });
@@ -114,13 +115,13 @@ function Home() {
 
   useEffect(() => {
     const materialCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "material"
+      (item) => normalizeCategoryKey(item.categoria) === "material"
     ).length;
     const inmaterialCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "inmaterial"
+      (item) => normalizeCategoryKey(item.categoria) === "inmaterial"
     ).length;
     const naturalCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "natural"
+      (item) => isNaturalCategory(item.categoria)
     ).length;
 
     setStatsData({
@@ -257,8 +258,8 @@ function Home() {
                     <div className="result-content">
                       <div className="result-name">{item.nombre}</div>
                       <div className="result-category">
-                        <span className={`result-badge ${String(item.categoria).toLowerCase()}`}>
-                          {item.categoria}
+                        <span className={`result-badge ${getCategoryClass(item.categoria)}`}>
+                          {getCategoryLabel(item.categoria)}
                         </span>
                       </div>
                     </div>
@@ -341,7 +342,7 @@ function Home() {
                     e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
                   }}
                 />
-                <span className={`category-badge popular-badge ${showCategoryClass(item.categoria)}`}>{item.categoria}</span>
+                <span className={`category-badge popular-badge ${getCategoryClass(item.categoria)}`}>{getCategoryLabel(item.categoria)}</span>
               </div>
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>

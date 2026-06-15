@@ -6,6 +6,7 @@ import "leaflet.markercluster";
 import L from "leaflet";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom"; 
+import { normalizeCategoryKey } from "../utils/categoryUtils";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -201,7 +202,7 @@ function MapControls({ center, zoom }) {
         title="Centrar mapa"
         type="button"
       >
-        <span>🎯</span>
+        <span></span>
         <span>Centrar mapa</span>
       </button>
       <button
@@ -210,7 +211,7 @@ function MapControls({ center, zoom }) {
         title="Mostrar mi ubicación"
         type="button"
       >
-        <span>📍</span>
+        <span></span>
         <span>Mi ubicación</span>
       </button>
     </div>
@@ -232,7 +233,8 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
   };
 
   const getCircleColor = (categoria) => {
-    switch (categoria?.toLowerCase()) {
+    const normalized = normalizeCategoryKey(categoria);
+    switch (normalized) {
       case "material":
         return "#e74c3c";
       case "inmaterial":

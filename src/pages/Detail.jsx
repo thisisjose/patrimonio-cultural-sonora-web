@@ -6,6 +6,7 @@ import "../styles/pages/Detail.css";
 import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -57,13 +58,7 @@ const sanitizeDescriptionHtml = (html) => {
   return cleanedHtml.trim();
 };
 
-const displayCategoryLabel = (categoria) => {
-  const normalized = String(categoria || "").trim().toLowerCase();
-  if (normalized === "natural") return "Natural";
-  if (normalized === "material") return "Material";
-  if (normalized === "inmaterial") return "Inmaterial";
-  return categoria || "Sin categoría";
-};
+const displayCategoryLabel = (categoria) => getCategoryLabel(categoria);
 
 const normalizeImage = (image) => {
   if (!image) return null;
@@ -204,6 +199,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       }
     };
 
+    const PDF_FONT_FAMILY = "helvetica";
+
     const getFontStyle = (style = {}) => {
       if (style.bold && style.italic) return "bolditalic";
       if (style.bold) return "bold";
@@ -212,7 +209,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     };
 
     const setDocFont = (style = {}) => {
-      doc.setFont("helvetica", getFontStyle(style));
+      doc.setFont(PDF_FONT_FAMILY, getFontStyle(style));
     };
 
     const getStyledTextWidth = (text, style = {}) => {
@@ -232,8 +229,9 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
         const walk = (child, currentStyle) => {
           if (child.nodeType === Node.TEXT_NODE) {
-            const text = child.textContent.replace(/\s+/g, " ");
-            if (text.trim() !== "") {
+            let text = child.textContent.replace(/\r?\n/g, " ");
+            text = text.replace(/[ \t]+/g, " ");
+            if (text !== "") {
               segments.push({ text, style: { ...currentStyle } });
             }
             return;
@@ -323,16 +321,24 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       return /^[,.;:?!%)\]]/.test(text);
     };
 
+    const isWhitespaceText = (text) => {
+      return /^\s+$/.test(text);
+    };
+
     const splitWords = (segments) => {
-      const words = [];
+      const tokens = [];
       segments.forEach((seg) => {
         if (!seg.text) return;
-        const parts = seg.text.trim().split(/\s+/).filter(Boolean);
+        const parts = seg.text.split(/(\s+)/).filter((part) => part.length > 0);
         parts.forEach((part) => {
-          words.push({ text: part, style: seg.style });
+          tokens.push({
+            text: part,
+            style: seg.style,
+            whitespace: isWhitespaceText(part),
+          });
         });
       });
-      return words;
+      return tokens;
     };
 
     const splitLongWord = (word, maxWidth) => {
@@ -352,8 +358,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     };
 
     const buildLines = (segments, maxWidth) => {
-      const words = splitWords(segments);
-      const spaceWidth = getStyledTextWidth(" ", {});
+      const tokens = splitWords(segments);
       const lines = [];
       let currentLine = [];
       let currentWidth = 0;
@@ -364,68 +369,73 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
         currentWidth = 0;
       };
 
-      const addWord = (word) => {
-        const textWidth = getStyledTextWidth(word.text, word.style);
-        const needSpace = currentLine.length > 0 && !isLeadingPunctuation(word.text);
-        const needed = currentLine.length ? (needSpace ? spaceWidth : 0) + textWidth : textWidth;
+      const addTokenToLine = (token, tokenWidth) => {
+        currentLine.push(token);
+        currentWidth += tokenWidth;
+      };
 
-        if (currentLine.length === 0 || currentWidth + needed <= maxWidth) {
-          if (needSpace) currentWidth += spaceWidth;
-          currentLine.push(word);
-          currentWidth += textWidth;
-        } else {
-          if (textWidth > maxWidth) {
-            const chunks = splitLongWord(word, maxWidth - (currentLine.length && needSpace ? spaceWidth : 0));
-            if (chunks.length > 0) {
-              chunks.forEach((chunk, index) => {
-                if (index === 0) {
-                  if (currentLine.length) {
-                    pushLine();
-                  }
-                  currentLine.push(chunk);
-                  currentWidth = getStyledTextWidth(chunk.text, chunk.style);
-                } else {
-                  pushLine();
-                  currentLine.push(chunk);
-                  currentWidth = getStyledTextWidth(chunk.text, chunk.style);
-                }
-              });
-            }
-          } else {
-            pushLine();
-            currentLine.push(word);
-            currentWidth = textWidth;
-          }
+      const addWhitespaceToken = (token) => {
+        if (currentLine.length === 0) return;
+        const tokenWidth = getStyledTextWidth(token.text, token.style);
+        if (currentWidth + tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
         }
       };
 
-      words.forEach(addWord);
+      const addWordToken = (token) => {
+        const tokenWidth = getStyledTextWidth(token.text, token.style);
+        if (currentLine.length === 0) {
+          if (tokenWidth <= maxWidth) {
+            addTokenToLine(token, tokenWidth);
+          } else {
+            const chunks = splitLongWord(token, maxWidth);
+            chunks.forEach((chunk, index) => {
+              if (index > 0) pushLine();
+              const chunkWidth = getStyledTextWidth(chunk.text, chunk.style);
+              addTokenToLine(chunk, chunkWidth);
+            });
+          }
+          return;
+        }
+
+        if (currentWidth + tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
+          return;
+        }
+
+        pushLine();
+        if (tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
+        } else {
+          const chunks = splitLongWord(token, maxWidth);
+          chunks.forEach((chunk, index) => {
+            if (index > 0) pushLine();
+            const chunkWidth = getStyledTextWidth(chunk.text, chunk.style);
+            addTokenToLine(chunk, chunkWidth);
+          });
+        }
+      };
+
+      tokens.forEach((token) => {
+        if (token.whitespace) {
+          addWhitespaceToken(token);
+        } else {
+          addWordToken(token);
+        }
+      });
+
       if (currentLine.length) pushLine();
       if (lines.length === 0) lines.push([]);
       return lines;
     };
 
-    const renderLine = (lineWords, x, y, maxWidth, justify) => {
+    const renderLine = (lineWords, x, y) => {
       if (lineWords.length === 0) {
         return;
       }
-      const spaceWidth = getStyledTextWidth(" ", {});
-      const lineWidth = lineWords.reduce((acc, word, index) => {
-        const wordWidth = getStyledTextWidth(word.text, word.style);
-        const needSpace = index > 0 && !isLeadingPunctuation(word.text);
-        return acc + wordWidth + (needSpace ? spaceWidth : 0);
-      }, 0);
-      const gaps = lineWords.reduce((count, word, index) => {
-        if (index === 0) return 0;
-        return count + (!isLeadingPunctuation(word.text) ? 1 : 0);
-      }, 0);
-      const extraSpace = justify && gaps > 0 ? (maxWidth - lineWidth) / gaps : 0;
 
       let currentX = x;
-      lineWords.forEach((word, index) => {
-        if (index > 0 && !isLeadingPunctuation(word.text)) {
-          currentX += spaceWidth + extraSpace;
-        }
+      lineWords.forEach((word) => {
         setDocFont(word.style);
         doc.text(word.text, currentX, y);
         currentX += getStyledTextWidth(word.text, word.style);
@@ -450,9 +460,9 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             y = ensureLocalPageSpace(lineHeight, y);
             y += lineHeight;
           }
-          lines.forEach((line, index) => {
+          lines.forEach((line) => {
             y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, x, y, maxWidth, index !== lines.length - 1);
+            renderLine(line, x, y);
             y += lineHeight;
           });
           y += 3;
@@ -463,18 +473,29 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           const marker = block.ordered ? `${block.index + 1}.` : "•";
           const markerText = `${marker} `;
           const markerWidth = getStyledTextWidth(markerText, {});
-          const indent = markerWidth + 2;
+          const indent = markerWidth + 4;
           y = ensureLocalPageSpace(lineHeight, y);
           setDocFont({});
           doc.text(markerText, x, y);
-          const lines = buildLines(block.lines.flat(), maxWidth - indent);
-          if (lines.length === 0) {
+
+          const listLines = [];
+          block.lines.forEach((lineSegments) => {
+            const built = buildLines(lineSegments, maxWidth - indent);
+            if (built.length === 0) {
+              listLines.push([]);
+            } else {
+              listLines.push(...built);
+            }
+          });
+
+          if (listLines.length === 0) {
             y = ensureLocalPageSpace(lineHeight, y);
             y += lineHeight;
           }
-          lines.forEach((line, index) => {
+
+          listLines.forEach((line) => {
             y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, x + indent, y, maxWidth - indent, index !== lines.length - 1);
+            renderLine(line, x + indent, y);
             y += lineHeight;
           });
           y += 3;
@@ -702,7 +723,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
   const handleCategoryClick = (categoria) => {
     if (!categoria) return;
-    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(String(categoria).trim().toLowerCase())}`);
+    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(normalizeCategoryKey(categoria))}`);
   };
 
   const handleTagClick = (tag) => {
@@ -814,7 +835,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             )}
 
             <div className="detail-category-below">
-              Categoría: <button type="button" className={`category-badge ${String(item.categoria || "").toLowerCase()}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
+              Categoría: <button type="button" className={`category-badge ${getCategoryClass(item.categoria)}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
             </div>
 
             <div className="detail-tags-below">
@@ -935,6 +956,8 @@ function Detail() {
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
   const [selectedMunicipioId, setSelectedMunicipioId] = useState(null);
   const [municipioLoading, setMunicipioLoading] = useState(false);
+  const [busquedaMunicipio, setBusquedaMunicipio] = useState("");
+  const [categoriaMunicipio, setCategoriaMunicipio] = useState("");
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -985,7 +1008,25 @@ function Detail() {
   useEffect(() => {
     setMunicipioPatrimonios([]);
     setSelectedMunicipioId(null);
+    setBusquedaMunicipio("");
+    setCategoriaMunicipio("");
   }, [patrimonio]);
+
+  const filteredMunicipioPatrimonios = useMemo(() => {
+    if (!selectedMunicipioId) return [];
+
+    return municipioPatrimonios.filter((item) => {
+      const matchesSearch = busquedaMunicipio.trim() === ""
+        ? true
+        : String(item.nombre || "").toLowerCase().includes(busquedaMunicipio.trim().toLowerCase());
+
+      const matchesCategory = !categoriaMunicipio
+        ? true
+        : normalizeCategoryKey(item.categoria) === normalizeCategoryKey(categoriaMunicipio);
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [municipioPatrimonios, busquedaMunicipio, categoriaMunicipio, selectedMunicipioId]);
 
   if (patrimonio === undefined) {
     return null;
@@ -1006,9 +1047,9 @@ function Detail() {
       <nav className="breadcrumbs">
         <Link to="/">Inicio</Link>
         <span className="crumb-sep">›</span>
-        <Link to="/">Patrimonio</Link>
-        <span className="crumb-sep">›</span>
-        {patrimonio && patrimonio.municipioId ? (
+        {showMunicipioDetails ? (
+          <span className="crumb-current">{nombreMunicipio}</span>
+        ) : patrimonio && patrimonio.municipioId ? (
           <>
             <button
               type="button"
@@ -1018,20 +1059,64 @@ function Detail() {
               {nombreMunicipio}
             </button>
             <span className="crumb-sep">›</span>
+            <span className="crumb-current">{patrimonio.nombre}</span>
           </>
-        ) : null}
-        <span className="crumb-current">{showMunicipioDetails ? nombreMunicipio : patrimonio.nombre}</span>
+        ) : (
+          <span className="crumb-current">{patrimonio.nombre}</span>
+        )}
       </nav>
 
       {showMunicipioDetails ? (
         <section className="municipio-details">
+          <div className="catalogo-filters-section">
+            <div className="catalogo-search-box">
+              <div className="filter-header">
+                <span className="filter-label">Buscar patrimonio</span>
+              </div>
+              <div className="catalogo-search-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Escribe el nombre..."
+                  value={busquedaMunicipio}
+                  onChange={(e) => setBusquedaMunicipio(e.target.value)}
+                  className="catalogo-search-input"
+                />
+                {busquedaMunicipio && (
+                  <button
+                    className="catalogo-search-clear-btn"
+                    onClick={() => setBusquedaMunicipio("")}
+                    aria-label="Limpiar búsqueda"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="catalogo-category-filter">
+              <div className="filter-header">
+                <span className="filter-label">Filtrar por categoría</span>
+              </div>
+              <select
+                value={categoriaMunicipio}
+                onChange={(e) => setCategoriaMunicipio(e.target.value)}
+                className="catalogo-select"
+              >
+                <option value="">Todas</option>
+                <option value="material">Material</option>
+                <option value="inmaterial">Inmaterial</option>
+                <option value="natural">Natural</option>
+              </select>
+            </div>
+          </div>
+
           <h2 className="section-title">Patrimonios en {nombreMunicipio}</h2>
           {municipioLoading ? (
             <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
-          ) : municipioPatrimonios.length === 0 ? (
+          ) : filteredMunicipioPatrimonios.length === 0 ? (
             <p className="lead">No se encontraron patrimonios en {nombreMunicipio}.</p>
           ) : (
-            municipioPatrimonios.map((item) => (
+            filteredMunicipioPatrimonios.map((item) => (
               <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
             ))
           )}

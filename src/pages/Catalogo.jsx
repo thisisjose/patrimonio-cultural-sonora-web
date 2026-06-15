@@ -4,6 +4,7 @@ import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import "../styles/pages/Catalogo.css";
 import "../styles/pages/Explore.css";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
 
 const API_BASE = "http://localhost:3000";
 const ITEMS_POR_PAGINA = 4;
@@ -37,11 +38,7 @@ const normalizePatrimonio = (item) => {
 };
 
 const displayCategoryLabel = (categoria) => {
-  const normalized = String(categoria || "").trim().toLowerCase();
-  if (normalized === "biocultural") return "Natural";
-  if (normalized === "material") return "Material";
-  if (normalized === "inmaterial") return "Inmaterial";
-  return categoria || "Sin categoría";
+  return getCategoryLabel(categoria);
 };
 
 const getMunicipioName = (item, municipios) => {
@@ -109,8 +106,7 @@ function Catalogo() {
     // Filtro por categoría
     if (categoriaSeleccionada) {
       resultado = resultado.filter(
-        (item) =>
-          String(item.categoria).toLowerCase() === categoriaSeleccionada
+        (item) => normalizeCategoryKey(item.categoria) === categoriaSeleccionada
       );
     }
 
@@ -243,7 +239,7 @@ function Catalogo() {
             <option value="">Todas</option>
             <option value="material">Material</option>
             <option value="inmaterial">Inmaterial</option>
-            <option value="biocultural">Natural</option>
+            <option value="natural">Natural</option>
           </select>
         </div>
       </div>
@@ -295,9 +291,7 @@ function Catalogo() {
                           <h3 className="patrimonio-name">{item.nombre}</h3>
                           <div className="detail-tags-below">
                             <span
-                              className={`category-badge ${String(
-                                item.categoria || ""
-                              ).toLowerCase()}`}
+                              className={`category-badge ${getCategoryClass(item.categoria)}`}
                             >
                               {displayCategoryLabel(item.categoria)}
                             </span>

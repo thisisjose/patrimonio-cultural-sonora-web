@@ -13,6 +13,7 @@ import { getMunicipios } from "../../services/municipioService";
 import { getAllTags, updateTag, deleteTag } from "../../services/tagService";
 import { useAuth } from "../../Hooks/useAuth";
 import { API_HOST } from "../../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../../utils/categoryUtils";
 
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -676,7 +677,7 @@ export default function AdminDashboard() {
 
   const filtrados = patrimoniosUI.filter((p) => {
     const matchesMunicipio = filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio);
-    const matchesCategoria = filtro.categoria === "Todas" || p.categoria === filtro.categoria;
+    const matchesCategoria = filtro.categoria === "Todas" || normalizeCategoryKey(p.categoria) === normalizeCategoryKey(filtro.categoria);
     const matchesEstado = filtro.estado === "Todos" || p.estado === filtro.estado;
     let matchesSearch = true;
     if (searchTerm.trim() !== "") {
@@ -998,7 +999,7 @@ export default function AdminDashboard() {
         <div className="edit-right">
           <div className="form-section">
             <h4 className="section-title-small">Categoría</h4>
-            <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
+            <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
           </div>
 
           <div className="form-section">
@@ -1364,7 +1365,7 @@ export default function AdminDashboard() {
                       <td><span className="tid">#{item.id}</span></td>
                       <td><img src={item.imagen} alt={item.nombre} className="thumb" /></td>
                       <td><div className="ttitle">{item.nombre}</div><div className="tloc">{item.ubicacion}, Sonora</div></td>
-                      <td><span className={`bcat ${item.categoria.toLowerCase()}`}>{item.categoria}</span></td>
+                      <td><span className={`bcat ${getCategoryClass(item.categoria)}`}>{getCategoryLabel(item.categoria)}</span></td>
                       <td><span className={`bst ${item.estado}`}><span className={`dot ${item.estado === "registrado" ? "green" : "amber"}`} />{item.estado === "registrado" ? "Registrado" : "Pendiente"}</span></td>
                       <td><span className="tdate">{item.fechaRegistro}</span></td>
                       <td><span className="tdate">{item.fechaActualizacion}</span></td>
