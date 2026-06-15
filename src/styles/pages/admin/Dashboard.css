@@ -162,6 +162,17 @@ body {
   background: var(--gray-50);
 }
 
+.search-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.search-field input.fsel {
+  width: 100%;
+  min-width: 0;
+}
+
 .fsel {
   background: transparent;
   border: none;
@@ -1143,6 +1154,20 @@ tr:hover td {
   }
   .fpill {
     justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+  }
+  .search-field {
+    max-width: 100%;
+  }
+  .tbar .fpill input.fsel,
+  .tbar .fpill select.fsel {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .spacer {
+    display: none;
   }
   .page {
     padding: 20px 16px;

@@ -6,7 +6,7 @@ import slugify from "../utils/slugify";
 import "../styles/pages/Catalogo.css";
 import "../styles/pages/Explore.css";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
-import { API_HOST } from "../services/apiConfig.js"; // 🔄 Importar API_HOST
+import { API_HOST } from "../services/apiConfig.js"; 
 
 const ITEMS_POR_PAGINA = 4;
 
