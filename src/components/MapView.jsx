@@ -20,6 +20,11 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const SONORA_BOUNDS = [
+  [26.9, -113.8],
+  [32.0, -109.3],
+];
+
 const parseUbicaciones = (ubicaciones) => {
   if (!ubicaciones) return [];
   if (typeof ubicaciones === "string") {
@@ -141,7 +146,7 @@ function MapControls({ center, zoom }) {
   const [locationMarker, setLocationMarker] = useState(null);
 
   const handleCenterClick = () => {
-    map.setView(center, zoom);
+    map.fitBounds(SONORA_BOUNDS, { padding: [40, 40], maxZoom: 8 });
   };
 
   const handleLocationClick = () => {

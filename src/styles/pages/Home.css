@@ -8,9 +8,14 @@
 }
 
 .page-hero .hero-title {
-  font-size: 3.2rem;
+  font-family: var(--font-sans);
+  font-size: clamp(2.8rem, 4.5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
   color: var(--primary-dark);
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
+  max-width: 90%;
 }
 
 .hero-sub {
@@ -391,12 +396,13 @@
 }
 
 .section-title {
-  font-family: var(--font-heading);
-  font-size: 2.4rem;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(2rem, 3vw, 2.4rem);
   color: var(--primary-dark);
   margin-bottom: 1.25rem;
   text-align: center;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.04em;
 }
 
 .section-subtitle {
@@ -477,10 +483,11 @@
 
 .popular-name {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--primary-dark);
-  line-height: 1.35;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2; /* limitar a 2 líneas */
   line-clamp: 2;

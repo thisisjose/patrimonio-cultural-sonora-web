@@ -232,12 +232,12 @@ function Home() {
   return (
     <section>
       <div className="page-hero">
-        <h1 className="hero-title">Patrimonio cultural del estado de Sonora</h1>
+        <h1 className="hero-title">Cátalogo de patrimonio cultural  del estado de Sonora</h1>
         {nombreMunicipio && (
           <p className="hero-sub">Patrimonios en {nombreMunicipio}</p>
         )}
         {!nombreMunicipio && (
-          <p className="hero-sub">Descubre monumentos, festividades y elementos culturales del estado a través de un mapa interactivo que concentra información histórica y visual.</p>
+          <p className="hero-sub">El Catálogo de Patrimonio Cultural del estado de Sonora es un instrumento de registro, salvaguarda y difusión del acervo que conforma la identidad del estado. A través de él, la ciudadanía, investigadores e instituciones acceden a información sistematizada sobre bienes materiales, inmateriales y naturales que constituyen el legado colectivo de Sonora. Este esfuerzo conjunto permite integrar un registro representativo, incluyente y en permanente actualización del patrimonio cultural del estado.</p>
         )}
       </div>
 
@@ -251,7 +251,7 @@ function Home() {
         <div className="municipio-selector-content">
           <div className="search-box-container" ref={searchInputRef}>
             <div className="filter-header">
-              <span className="filter-label">Buscar patrimonio</span>
+              <span className="filter-label">Buscar en el catálogo</span>
             </div>
             <div className="search-box-input-wrapper">
               <input
