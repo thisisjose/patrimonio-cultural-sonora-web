@@ -6,28 +6,32 @@ import slugify from "../utils/slugify";
 import "../styles/pages/Catalogo.css";
 import "../styles/pages/Explore.css";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
+import { API_HOST } from "../services/apiConfig.js"; // 🔄 Importar API_HOST
 
-const API_BASE = "http://localhost:3000";
 const ITEMS_POR_PAGINA = 4;
 
+// Construir URL de imagen igual que en Home.jsx
 const buildImageUrl = (value) => {
-  if (!value) return null;
-  if (typeof value !== "string") return null;
-  return value.startsWith("http") ? value : `${API_BASE}${value}`;
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("http")) return value;
+  return `${API_HOST}${value}`;
 };
 
 const normalizeImage = (image) => {
   if (!image) return null;
-  if (typeof image === "string") return buildImageUrl(image);
+  if (typeof image === "string") {
+    const url = buildImageUrl(image);
+    return url || "https://placehold.co/600x400?text=Sin+imagen";
+  }
   if (typeof image === "object") {
-    return (
+    const url =
       buildImageUrl(image.url) ||
       buildImageUrl(image.imagen_url) ||
       buildImageUrl(image.path) ||
-      buildImageUrl(image.src)
-    );
+      buildImageUrl(image.src);
+    return url || "https://placehold.co/600x400?text=Sin+imagen";
   }
-  return null;
+  return "https://placehold.co/600x400?text=Sin+imagen";
 };
 
 const normalizePatrimonio = (item) => {
@@ -100,11 +104,10 @@ function Catalogo() {
     cargarDatos();
   }, []);
 
-  // Filtrar patrimonios
+  // Filtrar patrimonios (igual que antes)
   const patrimoniosFiltrados = useMemo(() => {
     let resultado = todosPatrimonios;
 
-    // Filtro por búsqueda
     if (busqueda.trim() !== "") {
       const termino = busqueda.toLowerCase();
       resultado = resultado.filter(
@@ -114,7 +117,6 @@ function Catalogo() {
       );
     }
 
-    // Filtro por categoría
     if (categoriaSeleccionada) {
       resultado = resultado.filter(
         (item) => normalizeCategoryKey(item.categoria) === categoriaSeleccionada
@@ -301,6 +303,9 @@ function Catalogo() {
                           <img
                             src={item.imagen || "/placeholder.jpg"}
                             alt={item.nombre || "Patrimonio"}
+                            onError={(e) => {
+                              e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
+                            }}
                           />
                         </div>
                         <div className="patrimonio-meta">
