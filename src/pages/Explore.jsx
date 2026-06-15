@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
@@ -93,8 +93,13 @@ function Explore() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
   const [paginasPorMunicipio, setPaginasPorMunicipio] = useState({});
+  const [paginaMunicipios, setPaginaMunicipios] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const botonVolverRef = useRef(null);
 
   const normalizedValue = decodeURIComponent(value || "").trim();
   const titleValue = mode === "categoria"
@@ -166,14 +171,50 @@ function Explore() {
 
   useEffect(() => {
     setPaginasPorMunicipio({});
+    setPaginaMunicipios(1);
   }, [busqueda, categoriaSeleccionada, municipioSeleccionado, mode, value]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        if (!mostrarBotonVolver) setMostrarBotonVolver(true);
+        setIsScrolling(true);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsScrolling(false);
+        }, 2000);
+      } else {
+        setMostrarBotonVolver(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [mostrarBotonVolver]);
 
   const handleCambiarPagina = (municipioName, nuevaPagina) => {
     setPaginasPorMunicipio((prev) => ({
       ...prev,
       [municipioName]: nuevaPagina,
     }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const handleCambiarPaginaMunicipios = (nuevaPagina) => {
+    setPaginaMunicipios(nuevaPagina);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const MUNICIPIOS_POR_PAGINA = 4;
+  const totalPaginasMunicipios = Math.ceil(groupsByMunicipio.length / MUNICIPIOS_POR_PAGINA);
+  const indiceMunicipioInicio = (paginaMunicipios - 1) * MUNICIPIOS_POR_PAGINA;
+  const municipiosPaginados = groupsByMunicipio.slice(
+    indiceMunicipioInicio,
+    indiceMunicipioInicio + MUNICIPIOS_POR_PAGINA
+  );
 
   const getPageNumbers = (paginaActual, totalPaginas) => {
     const inicio = Math.max(1, paginaActual - 1);
@@ -189,6 +230,11 @@ function Explore() {
     } else {
       navigate(adminBase || "/");
     }
+  };
+
+  const handleVolverArriba = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMostrarBotonVolver(false);
   };
 
   const validMode = mode === "categoria" || mode === "tag";
@@ -318,8 +364,56 @@ function Explore() {
       )}
 
       {validMode && !loading && filteredPatrimonios.length > 0 && (
+        <>
+        {groupsByMunicipio.length > 4 && (
+          <div className="catalogo-municipio-pagination" style={{ marginBottom: "1.5rem", justifyContent: "center" }}>
+            <button
+              className="catalogo-page-btn"
+              onClick={() => handleCambiarPaginaMunicipios(paginaMunicipios - 1)}
+              disabled={paginaMunicipios === 1}
+              aria-label="Página anterior"
+            >
+              ← Anterior
+            </button>
+
+            <div className="catalogo-page-numbers">
+              {paginaMunicipios > 2 && totalPaginasMunicipios > 3 && (
+                <>
+                  <button
+                    className="catalogo-page-num"
+                    onClick={() => handleCambiarPaginaMunicipios(1)}
+                  >
+                    1
+                  </button>
+                  {paginaMunicipios > 3 && (
+                    <span className="pagination-dots">...</span>
+                  )}
+                </>
+              )}
+
+              {getPageNumbers(paginaMunicipios, totalPaginasMunicipios).map((num) => (
+                <button
+                  key={num}
+                  className={`catalogo-page-num ${num === paginaMunicipios ? "active" : ""}`}
+                  onClick={() => handleCambiarPaginaMunicipios(num)}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="catalogo-page-btn"
+              onClick={() => handleCambiarPaginaMunicipios(paginaMunicipios + 1)}
+              disabled={paginaMunicipios === totalPaginasMunicipios}
+              aria-label="Página siguiente"
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
         <div className="explore-results">
-          {groupsByMunicipio.map(([municipioName, items]) => {
+          {municipiosPaginados.map(([municipioName, items]) => {
             const paginaActual = paginasPorMunicipio[municipioName] || 1;
             const totalPaginas = Math.ceil(items.length / 4);
             const indiceInicio = (paginaActual - 1) * 4;
@@ -418,7 +512,18 @@ function Explore() {
             );
           })}
         </div>
+        </>
       )}
+
+      <button
+        ref={botonVolverRef}
+        className={`catalogo-scroll-top ${mostrarBotonVolver ? "visible" : ""}`}
+        onClick={handleVolverArriba}
+        aria-label="Volver al inicio"
+        title="Volver al inicio"
+      >
+        ↑
+      </button>
     </main>
   );
 }

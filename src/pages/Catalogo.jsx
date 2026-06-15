@@ -169,6 +169,7 @@ function Catalogo() {
       ...prev,
       [municipioName]: nuevaPagina,
     }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const getPageNumbers = (paginaActual, totalPaginas) => {

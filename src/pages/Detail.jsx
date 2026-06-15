@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
@@ -958,6 +958,16 @@ function Detail() {
   const [municipioLoading, setMunicipioLoading] = useState(false);
   const [busquedaMunicipio, setBusquedaMunicipio] = useState("");
   const [categoriaMunicipio, setCategoriaMunicipio] = useState("");
+  const [paginaMunicipio, setPaginaMunicipio] = useState(1);
+  const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const botonVolverRef = useRef(null);
+
+  const handleCambiarPaginaMunicipio = (nuevaPagina) => {
+    setPaginaMunicipio(nuevaPagina);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -986,6 +996,7 @@ function Detail() {
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;
     setSelectedMunicipioId(municipioId);
+    setPaginaMunicipio(1);
     setMunicipioLoading(true);
     setMunicipioPatrimonios([]);
 
@@ -1010,7 +1021,33 @@ function Detail() {
     setSelectedMunicipioId(null);
     setBusquedaMunicipio("");
     setCategoriaMunicipio("");
+    setPaginaMunicipio(1);
   }, [patrimonio]);
+
+  useEffect(() => {
+    setPaginaMunicipio(1);
+  }, [busquedaMunicipio, categoriaMunicipio]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        if (!mostrarBotonVolver) setMostrarBotonVolver(true);
+        setIsScrolling(true);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsScrolling(false);
+        }, 2000);
+      } else {
+        setMostrarBotonVolver(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [mostrarBotonVolver]);
 
   const filteredMunicipioPatrimonios = useMemo(() => {
     if (!selectedMunicipioId) return [];
@@ -1027,6 +1064,19 @@ function Detail() {
       return matchesSearch && matchesCategory;
     });
   }, [municipioPatrimonios, busquedaMunicipio, categoriaMunicipio, selectedMunicipioId]);
+
+  const getPageNumbers = (paginaActual, totalPaginas) => {
+    const inicio = Math.max(1, paginaActual - 1);
+    const longitud = Math.min(3, totalPaginas - (inicio - 1));
+    return Array.from({ length: longitud }, (_, i) => inicio + i).filter(
+      (numero) => numero >= 1 && numero <= totalPaginas
+    );
+  };
+
+  const itemsPorPagina = 4;
+  const totalPaginasMunicipio = Math.ceil(filteredMunicipioPatrimonios.length / itemsPorPagina);
+  const indicieInicio = (paginaMunicipio - 1) * itemsPorPagina;
+  const patrimoniosPaginados = filteredMunicipioPatrimonios.slice(indicieInicio, indicieInicio + itemsPorPagina);
 
   if (patrimonio === undefined) {
     return null;
@@ -1116,14 +1166,76 @@ function Detail() {
           ) : filteredMunicipioPatrimonios.length === 0 ? (
             <p className="lead">No se encontraron patrimonios en {nombreMunicipio}.</p>
           ) : (
-            filteredMunicipioPatrimonios.map((item) => (
-              <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
-            ))
+            <>
+              <div className="municipio-results">
+                {patrimoniosPaginados.map((item) => (
+                  <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
+                ))}
+              </div>
+
+              {totalPaginasMunicipio > 1 && (
+                <div className="catalogo-municipio-pagination">
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio - 1)}
+                    disabled={paginaMunicipio === 1}
+                    aria-label="Página anterior"
+                  >
+                    ← Anterior
+                  </button>
+
+                  <div className="catalogo-page-numbers">
+                    {paginaMunicipio > 2 && totalPaginasMunicipio > 3 && (
+                      <>
+                        <button
+                          className="catalogo-page-num"
+                          onClick={() => handleCambiarPaginaMunicipio(1)}
+                        >
+                          1
+                        </button>
+                        {paginaMunicipio > 3 && (
+                          <span className="pagination-dots">...</span>
+                        )}
+                      </>
+                    )}
+
+                    {getPageNumbers(paginaMunicipio, totalPaginasMunicipio).map((num) => (
+                      <button
+                        key={num}
+                        className={`catalogo-page-num ${num === paginaMunicipio ? "active" : ""}`}
+                        onClick={() => handleCambiarPaginaMunicipio(num)}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio + 1)}
+                    disabled={paginaMunicipio === totalPaginasMunicipio}
+                    aria-label="Página siguiente"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       ) : (
         <PatrimonioDetailEntry item={patrimonio} municipioNombre={nombreMunicipio} />
       )}
+
+      <button
+        ref={botonVolverRef}
+        className={`catalogo-scroll-top ${mostrarBotonVolver ? "visible" : ""}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Volver al inicio"
+        title="Volver al inicio"
+      >
+        ↑
+      </button>
     </div>
   );
 }
