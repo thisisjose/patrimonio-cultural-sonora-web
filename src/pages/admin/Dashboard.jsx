@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 import {
   getAllPatrimoniosAdmin,
@@ -90,6 +90,110 @@ function StaticMap({ ubicaciones }) {
         </Marker>
       ))}
     </MapContainer>
+  );
+}
+
+function sanitizeDescriptionHtml(html) {
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI"]);
+
+  const cleanNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent);
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const fragment = document.createDocumentFragment();
+    node.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) fragment.appendChild(cleanedChild);
+    });
+
+    const tag = node.tagName.toUpperCase();
+    if (allowedTags.has(tag)) {
+      const el = document.createElement(tag);
+      el.appendChild(fragment);
+      return el;
+    }
+
+    return fragment;
+  };
+
+  const wrapper = document.createElement("div");
+  const source = doc.body.firstChild;
+  if (source) {
+    source.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) wrapper.appendChild(cleanedChild);
+    });
+  }
+
+  let cleanedHtml = wrapper.innerHTML;
+  cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+  return cleanedHtml.trim();
+}
+
+function RichTextEditor({ value, onChange }) {
+  const editorRef = useRef(null);
+  const [focused, setFocused] = useState(false);
+
+  const updateValue = (html) => {
+    const cleanHtml = sanitizeDescriptionHtml(html);
+    if (cleanHtml !== value) {
+      onChange(cleanHtml);
+    }
+  };
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const sanitized = sanitizeDescriptionHtml(value || "");
+    if (editorRef.current.innerHTML !== sanitized) {
+      editorRef.current.innerHTML = sanitized;
+    }
+  }, [value]);
+
+  const applyFormat = (command, commandValue = null) => {
+    document.execCommand(command, false, commandValue);
+    updateValue(editorRef.current?.innerHTML || "");
+    editorRef.current?.focus();
+  };
+
+  const handlePaste = (event) => {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+  };
+
+  const handleInput = () => {
+    updateValue(editorRef.current?.innerHTML || "");
+  };
+
+  return (
+    <div className={`richtext-editor ${focused ? "focused" : ""}`}>
+      <div className="richtext-toolbar">
+        <button type="button" className="editor-button" title="Negrita" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold"); }} aria-label="Negrita"><strong>B</strong></button>
+        <button type="button" className="editor-button" title="Cursiva" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic"); }} aria-label="Cursiva"><em>I</em></button>
+        <button type="button" className="editor-button" title="Párrafo" onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "p"); }} aria-label="Párrafo">P</button>
+        <button type="button" className="editor-button" title="Lista con viñetas" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList"); }} aria-label="Lista con viñetas">•</button>
+        <button type="button" className="editor-button" title="Lista numerada" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList"); }} aria-label="Lista numerada">1.</button>
+      </div>
+      <div
+        ref={editorRef}
+        className="editor-content form-input"
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-multiline="true"
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); updateValue(editorRef.current?.innerHTML || ""); }}
+        onInput={handleInput}
+        onPaste={handlePaste}
+      />
+    </div>
   );
 }
 
@@ -673,7 +777,10 @@ export default function AdminDashboard() {
 
           <div className="form-section">
             <h4 className="section-title-small">Descripción</h4>
-            <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })} />
+            <RichTextEditor
+              value={formNuevo.descripcion}
+              onChange={(value) => setFormNuevo({ ...formNuevo, descripcion: value })}
+            />
           </div>
 
           <div className="form-section">
@@ -865,7 +972,7 @@ export default function AdminDashboard() {
           {modalVer.descripcion && (
             <div className="form-section">
               <h4 className="section-title-small">Descripción</h4>
-              <div className="form-value description-text">{modalVer.descripcion}</div>
+              <div className="form-value description-text" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(modalVer.descripcion) }} />
             </div>
           )}
 
@@ -1039,7 +1146,10 @@ export default function AdminDashboard() {
 
           <div className="form-section">
             <h4 className="section-title-small">Descripción</h4>
-            <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
+            <RichTextEditor
+              value={formEditar.descripcion || ""}
+              onChange={(value) => setFormEditar({ ...formEditar, descripcion: value })}
+            />
           </div>
 
           <div className="form-section">

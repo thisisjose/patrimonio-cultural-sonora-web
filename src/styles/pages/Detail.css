@@ -336,13 +336,28 @@
 .detail-description {
   margin: 0 0 1rem 0;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.8;
   font-size: 1.02rem;
   text-align: justify;
   text-justify: inter-word;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.detail-description p,
+.detail-description div {
+  margin: 0 0 1rem 0;
+}
+
+.detail-description ul,
+.detail-description ol {
+  margin: 0.75rem 0 1rem 1.35rem;
+  padding-left: 1.1rem;
+}
+
+.detail-description li {
+  margin: 0.35rem 0;
 }
 
 .detail-links {

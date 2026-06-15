@@ -13,6 +13,50 @@ const buildImageUrl = (value) => {
   return value.startsWith("http") ? value : `${API_HOST}${value}`;
 };
 
+const sanitizeDescriptionHtml = (html) => {
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI"]);
+
+  const cleanNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent);
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const fragment = document.createDocumentFragment();
+    node.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) fragment.appendChild(cleanedChild);
+    });
+
+    const tag = node.tagName.toUpperCase();
+    if (allowedTags.has(tag)) {
+      const el = document.createElement(tag);
+      el.appendChild(fragment);
+      return el;
+    }
+
+    return fragment;
+  };
+
+  const wrapper = document.createElement("div");
+  const source = doc.body.firstChild;
+  if (source) {
+    source.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) wrapper.appendChild(cleanedChild);
+    });
+  }
+
+  let cleanedHtml = wrapper.innerHTML;
+  cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+  return cleanedHtml.trim();
+};
+
 const displayCategoryLabel = (categoria) => {
   const normalized = String(categoria || "").trim().toLowerCase();
   if (normalized === "natural") return "Natural";
@@ -151,98 +195,293 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.line(margin, y, pageWidth - margin, y);
     };
 
-    // Helper to draw justified text by distributing extra space between words
-    const drawJustifiedText = (doc, text, x, y, maxWidth, lineHeight) => {
-      const paragraphs = String(text || "").split("\n").map(p => p.trim());
-      let cursorY = y;
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-      paragraphs.forEach((para) => {
-        if (!para) {
-          cursorY += lineHeight; // empty line
+    const ensurePageSpace = (height) => {
+      if (currentY + height > pageHeight - margin) {
+        doc.addPage();
+        currentY = margin;
+      }
+    };
+
+    const getFontStyle = (style = {}) => {
+      if (style.bold && style.italic) return "bolditalic";
+      if (style.bold) return "bold";
+      if (style.italic) return "italic";
+      return "normal";
+    };
+
+    const setDocFont = (style = {}) => {
+      doc.setFont("helvetica", getFontStyle(style));
+    };
+
+    const getStyledTextWidth = (text, style = {}) => {
+      setDocFont(style);
+      return doc.getTextWidth(String(text));
+    };
+
+    const splitIntoBlocks = (html) => {
+      const sanitized = sanitizeDescriptionHtml(html);
+      const parser = new DOMParser();
+      const docHtml = parser.parseFromString(`<div>${sanitized}</div>`, "text/html");
+      const root = docHtml.body.firstChild;
+      if (!root) return [];
+
+      const buildSegments = (node, style = { bold: false, italic: false }) => {
+        const segments = [];
+
+        const walk = (child, currentStyle) => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const text = child.textContent.replace(/\s+/g, " ");
+            if (text.trim() !== "") {
+              segments.push({ text, style: { ...currentStyle } });
+            }
+            return;
+          }
+
+          if (child.nodeType !== Node.ELEMENT_NODE) return;
+          const tag = child.tagName.toUpperCase();
+          if (tag === "BR") {
+            segments.push({ br: true });
+            return;
+          }
+
+          const nextStyle = { ...currentStyle };
+          if (tag === "B" || tag === "STRONG") nextStyle.bold = true;
+          if (tag === "I" || tag === "EM") nextStyle.italic = true;
+
+          Array.from(child.childNodes).forEach((grandchild) => walk(grandchild, nextStyle));
+        };
+
+        Array.from(node.childNodes).forEach((child) => walk(child, style));
+        return segments;
+      };
+
+      const splitByLineBreaks = (segments) => {
+        const lines = [];
+        let current = [];
+
+        segments.forEach((seg) => {
+          if (seg.br) {
+            lines.push(current);
+            current = [];
+            return;
+          }
+          current.push(seg);
+        });
+
+        lines.push(current);
+        return lines.map((line) => line.filter((seg) => seg.text || seg.br));
+      };
+
+      const blocks = [];
+
+      const addParagraph = (node) => {
+        const segments = buildSegments(node);
+        const lines = splitByLineBreaks(segments);
+        lines.forEach((line) => {
+          blocks.push({ type: "paragraph", segments: line });
+        });
+      };
+
+      const addList = (node, ordered) => {
+        const items = Array.from(node.children).filter((child) => child.tagName.toUpperCase() === "LI");
+        items.forEach((li, index) => {
+          const segments = buildSegments(li);
+          const lines = splitByLineBreaks(segments);
+          blocks.push({ type: "listItem", ordered, index, lines });
+        });
+      };
+
+      Array.from(root.childNodes).forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent.trim();
+          if (text) {
+            blocks.push({ type: "paragraph", segments: [{ text, style: {} }] });
+          }
           return;
         }
 
-        const words = para.split(/\s+/).filter(Boolean);
-        let lineWords = [];
-
-        // helper to split a very long word into chunks that fit maxWidth
-        const splitLongWord = (word) => {
-          const parts = [];
-          let chunk = "";
-          for (let k = 0; k < word.length; k++) {
-            const test = chunk + word[k];
-            if (doc.getTextWidth(test) <= maxWidth) {
-              chunk = test;
-            } else {
-              if (chunk) parts.push(chunk);
-              chunk = word[k];
-            }
-          }
-          if (chunk) parts.push(chunk);
-          return parts;
-        };
-
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i];
-          const testLine = lineWords.length ? lineWords.join(' ') + ' ' + word : word;
-          const testWidth = doc.getTextWidth(testLine);
-
-          if (testWidth <= maxWidth) {
-            lineWords.push(word);
-          } else {
-            // render the current line (justified if possible)
-            if (lineWords.length <= 1) {
-              // single long word that doesn't fit: split it
-              const single = lineWords.length ? lineWords.join(' ') : '';
-              const longWord = single || word;
-              const parts = splitLongWord(longWord);
-
-              for (let p = 0; p < parts.length; p++) {
-                if (cursorY > doc.internal.pageSize.getHeight() - margin) {
-                  doc.addPage();
-                  cursorY = margin;
-                }
-                doc.text(parts[p], x, cursorY);
-                cursorY += lineHeight;
-              }
-              lineWords = [];
-              // if we split the current `word` we should continue to next
-              if (single) {
-                // we already rendered the 'single' line, push current word as next
-                lineWords = [word];
-                continue;
-              } else {
-                continue;
-              }
-            } else {
-              const wordsWidth = lineWords.reduce((s, w) => s + doc.getTextWidth(w), 0);
-              const spaces = lineWords.length - 1;
-              const extra = maxWidth - wordsWidth;
-              const spaceWidth = extra / spaces;
-              let currentX = x;
-              for (let j = 0; j < lineWords.length; j++) {
-                const w = lineWords[j];
-                doc.text(w, currentX, cursorY);
-                currentX += doc.getTextWidth(w) + spaceWidth;
-              }
-            }
-
-            cursorY += lineHeight;
-            lineWords = [word];
-          }
+        const tag = node.tagName.toUpperCase();
+        if (tag === "P" || tag === "DIV") {
+          addParagraph(node);
+          return;
         }
 
-        // render last line of paragraph (left aligned)
-        if (lineWords.length > 0) {
-          doc.text(lineWords.join(' '), x, cursorY);
-          cursorY += lineHeight;
+        if (tag === "UL" || tag === "OL") {
+          addList(node, tag === "OL");
+          return;
         }
 
-        // small gap between paragraphs
-        cursorY += 2;
+        addParagraph(node);
       });
 
-      return cursorY;
+      return blocks;
+    };
+
+    const isLeadingPunctuation = (text) => {
+      return /^[,.;:?!%)\]]/.test(text);
+    };
+
+    const splitWords = (segments) => {
+      const words = [];
+      segments.forEach((seg) => {
+        if (!seg.text) return;
+        const parts = seg.text.trim().split(/\s+/).filter(Boolean);
+        parts.forEach((part) => {
+          words.push({ text: part, style: seg.style });
+        });
+      });
+      return words;
+    };
+
+    const splitLongWord = (word, maxWidth) => {
+      const chunks = [];
+      let current = "";
+      for (const char of word.text) {
+        const test = current + char;
+        if (getStyledTextWidth(test, word.style) <= maxWidth || current === "") {
+          current = test;
+        } else {
+          chunks.push({ text: current, style: word.style });
+          current = char;
+        }
+      }
+      if (current) chunks.push({ text: current, style: word.style });
+      return chunks;
+    };
+
+    const buildLines = (segments, maxWidth) => {
+      const words = splitWords(segments);
+      const spaceWidth = getStyledTextWidth(" ", {});
+      const lines = [];
+      let currentLine = [];
+      let currentWidth = 0;
+
+      const pushLine = () => {
+        lines.push(currentLine);
+        currentLine = [];
+        currentWidth = 0;
+      };
+
+      const addWord = (word) => {
+        const textWidth = getStyledTextWidth(word.text, word.style);
+        const needSpace = currentLine.length > 0 && !isLeadingPunctuation(word.text);
+        const needed = currentLine.length ? (needSpace ? spaceWidth : 0) + textWidth : textWidth;
+
+        if (currentLine.length === 0 || currentWidth + needed <= maxWidth) {
+          if (needSpace) currentWidth += spaceWidth;
+          currentLine.push(word);
+          currentWidth += textWidth;
+        } else {
+          if (textWidth > maxWidth) {
+            const chunks = splitLongWord(word, maxWidth - (currentLine.length && needSpace ? spaceWidth : 0));
+            if (chunks.length > 0) {
+              chunks.forEach((chunk, index) => {
+                if (index === 0) {
+                  if (currentLine.length) {
+                    pushLine();
+                  }
+                  currentLine.push(chunk);
+                  currentWidth = getStyledTextWidth(chunk.text, chunk.style);
+                } else {
+                  pushLine();
+                  currentLine.push(chunk);
+                  currentWidth = getStyledTextWidth(chunk.text, chunk.style);
+                }
+              });
+            }
+          } else {
+            pushLine();
+            currentLine.push(word);
+            currentWidth = textWidth;
+          }
+        }
+      };
+
+      words.forEach(addWord);
+      if (currentLine.length) pushLine();
+      if (lines.length === 0) lines.push([]);
+      return lines;
+    };
+
+    const renderLine = (lineWords, x, y, maxWidth, justify) => {
+      if (lineWords.length === 0) {
+        return;
+      }
+      const spaceWidth = getStyledTextWidth(" ", {});
+      const lineWidth = lineWords.reduce((acc, word, index) => {
+        const wordWidth = getStyledTextWidth(word.text, word.style);
+        const needSpace = index > 0 && !isLeadingPunctuation(word.text);
+        return acc + wordWidth + (needSpace ? spaceWidth : 0);
+      }, 0);
+      const gaps = lineWords.reduce((count, word, index) => {
+        if (index === 0) return 0;
+        return count + (!isLeadingPunctuation(word.text) ? 1 : 0);
+      }, 0);
+      const extraSpace = justify && gaps > 0 ? (maxWidth - lineWidth) / gaps : 0;
+
+      let currentX = x;
+      lineWords.forEach((word, index) => {
+        if (index > 0 && !isLeadingPunctuation(word.text)) {
+          currentX += spaceWidth + extraSpace;
+        }
+        setDocFont(word.style);
+        doc.text(word.text, currentX, y);
+        currentX += getStyledTextWidth(word.text, word.style);
+      });
+    };
+
+    const renderDescriptionBlocks = (html, x, y, maxWidth, lineHeight) => {
+      const ensureLocalPageSpace = (height, currentY) => {
+        if (currentY + height > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        return currentY;
+      };
+
+      const blocks = splitIntoBlocks(html);
+      if (blocks.length === 0) return y;
+      blocks.forEach((block) => {
+        if (block.type === "paragraph") {
+          const lines = buildLines(block.segments, maxWidth);
+          if (lines.length === 0) {
+            y = ensureLocalPageSpace(lineHeight, y);
+            y += lineHeight;
+          }
+          lines.forEach((line, index) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, x, y, maxWidth, index !== lines.length - 1);
+            y += lineHeight;
+          });
+          y += 3;
+          return;
+        }
+
+        if (block.type === "listItem") {
+          const marker = block.ordered ? `${block.index + 1}.` : "•";
+          const markerText = `${marker} `;
+          const markerWidth = getStyledTextWidth(markerText, {});
+          const indent = markerWidth + 2;
+          y = ensureLocalPageSpace(lineHeight, y);
+          setDocFont({});
+          doc.text(markerText, x, y);
+          const lines = buildLines(block.lines.flat(), maxWidth - indent);
+          if (lines.length === 0) {
+            y = ensureLocalPageSpace(lineHeight, y);
+            y += lineHeight;
+          }
+          lines.forEach((line, index) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, x + indent, y, maxWidth - indent, index !== lines.length - 1);
+            y += lineHeight;
+          });
+          y += 3;
+          return;
+        }
+      });
+      return y;
     };
 
     // ===== TÍTULO =====
@@ -265,6 +504,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== ETIQUETAS =====
     if (item.tags && item.tags.length > 0) {
+      ensurePageSpace(18);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
@@ -280,20 +520,22 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== DESCRIPCIÓN =====
     currentY += 5;
+    ensurePageSpace(20);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.text("Descripción", margin, currentY);
-    currentY += 7;
+    currentY += 8;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    currentY = drawJustifiedText(doc, item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 6);
+    currentY = renderDescriptionBlocks(item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 7.5);
     currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
     if (item.links && item.links.length > 0) {
+      ensurePageSpace(24);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
@@ -325,10 +567,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== GALERÍA =====
     if (images && images.length > 0) {
-      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
-        doc.addPage();
-        currentY = margin;
-      }
+      ensurePageSpace(24);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
@@ -375,10 +614,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== FUENTES DE CONSULTA =====
     if (item.links && item.links.length > 0) {
-      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
-        doc.addPage();
-        currentY = margin;
-      }
+      ensurePageSpace(24);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -559,7 +795,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           )}
 
           <div className="detail-info">
-            <p className="detail-description">{item.descripcion}</p>
+            <div className="detail-description" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(item.descripcion || "") }} />
 
             {/* ENLACES RELACIONADOS */}
             {links.length > 0 && (

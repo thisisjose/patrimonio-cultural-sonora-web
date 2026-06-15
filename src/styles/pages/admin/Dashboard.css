@@ -621,6 +621,69 @@ tr:hover td {
   min-height: 90px;
   resize: vertical;
 }
+.richtext-editor {
+  border: 1.5px solid var(--gray-200);
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+}
+.richtext-editor.focused {
+  border-color: var(--green-500);
+  box-shadow: 0 0 0 3px rgba(39, 160, 96, 0.15);
+}
+.richtext-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--gray-200);
+  background: #fafafa;
+}
+.editor-button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gray-900);
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.editor-button:hover,
+.editor-button:focus {
+  background: rgba(39, 160, 96, 0.12);
+  border-color: rgba(39, 160, 96, 0.25);
+}
+.editor-content {
+  min-height: 140px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--gray-900);
+  line-height: 1.6;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.editor-content p,
+.editor-content div {
+  margin: 0 0 0.9rem;
+}
+.editor-content ul,
+.editor-content ol {
+  margin: 0.65rem 0 0.65rem 1.25rem;
+}
+.editor-content li {
+  margin: 0.3rem 0;
+}
+.description-text {
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
 .form-value {
   background: var(--gray-50);
   border-radius: 16px;
@@ -632,6 +695,7 @@ tr:hover td {
 .description-text {
   line-height: 1.5;
   white-space: pre-wrap;
+  text-align: justify;
 }
 .form-hint {
   font-size: 0.7rem;
