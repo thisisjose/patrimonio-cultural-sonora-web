@@ -28,6 +28,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
+            <Route path=":municipio/:slug/patrimonio" element={<Detail />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="catalogo" element={<Catalogo />} />
@@ -41,6 +42,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
+            <Route path=":municipio/:slug/patrimonio" element={<Detail />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="catalogo" element={<Catalogo />} />

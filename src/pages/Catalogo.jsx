@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import slugify from "../utils/slugify";
 import "../styles/pages/Catalogo.css";
 import "../styles/pages/Explore.css";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
@@ -42,15 +43,25 @@ const displayCategoryLabel = (categoria) => {
 };
 
 const getMunicipioName = (item, municipios) => {
+  if (!item) return null;
   if (item.municipio && typeof item.municipio === "string") {
-    return item.municipio;
+    const value = item.municipio.trim();
+    return value || null;
   }
   if (item.municipio && typeof item.municipio === "object") {
-    return item.municipio.nombre || item.municipio.nombre_corto || "Sin municipio";
+    return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+  }
+  if (item.municipioNombre) {
+    const value = String(item.municipioNombre).trim();
+    return value || null;
+  }
+  if (item.municipio_nombre) {
+    const value = String(item.municipio_nombre).trim();
+    return value || null;
   }
   const match = municipios.find((municipio) => String(municipio.id) === String(item.municipioId));
-  if (match) return match.nombre;
-  return "Sin municipio";
+  if (match) return match.nombre?.trim() || null;
+  return null;
 };
 
 function Catalogo() {
@@ -278,7 +289,11 @@ function Catalogo() {
                     return (
                       <Link
                         key={item.id}
-                        to={`${adminBase}/patrimonio/${item.id}`}
+                        to={(() => {
+                          const municipioNombre = getMunicipioName(item, municipios);
+                          const municipioSlug = municipioNombre ? `/${slugify(municipioNombre)}` : "";
+                          return `${adminBase}${municipioSlug}/${slugify(item.nombre)}/patrimonio`;
+                        })()}
                         className="patrimonio-card patrimonio-card-link"
                         aria-label={`Ver detalle de ${item.nombre}`}
                       >

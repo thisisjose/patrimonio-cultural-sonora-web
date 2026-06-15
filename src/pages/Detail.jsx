@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import slugify from "../utils/slugify";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
@@ -950,7 +951,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 }
 
 function Detail() {
-  const { id } = useParams();
+  const { id, slug, municipio } = useParams();
   const [patrimonio, setPatrimonio] = useState();
   const [municipios, setMunicipios] = useState([]);
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
@@ -977,7 +978,37 @@ function Detail() {
           setMunicipios(municipiosData);
         }
 
-        const item = await getPatrimonioById(id);
+        let item = null;
+        if (id) {
+          item = await getPatrimonioById(id);
+        } else if (slug) {
+          const items = await getPatrimonios();
+          if (Array.isArray(items)) {
+            item = items.find((it) => {
+              const nameMatch = slugify(it.nombre) === String(slug);
+              if (!nameMatch) return false;
+              if (municipio) {
+                const mi = (it.municipio && typeof it.municipio === "string")
+                  ? it.municipio
+                  : it.municipio && typeof it.municipio === "object"
+                  ? it.municipio.nombre || it.municipio.nombre_corto
+                  : it.municipioNombre || it.municipio_nombre || null;
+
+                if (mi) return slugify(mi) === String(municipio);
+
+                if (it.municipioId && Array.isArray(municipiosData)) {
+                  const m = municipiosData.find((m) => String(m.id) === String(it.municipioId));
+                  if (m) return slugify(m.nombre) === String(municipio);
+                }
+
+                return false;
+              }
+
+              return true;
+            });
+          }
+        }
+
         if (!item) {
           setPatrimonio(null);
           return;
@@ -991,7 +1022,7 @@ function Detail() {
     };
 
     cargarDatos();
-  }, [id]);
+  }, [id, slug, municipio]);
 
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;

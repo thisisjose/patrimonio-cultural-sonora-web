@@ -8,6 +8,7 @@ import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import slugify from "../utils/slugify";
 import { API_HOST } from "../services/apiConfig.js";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey, isNaturalCategory } from "../utils/categoryUtils";
 
@@ -66,6 +67,28 @@ function Home() {
       lng,
       imagen,
     };
+  };
+
+  const getMunicipioName = (item, municipios) => {
+    if (!item) return null;
+    if (item.municipio && typeof item.municipio === "string") {
+      const value = item.municipio.trim();
+      return value || null;
+    }
+    if (item.municipio && typeof item.municipio === "object") {
+      return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+    }
+    if (item.municipioNombre) {
+      const value = String(item.municipioNombre).trim();
+      return value || null;
+    }
+    if (item.municipio_nombre) {
+      const value = String(item.municipio_nombre).trim();
+      return value || null;
+    }
+    const match = municipios.find((municipio) => String(municipio.id) === String(item.municipioId));
+    if (match) return match.nombre?.trim() || null;
+    return null;
   };
 
   useEffect(() => {
@@ -164,11 +187,25 @@ function Home() {
   const handleSelectResultado = (id) => {
     setBusqueda("");
     setMostrarResultados(false);
-    navigate(`${adminBase}/patrimonio/${id}`);
+    const item = resultadosBusqueda.find(r => String(r.id) === String(id));
+    const municipioName = item ? getMunicipioName(item, municipios) : null;
+    const municipioSlug = municipioName ? slugify(municipioName) : null;
+    const slug = item ? slugify(item.nombre) : id;
+    const path = municipioSlug
+      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      : `${adminBase}/patrimonio/${id}`;
+    navigate(path);
   };
 
   const handleNavigateToDetalle = (id) => {
-    navigate(`${adminBase}/patrimonio/${id}`);
+    const item = todosPatrimonios.find(r => String(r.id) === String(id));
+    const municipioName = item ? getMunicipioName(item, municipios) : null;
+    const municipioSlug = municipioName ? slugify(municipioName) : null;
+    const slug = item ? slugify(item.nombre) : id;
+    const path = municipioSlug
+      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      : `${adminBase}/patrimonio/${id}`;
+    navigate(path);
   };
 
   const showCategoryClass = (categoria) =>
@@ -314,7 +351,7 @@ function Home() {
       </div>
 
       <div className="map-wrapper">
-        <MapView patrimonios={patrimonios} expanded={false} />
+        <MapView patrimonios={patrimonios} expanded={false} municipios={municipios} />
       </div>
 
       <section className="popular-section">

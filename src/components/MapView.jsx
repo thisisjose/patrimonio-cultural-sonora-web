@@ -7,6 +7,7 @@ import L from "leaflet";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom"; 
 import { normalizeCategoryKey } from "../utils/categoryUtils";
+import slugify from "../utils/slugify";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -85,7 +86,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
         if (interactive) {
           const markerTitle = item.nombre;
-          const detailPath = getDetailPath(item.id);
+          const detailPath = getDetailPath(item);
 
           const popupContent = document.createElement("div");
           popupContent.className = "patrimonio-popup";
@@ -218,13 +219,41 @@ function MapControls({ center, zoom }) {
   );
 }
 
-function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
+function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true, municipios = [] }) {
   const navigate = useNavigate();
   const location = useLocation(); 
   const isAdminRoute = location.pathname.startsWith("/admin");
 
-  const getDetailPath = (id) => {
-    return isAdminRoute ? `/admin/patrimonio/${id}` : `/patrimonio/${id}`;
+  const getMunicipioNameForItem = (item) => {
+    if (!item) return null;
+    if (item.municipio && typeof item.municipio === "string") {
+      const value = item.municipio.trim();
+      return value || null;
+    }
+    if (item.municipio && typeof item.municipio === "object") {
+      return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+    }
+    if (item.municipioNombre) {
+      const value = String(item.municipioNombre).trim();
+      return value || null;
+    }
+    if (item.municipio_nombre) {
+      const value = String(item.municipio_nombre).trim();
+      return value || null;
+    }
+    if (item.municipioId && Array.isArray(municipios)) {
+      const m = municipios.find((m) => String(m.id) === String(item.municipioId));
+      if (m) return m.nombre?.trim() || null;
+    }
+    return null;
+  };
+
+  const getDetailPath = (item) => {
+    const municipio = getMunicipioNameForItem(item);
+    const patrimonioSlug = slugify(item.nombre);
+    const municipioSlug = municipio ? `/${slugify(municipio)}` : "";
+    const adminPrefix = isAdminRoute ? "/admin" : "";
+    return `${adminPrefix}${municipioSlug}/${patrimonioSlug}/patrimonio`;
   };
 
   const truncateText = (text = "", max = 90) => {

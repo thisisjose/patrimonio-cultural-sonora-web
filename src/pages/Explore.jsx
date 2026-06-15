@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
+import slugify from "../utils/slugify";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
@@ -53,18 +54,29 @@ const displayCategoryLabel = (categoria) => {
 };
 
 const getMunicipioName = (item, municipios) => {
+  if (!item) return null;
   if (item.municipio && typeof item.municipio === "string") {
-    return item.municipio;
+    const value = item.municipio.trim();
+    return value || null;
   }
 
   if (item.municipio && typeof item.municipio === "object") {
-    return item.municipio.nombre || item.municipio.nombre_corto || "Sin municipio";
+    return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+  }
+
+  if (item.municipioNombre) {
+    const value = String(item.municipioNombre).trim();
+    return value || null;
+  }
+  if (item.municipio_nombre) {
+    const value = String(item.municipio_nombre).trim();
+    return value || null;
   }
 
   const match = municipios.find((municipio) => String(municipio.id) === String(item.municipioId));
-  if (match) return match.nombre;
+  if (match) return match.nombre?.trim() || null;
 
-  return "Sin municipio";
+  return null;
 };
 
 const filterByMode = (item, mode, value) => {
@@ -434,10 +446,14 @@ function Explore() {
                 <div className="explore-card-list catalogo-explore-card-list">
                   {itemsPaginados.map((item) => {
                     const nombreMunicipio = getMunicipioName(item, municipios);
-                    return (
+                      return (
                       <Link
                         key={item.id}
-                        to={`${adminBase}/patrimonio/${item.id}`}
+                        to={(() => {
+                          const municipioNombre = getMunicipioName(item, municipios);
+                          const municipioSlug = municipioNombre ? `/${slugify(municipioNombre)}` : "";
+                          return `${adminBase}${municipioSlug}/${slugify(item.nombre)}/patrimonio`;
+                        })()}
                         className="patrimonio-card patrimonio-card-link"
                         aria-label={`Ver detalle de ${item.nombre}`}
                       >
