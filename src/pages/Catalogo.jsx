@@ -10,7 +10,6 @@ import { API_HOST } from "../services/apiConfig.js"; // 🔄 Importar API_HOST
 
 const ITEMS_POR_PAGINA = 4;
 
-// Construir URL de imagen igual que en Home.jsx
 const buildImageUrl = (value) => {
   if (!value || typeof value !== "string") return null;
   if (value.startsWith("http")) return value;
