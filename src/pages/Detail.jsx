@@ -967,8 +967,19 @@ function Detail() {
 
   const handleCambiarPaginaMunicipio = (nuevaPagina) => {
     setPaginaMunicipio(nuevaPagina);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    if (paginaMunicipio > 1) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [paginaMunicipio]);
+
+  useEffect(() => {
+    if (selectedMunicipioId) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [selectedMunicipioId]);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -1030,6 +1041,7 @@ function Detail() {
     setPaginaMunicipio(1);
     setMunicipioLoading(true);
     setMunicipioPatrimonios([]);
+    window.scrollTo({ top: 0, behavior: "auto" });
 
     try {
       const items = await getPatrimonios();

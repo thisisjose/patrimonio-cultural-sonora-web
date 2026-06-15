@@ -207,6 +207,10 @@ function Explore() {
     };
   }, [mostrarBotonVolver]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [mode, value]);
+
   const handleCambiarPagina = (municipioName, nuevaPagina) => {
     setPaginasPorMunicipio((prev) => ({
       ...prev,
