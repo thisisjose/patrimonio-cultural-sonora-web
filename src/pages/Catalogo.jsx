@@ -76,6 +76,7 @@ function Catalogo() {
   const [municipios, setMunicipios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
+  const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
   const [paginasPorMunicipio, setPaginasPorMunicipio] = useState({});
   const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -104,6 +105,11 @@ function Catalogo() {
     cargarDatos();
   }, []);
 
+  // Asegurar que la página comience arriba cuando se carga el catálogo
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
   // Filtrar patrimonios (igual que antes)
   const patrimoniosFiltrados = useMemo(() => {
     let resultado = todosPatrimonios;
@@ -123,8 +129,14 @@ function Catalogo() {
       );
     }
 
+    if (municipioSeleccionado) {
+      resultado = resultado.filter(
+        (item) => String(item.municipioId) === String(municipioSeleccionado)
+      );
+    }
+
     return resultado;
-  }, [todosPatrimonios, busqueda, categoriaSeleccionada]);
+  }, [todosPatrimonios, busqueda, categoriaSeleccionada, municipioSeleccionado]);
 
   // Agrupar por municipio (ordenado alfabéticamente)
   const gruposPorMunicipio = useMemo(() => {
@@ -142,7 +154,7 @@ function Catalogo() {
   // Resetear paginación cuando cambian los filtros
   useEffect(() => {
     setPaginasPorMunicipio({});
-  }, [busqueda, categoriaSeleccionada]);
+  }, [busqueda, categoriaSeleccionada, municipioSeleccionado]);
 
   // Manejar scroll para mostrar/ocultar botón volver arriba
   useEffect(() => {
@@ -254,6 +266,24 @@ function Catalogo() {
             <option value="material">Material</option>
             <option value="inmaterial">Inmaterial</option>
             <option value="natural">Natural</option>
+          </select>
+        </div>
+
+        <div className="catalogo-municipio-filter">
+          <div className="filter-header">
+            <span className="filter-label">Filtrar por municipio</span>
+          </div>
+          <select
+            value={municipioSeleccionado}
+            onChange={(e) => setMunicipioSeleccionado(e.target.value)}
+            className="catalogo-select"
+          >
+            <option value="">Todos</option>
+            {municipios.map((municipio) => (
+              <option key={municipio.id} value={municipio.id}>
+                {municipio.nombre}
+              </option>
+            ))}
           </select>
         </div>
       </div>
