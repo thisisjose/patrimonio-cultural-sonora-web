@@ -5,26 +5,17 @@ function Acerca() {
     <section className="page-inner acerca-page">
       <h1 className="hero-title" style={{ textAlign: 'center' }}>Acerca del proyecto</h1>
 
-      <div className="card" style={{ marginTop: '1rem' }}>
-        <p className="lead">
-          <strong>Patrimonio Sonorense</strong> es una plataforma digital dedicada a la difusión, preservación y localización del patrimonio cultural material del estado de Sonora. Nuestro objetivo es poner al alcance del público una herramienta sencilla, intuitiva y accesible que permita explorar, conocer y valorar la riqueza histórica y cultural de nuestra región.
-        </p>
-        <p style={{ marginTop: '0.75rem', color: 'var(--muted)' }}>
-          Reunimos datos verificados, fotografías y descripciones breves que ayudan tanto a turistas como a estudiantes y gestores culturales a localizar y entender cada sitio.
-        </p>
-      </div>
+      <div className="card" style={{ marginTop: '1rem', textAlign: 'justify' }}>
+        <p className="lead" style={{ whiteSpace: 'nowrap', color: '#000', textAlign: 'center' }}>Este proyecto se enmarca principalmente en las Convenciones de la UNESCO ratificadas por México:</p>
 
-      <div style={{ marginTop: '1.5rem' }}>
-        <h3 className="heading-2">Por qué usar esta plataforma</h3>
-        <ul style={{ fontSize: '1.05rem', lineHeight: '1.8', color: '#333', paddingLeft: '1.25rem' }}>
-          <li style={{ marginBottom: '0.6rem' }}><strong>Fácil e intuitiva:</strong> interfaz limpia que prioriza la información relevante.</li>
-          <li style={{ marginBottom: '0.6rem' }}><strong>Orientada al viajero:</strong> sugerencias de rutas y datos prácticos para visitas.</li>
-          <li style={{ marginBottom: '0.6rem' }}><strong>Con enfoque cultural:</strong> contexto histórico y referencias para quienes desean profundizar.</li>
-          <li style={{ marginBottom: '0.6rem' }}><strong>Abierta y escalable:</strong> pensada para integrar contribuciones y crecer con la comunidad.</li>
+        <ul style={{ marginTop: '0.75rem', fontSize: '1.05rem', lineHeight: '1.8', color: '#000', paddingLeft: '1.25rem' }}>
+          <li style={{ marginBottom: '0.6rem' }}>Convención para la Protección del Patrimonio Mundial, Cultural y Natural (UNESCO, 1972) — ratificada por México en 1984, es el instrumento internacional más relevante para la protección de bienes culturales y naturales.</li>
+          <li style={{ marginBottom: '0.6rem' }}>Convención para la Salvaguardia del Patrimonio Cultural Inmaterial (UNESCO, 2003) — ratificada por México en 2006, cubre tradiciones orales, fiestas, saberes y prácticas comunitarias.</li>
+          <li style={{ marginBottom: '0.6rem' }}>Convención sobre la Protección y Promoción de la Diversidad de las Expresiones Culturales (UNESCO, 2005) — ratificada por México en 2007, protege la diversidad de manifestaciones culturales.</li>
+          <li style={{ marginBottom: '0.6rem' }}>Convención sobre la Protección del Patrimonio Cultural Subacuático (UNESCO, 2001) — ratificada por México en 2006, relevante si el sitio documenta bienes en entornos acuáticos.</li>
         </ul>
       </div>
 
-     
     </section>
   );
 }
