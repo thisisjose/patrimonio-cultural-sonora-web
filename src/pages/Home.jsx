@@ -221,7 +221,7 @@ function Home() {
   };
 
   const patrimoniosAleatorios = useMemo(
-    () => getRandomItems(todosPatrimonios, 6),
+    () => getRandomItems(todosPatrimonios, 12),
     [todosPatrimonios]
   );
 

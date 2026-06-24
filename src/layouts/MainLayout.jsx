@@ -27,6 +27,9 @@ function MainLayout() {
             <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Acerca
             </NavLink>
+            <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Catálogo
+            </NavLink>
             <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Contacto
             </NavLink>
@@ -54,6 +57,9 @@ function MainLayout() {
                 <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
                   Acerca
                 </NavLink>
+                  <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                    Catálogo
+                  </NavLink>
                 <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
                   Contacto
                 </NavLink>
@@ -92,6 +98,7 @@ function MainLayout() {
               <ul className="footer-links">
                 <li><NavLink to="/">Inicio</NavLink></li>
                 <li><NavLink to="/acerca">Acerca</NavLink></li>
+                <li><NavLink to="/catalogo">Catálogo</NavLink></li>
                 <li><NavLink to="/contacto">Contacto</NavLink></li>
               </ul>
             </div>
