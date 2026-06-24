@@ -686,7 +686,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
-    doc.text("Fecha y hora de generación", margin, currentY);
+    doc.text("Consulta:", margin, currentY);
     currentY += 7;
 
     doc.setFont("helvetica", "normal");
@@ -1203,7 +1203,7 @@ function Detail() {
             </div>
           </div>
 
-          <h2 className="section-title">Patrimonios en {nombreMunicipio}</h2>
+          <h2 className="section-title">{nombreMunicipio}</h2>
           {municipioLoading ? (
             <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
           ) : filteredMunicipioPatrimonios.length === 0 ? (

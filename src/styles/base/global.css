@@ -87,6 +87,16 @@ a:hover {
   font-weight: 700;
 }
 
+/* Usar la misma familia tipográfica que el título principal (hero) para los títulos solicitados */
+.patrimonio-name,
+.detail-title,
+.explore-group-title,
+.hero-title {
+  font-family: var(--font-sans) !important;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
 .heading-2 {
   color: var(--primary);
   margin-bottom: 1.2rem;
