@@ -6,6 +6,7 @@ function Acerca() {
       <h1 className="hero-title" style={{ textAlign: 'center' }}>Acerca del proyecto</h1>
 
       <div className="card" style={{ marginTop: '1rem', textAlign: 'justify' }}>
+        
         <p className="lead" style={{ whiteSpace: 'nowrap', color: '#000', textAlign: 'center' }}>Este proyecto se enmarca principalmente en las Convenciones de la UNESCO ratificadas por México:</p>
 
         <ul style={{ marginTop: '0.75rem', fontSize: '1.05rem', lineHeight: '1.8', color: '#000', paddingLeft: '1.25rem' }}>
