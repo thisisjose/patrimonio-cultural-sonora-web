@@ -38,6 +38,44 @@ const parseUbicaciones = (ubicaciones) => {
   return Array.isArray(ubicaciones) ? ubicaciones : [];
 };
 
+const sanitizeHtml = (html) => {
+  if (typeof html !== "string") return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const sanitizeNode = (node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tagName = node.tagName.toLowerCase();
+      if (["script", "style", "iframe", "object", "embed", "link", "meta"].includes(tagName)) {
+        node.remove();
+        return;
+      }
+
+      for (const attr of Array.from(node.attributes)) {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.trim().toLowerCase();
+        if (
+          name.startsWith("on") ||
+          name === "srcdoc" ||
+          name === "formaction" ||
+          name === "style" ||
+          (name === "href" && value.startsWith("javascript:")) ||
+          (name === "src" && value.startsWith("javascript:"))
+        ) {
+          node.removeAttribute(attr.name);
+        }
+      }
+    }
+
+    for (const child of Array.from(node.childNodes)) {
+      sanitizeNode(child);
+    }
+  };
+
+  sanitizeNode(doc.body);
+  return doc.body.innerHTML;
+};
+
 const getItemLocations = (item) => {
   const raw = parseUbicaciones(item.ubicaciones);
 
@@ -113,8 +151,8 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
           const desc = document.createElement("p");
           desc.className = "popup-desc";
-          desc.textContent = item.descripcion
-            ? truncateText(item.descripcion, 70)
+          desc.innerHTML = item.descripcion
+            ? sanitizeHtml(item.descripcion)
             : "Sin descripción disponible.";
           popupContent.appendChild(desc);
 

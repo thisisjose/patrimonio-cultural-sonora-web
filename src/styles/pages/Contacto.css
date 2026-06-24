@@ -227,11 +227,20 @@
 .contacto-form {
   margin-top: 2rem;
   display: grid;
-  gap: 1.5rem;
+  row-gap: 0.1rem;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.92);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
+}
+
+/* NUEVO: Mantiene la separación de 1.5rem entre los campos normales del formulario */
+.contacto-form > *:not(.contacto-form-feedback-wrapper) {
+  margin-bottom: 1.5rem;
+}
+/* Evita que el último elemento (los botones) duplique espacio abajo */
+.contacto-form .contacto-form-actions {
+  margin-bottom: 0;
 }
 
 .contacto-form h2 {
@@ -288,6 +297,28 @@
   font-size: 0.9rem;
   line-height: 1.4;
   white-space: normal;
+}
+
+/* NUEVO: El Contenedor que se encoge a 0px sin tirones */
+.contacto-form-feedback-wrapper {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  transform: translateY(-8px);
+  transition: 
+    max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease,
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* NUEVO: Estado activo que empuja el formulario gradualmente */
+.contacto-form-feedback-wrapper.show {
+  max-height: 100px;       /* Altura máxima para contener el texto */
+  opacity: 1;
+  margin-bottom: 1.5rem;   /* Reemplaza el gap ausente de forma fluida */
+  transform: translateY(0);
 }
 
 .contacto-form-feedback {

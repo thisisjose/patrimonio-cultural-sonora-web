@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as loginService } from '../services/authService';
+import { login as loginService, logout as logoutService } from '../services/authService';
 
 export const AuthContext = createContext();
 
@@ -9,9 +9,9 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(() => {
-    const token = localStorage.getItem('token');
-    const rol = localStorage.getItem('rol');
-    const nombre = localStorage.getItem('nombre');
+    const token = sessionStorage.getItem('token');
+    const rol = sessionStorage.getItem('rol');
+    const nombre = sessionStorage.getItem('nombre');
     if (token && rol) {
       return { token, rol, nombre };
     }
@@ -31,9 +31,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('rol');
-    localStorage.removeItem('nombre');
+    logoutService(); 
     setUser(null);
     navigate('/login');
   };
