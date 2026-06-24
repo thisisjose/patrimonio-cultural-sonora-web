@@ -8,6 +8,9 @@ import historiaIcon from "../Icons/historia.png";
 import infoIcon from "../Icons/info.png";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import slugify from "../utils/slugify";
+import { API_HOST } from "../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey, isNaturalCategory } from "../utils/categoryUtils";
 
 function Home() {
   const navigate = useNavigate();
@@ -23,8 +26,6 @@ function Home() {
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, natural: 0 });
-
-  const API_BASE = "http://localhost:3000";
 
   const parseUbicaciones = (ubicaciones) => {
     if (!ubicaciones) return [];
@@ -56,7 +57,7 @@ function Home() {
     const imagen = item.imagen_url
       ? item.imagen_url.startsWith("http")
         ? item.imagen_url
-        : `${API_BASE}${item.imagen_url}`
+        : `${API_HOST}${item.imagen_url}`
       : "https://placehold.co/600x400?text=Sin+imagen";
 
     return {
@@ -66,6 +67,28 @@ function Home() {
       lng,
       imagen,
     };
+  };
+
+  const getMunicipioName = (item, municipios) => {
+    if (!item) return null;
+    if (item.municipio && typeof item.municipio === "string") {
+      const value = item.municipio.trim();
+      return value || null;
+    }
+    if (item.municipio && typeof item.municipio === "object") {
+      return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+    }
+    if (item.municipioNombre) {
+      const value = String(item.municipioNombre).trim();
+      return value || null;
+    }
+    if (item.municipio_nombre) {
+      const value = String(item.municipio_nombre).trim();
+      return value || null;
+    }
+    const match = municipios.find((municipio) => String(municipio.id) === String(item.municipioId));
+    if (match) return match.nombre?.trim() || null;
+    return null;
   };
 
   useEffect(() => {
@@ -105,7 +128,7 @@ function Home() {
         ? String(item.municipioId) === String(municipioSeleccionado)
         : true;
       const matchCategoria = categoriaSeleccionada
-        ? String(item.categoria).toLowerCase() === categoriaSeleccionada
+        ? normalizeCategoryKey(item.categoria) === categoriaSeleccionada
         : true;
       return matchMunicipio && matchCategoria;
     });
@@ -115,13 +138,13 @@ function Home() {
 
   useEffect(() => {
     const materialCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "material"
+      (item) => normalizeCategoryKey(item.categoria) === "material"
     ).length;
     const inmaterialCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "inmaterial"
+      (item) => normalizeCategoryKey(item.categoria) === "inmaterial"
     ).length;
     const naturalCount = todosPatrimonios.filter(
-      (item) => String(item.categoria).toLowerCase() === "natural"
+      (item) => isNaturalCategory(item.categoria)
     ).length;
 
     setStatsData({
@@ -164,11 +187,25 @@ function Home() {
   const handleSelectResultado = (id) => {
     setBusqueda("");
     setMostrarResultados(false);
-    navigate(`${adminBase}/patrimonio/${id}`);
+    const item = resultadosBusqueda.find(r => String(r.id) === String(id));
+    const municipioName = item ? getMunicipioName(item, municipios) : null;
+    const municipioSlug = municipioName ? slugify(municipioName) : null;
+    const slug = item ? slugify(item.nombre) : id;
+    const path = municipioSlug
+      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      : `${adminBase}/patrimonio/${id}`;
+    navigate(path);
   };
 
   const handleNavigateToDetalle = (id) => {
-    navigate(`${adminBase}/patrimonio/${id}`);
+    const item = todosPatrimonios.find(r => String(r.id) === String(id));
+    const municipioName = item ? getMunicipioName(item, municipios) : null;
+    const municipioSlug = municipioName ? slugify(municipioName) : null;
+    const slug = item ? slugify(item.nombre) : id;
+    const path = municipioSlug
+      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      : `${adminBase}/patrimonio/${id}`;
+    navigate(path);
   };
 
   const showCategoryClass = (categoria) =>
@@ -195,12 +232,12 @@ function Home() {
   return (
     <section>
       <div className="page-hero">
-        <h1 className="hero-title">Patrimonio cultural del estado de Sonora</h1>
+        <h1 className="hero-title">Cátalogo de patrimonio cultural  del estado de Sonora</h1>
         {nombreMunicipio && (
           <p className="hero-sub">Patrimonios en {nombreMunicipio}</p>
         )}
         {!nombreMunicipio && (
-          <p className="hero-sub">Descubre monumentos, festividades y elementos culturales del estado a través de un mapa interactivo que concentra información histórica y visual.</p>
+          <p className="hero-sub">El Catálogo de Patrimonio Cultural del estado de Sonora es un instrumento de registro, salvaguarda y difusión del acervo que conforma la identidad del estado. A través de él, la ciudadanía, investigadores e instituciones acceden a información sistematizada sobre bienes materiales, inmateriales y naturales que constituyen el legado colectivo de Sonora. Este esfuerzo conjunto permite integrar un registro representativo, incluyente y en permanente actualización del patrimonio cultural del estado.</p>
         )}
       </div>
 
@@ -214,7 +251,7 @@ function Home() {
         <div className="municipio-selector-content">
           <div className="search-box-container" ref={searchInputRef}>
             <div className="filter-header">
-              <span className="filter-label">Buscar patrimonio</span>
+              <span className="filter-label">Buscar en el catálogo</span>
             </div>
             <div className="search-box-input-wrapper">
               <input
@@ -258,8 +295,8 @@ function Home() {
                     <div className="result-content">
                       <div className="result-name">{item.nombre}</div>
                       <div className="result-category">
-                        <span className={`result-badge ${String(item.categoria).toLowerCase()}`}>
-                          {item.categoria}
+                        <span className={`result-badge ${getCategoryClass(item.categoria)}`}>
+                          {getCategoryLabel(item.categoria)}
                         </span>
                       </div>
                     </div>
@@ -314,11 +351,11 @@ function Home() {
       </div>
 
       <div className="map-wrapper">
-        <MapView patrimonios={patrimonios} expanded={false} />
+        <MapView patrimonios={patrimonios} expanded={false} municipios={municipios} />
       </div>
 
       <section className="popular-section">
-        <h2 className="section-title">Quizás te interese</h2>
+        <h2 className="section-title">Consulta el catálogo</h2>
         <div className="popular-row">
           {patrimoniosAleatorios.map((item) => (
             <article
@@ -342,13 +379,21 @@ function Home() {
                     e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
                   }}
                 />
-                <span className={`category-badge popular-badge ${showCategoryClass(item.categoria)}`}>{item.categoria}</span>
+                <span className={`category-badge popular-badge ${getCategoryClass(item.categoria)}`}>{getCategoryLabel(item.categoria)}</span>
               </div>
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>
               </div>
             </article>
           ))}
+        </div>
+        <div className="catalogo-button-container">
+          <button
+            className="catalogo-view-btn"
+            onClick={() => navigate(`${adminBase}/catalogo`)}
+          >
+            Ver catálogo completo →
+          </button>
         </div>
       </section>
 

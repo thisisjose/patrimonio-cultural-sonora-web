@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 import {
   getAllPatrimoniosAdmin,
@@ -11,7 +11,9 @@ import {
 
 import { getMunicipios } from "../../services/municipioService";
 import { getAllTags, updateTag, deleteTag } from "../../services/tagService";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../Hooks/useAuth";
+import { API_HOST } from "../../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../../utils/categoryUtils";
 
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -92,6 +94,110 @@ function StaticMap({ ubicaciones }) {
   );
 }
 
+function sanitizeDescriptionHtml(html) {
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI"]);
+
+  const cleanNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent);
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const fragment = document.createDocumentFragment();
+    node.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) fragment.appendChild(cleanedChild);
+    });
+
+    const tag = node.tagName.toUpperCase();
+    if (allowedTags.has(tag)) {
+      const el = document.createElement(tag);
+      el.appendChild(fragment);
+      return el;
+    }
+
+    return fragment;
+  };
+
+  const wrapper = document.createElement("div");
+  const source = doc.body.firstChild;
+  if (source) {
+    source.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) wrapper.appendChild(cleanedChild);
+    });
+  }
+
+  let cleanedHtml = wrapper.innerHTML;
+  cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+  return cleanedHtml.trim();
+}
+
+function RichTextEditor({ value, onChange }) {
+  const editorRef = useRef(null);
+  const [focused, setFocused] = useState(false);
+
+  const updateValue = (html) => {
+    const cleanHtml = sanitizeDescriptionHtml(html);
+    if (cleanHtml !== value) {
+      onChange(cleanHtml);
+    }
+  };
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const sanitized = sanitizeDescriptionHtml(value || "");
+    if (editorRef.current.innerHTML !== sanitized) {
+      editorRef.current.innerHTML = sanitized;
+    }
+  }, [value]);
+
+  const applyFormat = (command, commandValue = null) => {
+    document.execCommand(command, false, commandValue);
+    updateValue(editorRef.current?.innerHTML || "");
+    editorRef.current?.focus();
+  };
+
+  const handlePaste = (event) => {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+  };
+
+  const handleInput = () => {
+    updateValue(editorRef.current?.innerHTML || "");
+  };
+
+  return (
+    <div className={`richtext-editor ${focused ? "focused" : ""}`}>
+      <div className="richtext-toolbar">
+        <button type="button" className="editor-button" title="Negrita" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold"); }} aria-label="Negrita"><strong>B</strong></button>
+        <button type="button" className="editor-button" title="Cursiva" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic"); }} aria-label="Cursiva"><em>I</em></button>
+        <button type="button" className="editor-button" title="Párrafo" onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "p"); }} aria-label="Párrafo">P</button>
+        <button type="button" className="editor-button" title="Lista con viñetas" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList"); }} aria-label="Lista con viñetas">•</button>
+        <button type="button" className="editor-button" title="Lista numerada" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList"); }} aria-label="Lista numerada">1.</button>
+      </div>
+      <div
+        ref={editorRef}
+        className="editor-content form-input"
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-multiline="true"
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); updateValue(editorRef.current?.innerHTML || ""); }}
+        onInput={handleInput}
+        onPaste={handlePaste}
+      />
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const isSupremo = user?.rol === "admin_supremo";
@@ -152,8 +258,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const API_BASE = "http://localhost:3000";
 
   const municipioNombrePorId = useMemo(() => {
     const map = new Map();
@@ -554,11 +658,11 @@ export default function AdminDashboard() {
         imagen: item.imagen_url
           ? item.imagen_url.startsWith("http")
             ? item.imagen_url
-            : `${API_BASE}${item.imagen_url}`
+            : `${API_HOST}${item.imagen_url}`
           : "https://placehold.co/600x400?text=Sin+imagen",
         galeria: (item.galeria || []).map(g => ({
           id: g.id,
-          url: g.url.startsWith("http") ? g.url : `${API_BASE}${g.url}`
+          url: g.url.startsWith("http") ? g.url : `${API_HOST}${g.url}`
         })),
         municipioId: item.municipioId,
         ubicacion: municipioNombrePorId.get(String(item.municipioId)) || "Sin municipio",
@@ -569,11 +673,11 @@ export default function AdminDashboard() {
         links: item.links || [],
       };
     });
-  }, [patrimonios, municipioNombrePorId, API_BASE]);
+  }, [patrimonios, municipioNombrePorId, API_HOST]);
 
   const filtrados = patrimoniosUI.filter((p) => {
     const matchesMunicipio = filtro.municipio === "Todos" || String(p.municipioId) === String(filtro.municipio);
-    const matchesCategoria = filtro.categoria === "Todas" || p.categoria === filtro.categoria;
+    const matchesCategoria = filtro.categoria === "Todas" || normalizeCategoryKey(p.categoria) === normalizeCategoryKey(filtro.categoria);
     const matchesEstado = filtro.estado === "Todos" || p.estado === filtro.estado;
     let matchesSearch = true;
     if (searchTerm.trim() !== "") {
@@ -674,7 +778,10 @@ export default function AdminDashboard() {
 
           <div className="form-section">
             <h4 className="section-title-small">Descripción</h4>
-            <textarea className="form-input form-textarea" value={formNuevo.descripcion} onChange={e => setFormNuevo({ ...formNuevo, descripcion: e.target.value })} />
+            <RichTextEditor
+              value={formNuevo.descripcion}
+              onChange={(value) => setFormNuevo({ ...formNuevo, descripcion: value })}
+            />
           </div>
 
           <div className="form-section">
@@ -866,7 +973,7 @@ export default function AdminDashboard() {
           {modalVer.descripcion && (
             <div className="form-section">
               <h4 className="section-title-small">Descripción</h4>
-              <div className="form-value description-text">{modalVer.descripcion}</div>
+              <div className="form-value description-text" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(modalVer.descripcion) }} />
             </div>
           )}
 
@@ -892,7 +999,7 @@ export default function AdminDashboard() {
         <div className="edit-right">
           <div className="form-section">
             <h4 className="section-title-small">Categoría</h4>
-            <span className={`bcat ${modalVer.categoria.toLowerCase()}`}>{modalVer.categoria}</span>
+            <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
           </div>
 
           <div className="form-section">
@@ -1040,7 +1147,10 @@ export default function AdminDashboard() {
 
           <div className="form-section">
             <h4 className="section-title-small">Descripción</h4>
-            <textarea className="form-input form-textarea" value={formEditar.descripcion || ""} onChange={e => setFormEditar({...formEditar, descripcion: e.target.value})} />
+            <RichTextEditor
+              value={formEditar.descripcion || ""}
+              onChange={(value) => setFormEditar({ ...formEditar, descripcion: value })}
+            />
           </div>
 
           <div className="form-section">
@@ -1233,7 +1343,7 @@ export default function AdminDashboard() {
             <div className="fpill"><select className="fsel" value={filtro.municipio} onChange={e => setFiltro({...filtro, municipio: e.target.value})}><option value="Todos">Todos</option>{municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select></div>
             <div className="fpill"><select className="fsel" value={filtro.categoria} onChange={e => setFiltro({...filtro, categoria: e.target.value})}><option value="Todas">Todas</option><option>Material</option><option>Inmaterial</option><option>Natural</option></select></div>
             <div className="fpill"><select className="fsel" value={filtro.estado} onChange={e => setFiltro({...filtro, estado: e.target.value})}><option value="Todos">Todos</option><option value="pendiente">Pendiente</option><option value="registrado">Registrado</option></select></div>
-            <div className="fpill" style={{ flex: '1 1 240px' }}><input type="text" className="fsel" placeholder="Buscar por nombre, descripción, municipio o tag..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '5px 8px' }} /></div>
+            <div className="fpill search-field"><input type="text" className="fsel" placeholder="Buscar por nombre, descripción, municipio o tag..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '5px 8px' }} /></div>
             <div className="spacer" />
             <button className="fpill" onClick={() => setModalTagsOpen(true)} style={{ background: 'var(--gray-50)', border: '1.5px solid var(--gray-200)', borderRadius: '20px', padding: '5px 10px', cursor: 'pointer' }}>🏷️ Gestionar Tags</button>
             <button className="fpill" onClick={descargarExcelPatrimonios} style={{ background: 'var(--gray-50)', border: '1.5px solid var(--gray-200)', borderRadius: '20px', padding: '5px 10px', cursor: 'pointer' }} title="Exportar a Excel"><img src="/xls.png" alt="Exportar Excel" style={{ width: '20px', height: '20px' }} /></button>
@@ -1255,7 +1365,7 @@ export default function AdminDashboard() {
                       <td><span className="tid">#{item.id}</span></td>
                       <td><img src={item.imagen} alt={item.nombre} className="thumb" /></td>
                       <td><div className="ttitle">{item.nombre}</div><div className="tloc">{item.ubicacion}, Sonora</div></td>
-                      <td><span className={`bcat ${item.categoria.toLowerCase()}`}>{item.categoria}</span></td>
+                      <td><span className={`bcat ${getCategoryClass(item.categoria)}`}>{getCategoryLabel(item.categoria)}</span></td>
                       <td><span className={`bst ${item.estado}`}><span className={`dot ${item.estado === "registrado" ? "green" : "amber"}`} />{item.estado === "registrado" ? "Registrado" : "Pendiente"}</span></td>
                       <td><span className="tdate">{item.fechaRegistro}</span></td>
                       <td><span className="tdate">{item.fechaActualizacion}</span></td>

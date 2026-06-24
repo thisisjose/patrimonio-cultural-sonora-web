@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from './Contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -10,6 +10,7 @@ import Acerca from './pages/Acerca';
 import Contacto from './pages/Contacto';
 import Detail from './pages/Detail';
 import Explore from './pages/Explore';
+import Catalogo from './pages/Catalogo';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
@@ -27,8 +28,10 @@ function App() {
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
+            <Route path=":municipio/:slug/patrimonio" element={<Detail />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
+            <Route path="catalogo" element={<Catalogo />} />
           </Route>
 
           <Route path="/admin" element={
@@ -39,8 +42,10 @@ function App() {
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />
             <Route path="contacto" element={<Contacto />} />
+            <Route path=":municipio/:slug/patrimonio" element={<Detail />} />
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
+            <Route path="catalogo" element={<Catalogo />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="usuarios" element={
               <PrivateRoute requiredRole="admin_supremo">

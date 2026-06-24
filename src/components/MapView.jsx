@@ -6,6 +6,8 @@ import "leaflet.markercluster";
 import L from "leaflet";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom"; 
+import { normalizeCategoryKey } from "../utils/categoryUtils";
+import slugify from "../utils/slugify";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -18,6 +20,11 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const SONORA_BOUNDS = [
+  [26.9, -113.8],
+  [32.0, -109.3],
+];
+
 const parseUbicaciones = (ubicaciones) => {
   if (!ubicaciones) return [];
   if (typeof ubicaciones === "string") {
@@ -29,6 +36,44 @@ const parseUbicaciones = (ubicaciones) => {
     }
   }
   return Array.isArray(ubicaciones) ? ubicaciones : [];
+};
+
+const sanitizeHtml = (html) => {
+  if (typeof html !== "string") return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const sanitizeNode = (node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tagName = node.tagName.toLowerCase();
+      if (["script", "style", "iframe", "object", "embed", "link", "meta"].includes(tagName)) {
+        node.remove();
+        return;
+      }
+
+      for (const attr of Array.from(node.attributes)) {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.trim().toLowerCase();
+        if (
+          name.startsWith("on") ||
+          name === "srcdoc" ||
+          name === "formaction" ||
+          name === "style" ||
+          (name === "href" && value.startsWith("javascript:")) ||
+          (name === "src" && value.startsWith("javascript:"))
+        ) {
+          node.removeAttribute(attr.name);
+        }
+      }
+    }
+
+    for (const child of Array.from(node.childNodes)) {
+      sanitizeNode(child);
+    }
+  };
+
+  sanitizeNode(doc.body);
+  return doc.body.innerHTML;
 };
 
 const getItemLocations = (item) => {
@@ -84,7 +129,7 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
         if (interactive) {
           const markerTitle = item.nombre;
-          const detailPath = getDetailPath(item.id);
+          const detailPath = getDetailPath(item);
 
           const popupContent = document.createElement("div");
           popupContent.className = "patrimonio-popup";
@@ -106,8 +151,8 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
           const desc = document.createElement("p");
           desc.className = "popup-desc";
-          desc.textContent = item.descripcion
-            ? truncateText(item.descripcion, 70)
+          desc.innerHTML = item.descripcion
+            ? sanitizeHtml(item.descripcion)
             : "Sin descripción disponible.";
           popupContent.appendChild(desc);
 
@@ -139,7 +184,7 @@ function MapControls({ center, zoom }) {
   const [locationMarker, setLocationMarker] = useState(null);
 
   const handleCenterClick = () => {
-    map.setView(center, zoom);
+    map.fitBounds(SONORA_BOUNDS, { padding: [40, 40], maxZoom: 8 });
   };
 
   const handleLocationClick = () => {
@@ -201,7 +246,7 @@ function MapControls({ center, zoom }) {
         title="Centrar mapa"
         type="button"
       >
-        <span>🎯</span>
+        <span></span>
         <span>Centrar mapa</span>
       </button>
       <button
@@ -210,20 +255,48 @@ function MapControls({ center, zoom }) {
         title="Mostrar mi ubicación"
         type="button"
       >
-        <span>📍</span>
+        <span></span>
         <span>Mi ubicación</span>
       </button>
     </div>
   );
 }
 
-function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true }) {
+function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true, municipios = [] }) {
   const navigate = useNavigate();
   const location = useLocation(); 
   const isAdminRoute = location.pathname.startsWith("/admin");
 
-  const getDetailPath = (id) => {
-    return isAdminRoute ? `/admin/patrimonio/${id}` : `/patrimonio/${id}`;
+  const getMunicipioNameForItem = (item) => {
+    if (!item) return null;
+    if (item.municipio && typeof item.municipio === "string") {
+      const value = item.municipio.trim();
+      return value || null;
+    }
+    if (item.municipio && typeof item.municipio === "object") {
+      return item.municipio.nombre?.trim() || item.municipio.nombre_corto?.trim() || null;
+    }
+    if (item.municipioNombre) {
+      const value = String(item.municipioNombre).trim();
+      return value || null;
+    }
+    if (item.municipio_nombre) {
+      const value = String(item.municipio_nombre).trim();
+      return value || null;
+    }
+    if (item.municipioId && Array.isArray(municipios)) {
+      const m = municipios.find((m) => String(m.id) === String(item.municipioId));
+      if (m) return m.nombre?.trim() || null;
+    }
+    return null;
+  };
+
+  const getDetailPath = (item) => {
+    const municipio = getMunicipioNameForItem(item);
+    const patrimonioSlug = slugify(item.nombre);
+    const municipioSlug = municipio ? `/${slugify(municipio)}` : "";
+    const adminPrefix = isAdminRoute ? "/admin" : "";
+    return `${adminPrefix}${municipioSlug}/${patrimonioSlug}/patrimonio`;
   };
 
   const truncateText = (text = "", max = 90) => {
@@ -232,7 +305,8 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
   };
 
   const getCircleColor = (categoria) => {
-    switch (categoria?.toLowerCase()) {
+    const normalized = normalizeCategoryKey(categoria);
+    switch (normalized) {
       case "material":
         return "#e74c3c";
       case "inmaterial":

@@ -1,26 +1,65 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import slugify from "../utils/slugify";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
 import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
-
-const API_BASE = "http://localhost:3000";
+import { API_HOST } from "../services/apiConfig.js";
+import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
-  return value.startsWith("http") ? value : `${API_BASE}${value}`;
+  return value.startsWith("http") ? value : `${API_HOST}${value}`;
 };
 
-const displayCategoryLabel = (categoria) => {
-  const normalized = String(categoria || "").trim().toLowerCase();
-  if (normalized === "natural") return "Natural";
-  if (normalized === "material") return "Material";
-  if (normalized === "inmaterial") return "Inmaterial";
-  return categoria || "Sin categoría";
+const sanitizeDescriptionHtml = (html) => {
+  if (!html) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI"]);
+
+  const cleanNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent);
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const fragment = document.createDocumentFragment();
+    node.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) fragment.appendChild(cleanedChild);
+    });
+
+    const tag = node.tagName.toUpperCase();
+    if (allowedTags.has(tag)) {
+      const el = document.createElement(tag);
+      el.appendChild(fragment);
+      return el;
+    }
+
+    return fragment;
+  };
+
+  const wrapper = document.createElement("div");
+  const source = doc.body.firstChild;
+  if (source) {
+    source.childNodes.forEach((child) => {
+      const cleanedChild = cleanNode(child);
+      if (cleanedChild) wrapper.appendChild(cleanedChild);
+    });
+  }
+
+  let cleanedHtml = wrapper.innerHTML;
+  cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+  return cleanedHtml.trim();
 };
+
+const displayCategoryLabel = (categoria) => getCategoryLabel(categoria);
 
 const normalizeImage = (image) => {
   if (!image) return null;
@@ -152,98 +191,319 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.line(margin, y, pageWidth - margin, y);
     };
 
-    // Helper to draw justified text by distributing extra space between words
-    const drawJustifiedText = (doc, text, x, y, maxWidth, lineHeight) => {
-      const paragraphs = String(text || "").split("\n").map(p => p.trim());
-      let cursorY = y;
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-      paragraphs.forEach((para) => {
-        if (!para) {
-          cursorY += lineHeight; // empty line
+    const ensurePageSpace = (height) => {
+      if (currentY + height > pageHeight - margin) {
+        doc.addPage();
+        currentY = margin;
+      }
+    };
+
+    const PDF_FONT_FAMILY = "helvetica";
+
+    const getFontStyle = (style = {}) => {
+      if (style.bold && style.italic) return "bolditalic";
+      if (style.bold) return "bold";
+      if (style.italic) return "italic";
+      return "normal";
+    };
+
+    const setDocFont = (style = {}) => {
+      doc.setFont(PDF_FONT_FAMILY, getFontStyle(style));
+    };
+
+    const getStyledTextWidth = (text, style = {}) => {
+      setDocFont(style);
+      return doc.getTextWidth(String(text));
+    };
+
+    const splitIntoBlocks = (html) => {
+      const sanitized = sanitizeDescriptionHtml(html);
+      const parser = new DOMParser();
+      const docHtml = parser.parseFromString(`<div>${sanitized}</div>`, "text/html");
+      const root = docHtml.body.firstChild;
+      if (!root) return [];
+
+      const buildSegments = (node, style = { bold: false, italic: false }) => {
+        const segments = [];
+
+        const walk = (child, currentStyle) => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            let text = child.textContent.replace(/\r?\n/g, " ");
+            text = text.replace(/[ \t]+/g, " ");
+            if (text !== "") {
+              segments.push({ text, style: { ...currentStyle } });
+            }
+            return;
+          }
+
+          if (child.nodeType !== Node.ELEMENT_NODE) return;
+          const tag = child.tagName.toUpperCase();
+          if (tag === "BR") {
+            segments.push({ br: true });
+            return;
+          }
+
+          const nextStyle = { ...currentStyle };
+          if (tag === "B" || tag === "STRONG") nextStyle.bold = true;
+          if (tag === "I" || tag === "EM") nextStyle.italic = true;
+
+          Array.from(child.childNodes).forEach((grandchild) => walk(grandchild, nextStyle));
+        };
+
+        Array.from(node.childNodes).forEach((child) => walk(child, style));
+        return segments;
+      };
+
+      const splitByLineBreaks = (segments) => {
+        const lines = [];
+        let current = [];
+
+        segments.forEach((seg) => {
+          if (seg.br) {
+            lines.push(current);
+            current = [];
+            return;
+          }
+          current.push(seg);
+        });
+
+        lines.push(current);
+        return lines.map((line) => line.filter((seg) => seg.text || seg.br));
+      };
+
+      const blocks = [];
+
+      const addParagraph = (node) => {
+        const segments = buildSegments(node);
+        const lines = splitByLineBreaks(segments);
+        lines.forEach((line) => {
+          blocks.push({ type: "paragraph", segments: line });
+        });
+      };
+
+      const addList = (node, ordered) => {
+        const items = Array.from(node.children).filter((child) => child.tagName.toUpperCase() === "LI");
+        items.forEach((li, index) => {
+          const segments = buildSegments(li);
+          const lines = splitByLineBreaks(segments);
+          blocks.push({ type: "listItem", ordered, index, lines });
+        });
+      };
+
+      Array.from(root.childNodes).forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent.trim();
+          if (text) {
+            blocks.push({ type: "paragraph", segments: [{ text, style: {} }] });
+          }
           return;
         }
 
-        const words = para.split(/\s+/).filter(Boolean);
-        let lineWords = [];
-
-        // helper to split a very long word into chunks that fit maxWidth
-        const splitLongWord = (word) => {
-          const parts = [];
-          let chunk = "";
-          for (let k = 0; k < word.length; k++) {
-            const test = chunk + word[k];
-            if (doc.getTextWidth(test) <= maxWidth) {
-              chunk = test;
-            } else {
-              if (chunk) parts.push(chunk);
-              chunk = word[k];
-            }
-          }
-          if (chunk) parts.push(chunk);
-          return parts;
-        };
-
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i];
-          const testLine = lineWords.length ? lineWords.join(' ') + ' ' + word : word;
-          const testWidth = doc.getTextWidth(testLine);
-
-          if (testWidth <= maxWidth) {
-            lineWords.push(word);
-          } else {
-            // render the current line (justified if possible)
-            if (lineWords.length <= 1) {
-              // single long word that doesn't fit: split it
-              const single = lineWords.length ? lineWords.join(' ') : '';
-              const longWord = single || word;
-              const parts = splitLongWord(longWord);
-
-              for (let p = 0; p < parts.length; p++) {
-                if (cursorY > doc.internal.pageSize.getHeight() - margin) {
-                  doc.addPage();
-                  cursorY = margin;
-                }
-                doc.text(parts[p], x, cursorY);
-                cursorY += lineHeight;
-              }
-              lineWords = [];
-              // if we split the current `word` we should continue to next
-              if (single) {
-                // we already rendered the 'single' line, push current word as next
-                lineWords = [word];
-                continue;
-              } else {
-                continue;
-              }
-            } else {
-              const wordsWidth = lineWords.reduce((s, w) => s + doc.getTextWidth(w), 0);
-              const spaces = lineWords.length - 1;
-              const extra = maxWidth - wordsWidth;
-              const spaceWidth = extra / spaces;
-              let currentX = x;
-              for (let j = 0; j < lineWords.length; j++) {
-                const w = lineWords[j];
-                doc.text(w, currentX, cursorY);
-                currentX += doc.getTextWidth(w) + spaceWidth;
-              }
-            }
-
-            cursorY += lineHeight;
-            lineWords = [word];
-          }
+        const tag = node.tagName.toUpperCase();
+        if (tag === "P" || tag === "DIV") {
+          addParagraph(node);
+          return;
         }
 
-        // render last line of paragraph (left aligned)
-        if (lineWords.length > 0) {
-          doc.text(lineWords.join(' '), x, cursorY);
-          cursorY += lineHeight;
+        if (tag === "UL" || tag === "OL") {
+          addList(node, tag === "OL");
+          return;
         }
 
-        // small gap between paragraphs
-        cursorY += 2;
+        addParagraph(node);
       });
 
-      return cursorY;
+      return blocks;
+    };
+
+    const isLeadingPunctuation = (text) => {
+      return /^[,.;:?!%)\]]/.test(text);
+    };
+
+    const isWhitespaceText = (text) => {
+      return /^\s+$/.test(text);
+    };
+
+    const splitWords = (segments) => {
+      const tokens = [];
+      segments.forEach((seg) => {
+        if (!seg.text) return;
+        const parts = seg.text.split(/(\s+)/).filter((part) => part.length > 0);
+        parts.forEach((part) => {
+          tokens.push({
+            text: part,
+            style: seg.style,
+            whitespace: isWhitespaceText(part),
+          });
+        });
+      });
+      return tokens;
+    };
+
+    const splitLongWord = (word, maxWidth) => {
+      const chunks = [];
+      let current = "";
+      for (const char of word.text) {
+        const test = current + char;
+        if (getStyledTextWidth(test, word.style) <= maxWidth || current === "") {
+          current = test;
+        } else {
+          chunks.push({ text: current, style: word.style });
+          current = char;
+        }
+      }
+      if (current) chunks.push({ text: current, style: word.style });
+      return chunks;
+    };
+
+    const buildLines = (segments, maxWidth) => {
+      const tokens = splitWords(segments);
+      const lines = [];
+      let currentLine = [];
+      let currentWidth = 0;
+
+      const pushLine = () => {
+        lines.push(currentLine);
+        currentLine = [];
+        currentWidth = 0;
+      };
+
+      const addTokenToLine = (token, tokenWidth) => {
+        currentLine.push(token);
+        currentWidth += tokenWidth;
+      };
+
+      const addWhitespaceToken = (token) => {
+        if (currentLine.length === 0) return;
+        const tokenWidth = getStyledTextWidth(token.text, token.style);
+        if (currentWidth + tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
+        }
+      };
+
+      const addWordToken = (token) => {
+        const tokenWidth = getStyledTextWidth(token.text, token.style);
+        if (currentLine.length === 0) {
+          if (tokenWidth <= maxWidth) {
+            addTokenToLine(token, tokenWidth);
+          } else {
+            const chunks = splitLongWord(token, maxWidth);
+            chunks.forEach((chunk, index) => {
+              if (index > 0) pushLine();
+              const chunkWidth = getStyledTextWidth(chunk.text, chunk.style);
+              addTokenToLine(chunk, chunkWidth);
+            });
+          }
+          return;
+        }
+
+        if (currentWidth + tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
+          return;
+        }
+
+        pushLine();
+        if (tokenWidth <= maxWidth) {
+          addTokenToLine(token, tokenWidth);
+        } else {
+          const chunks = splitLongWord(token, maxWidth);
+          chunks.forEach((chunk, index) => {
+            if (index > 0) pushLine();
+            const chunkWidth = getStyledTextWidth(chunk.text, chunk.style);
+            addTokenToLine(chunk, chunkWidth);
+          });
+        }
+      };
+
+      tokens.forEach((token) => {
+        if (token.whitespace) {
+          addWhitespaceToken(token);
+        } else {
+          addWordToken(token);
+        }
+      });
+
+      if (currentLine.length) pushLine();
+      if (lines.length === 0) lines.push([]);
+      return lines;
+    };
+
+    const renderLine = (lineWords, x, y) => {
+      if (lineWords.length === 0) {
+        return;
+      }
+
+      let currentX = x;
+      lineWords.forEach((word) => {
+        setDocFont(word.style);
+        doc.text(word.text, currentX, y);
+        currentX += getStyledTextWidth(word.text, word.style);
+      });
+    };
+
+    const renderDescriptionBlocks = (html, x, y, maxWidth, lineHeight) => {
+      const ensureLocalPageSpace = (height, currentY) => {
+        if (currentY + height > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        return currentY;
+      };
+
+      const blocks = splitIntoBlocks(html);
+      if (blocks.length === 0) return y;
+      blocks.forEach((block) => {
+        if (block.type === "paragraph") {
+          const lines = buildLines(block.segments, maxWidth);
+          if (lines.length === 0) {
+            y = ensureLocalPageSpace(lineHeight, y);
+            y += lineHeight;
+          }
+          lines.forEach((line) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, x, y);
+            y += lineHeight;
+          });
+          y += 3;
+          return;
+        }
+
+        if (block.type === "listItem") {
+          const marker = block.ordered ? `${block.index + 1}.` : "•";
+          const markerText = `${marker} `;
+          const markerWidth = getStyledTextWidth(markerText, {});
+          const indent = markerWidth + 4;
+          y = ensureLocalPageSpace(lineHeight, y);
+          setDocFont({});
+          doc.text(markerText, x, y);
+
+          const listLines = [];
+          block.lines.forEach((lineSegments) => {
+            const built = buildLines(lineSegments, maxWidth - indent);
+            if (built.length === 0) {
+              listLines.push([]);
+            } else {
+              listLines.push(...built);
+            }
+          });
+
+          if (listLines.length === 0) {
+            y = ensureLocalPageSpace(lineHeight, y);
+            y += lineHeight;
+          }
+
+          listLines.forEach((line) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, x + indent, y);
+            y += lineHeight;
+          });
+          y += 3;
+          return;
+        }
+      });
+      return y;
     };
 
     // ===== TÍTULO =====
@@ -266,6 +526,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== ETIQUETAS =====
     if (item.tags && item.tags.length > 0) {
+      ensurePageSpace(18);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
@@ -281,20 +542,22 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== DESCRIPCIÓN =====
     currentY += 5;
+    ensurePageSpace(20);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.text("Descripción", margin, currentY);
-    currentY += 7;
+    currentY += 8;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    currentY = drawJustifiedText(doc, item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 6);
+    currentY = renderDescriptionBlocks(item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 7.5);
     currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
     if (item.links && item.links.length > 0) {
+      ensurePageSpace(24);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
@@ -326,10 +589,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== GALERÍA =====
     if (images && images.length > 0) {
-      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
-        doc.addPage();
-        currentY = margin;
-      }
+      ensurePageSpace(24);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
@@ -376,10 +636,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
     // ===== FUENTES DE CONSULTA =====
     if (item.links && item.links.length > 0) {
-      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
-        doc.addPage();
-        currentY = margin;
-      }
+      ensurePageSpace(24);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
@@ -467,7 +724,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
   const handleCategoryClick = (categoria) => {
     if (!categoria) return;
-    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(String(categoria).trim().toLowerCase())}`);
+    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(normalizeCategoryKey(categoria))}`);
   };
 
   const handleTagClick = (tag) => {
@@ -560,7 +817,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           )}
 
           <div className="detail-info">
-            <p className="detail-description">{item.descripcion}</p>
+            <div className="detail-description" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(item.descripcion || "") }} />
 
             {/* ENLACES RELACIONADOS */}
             {links.length > 0 && (
@@ -579,7 +836,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             )}
 
             <div className="detail-category-below">
-              Categoría: <button type="button" className={`category-badge ${String(item.categoria || "").toLowerCase()}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
+              Categoría: <button type="button" className={`category-badge ${getCategoryClass(item.categoria)}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
             </div>
 
             <div className="detail-tags-below">
@@ -694,12 +951,35 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 }
 
 function Detail() {
-  const { id } = useParams();
+  const { id, slug, municipio } = useParams();
   const [patrimonio, setPatrimonio] = useState();
   const [municipios, setMunicipios] = useState([]);
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
   const [selectedMunicipioId, setSelectedMunicipioId] = useState(null);
   const [municipioLoading, setMunicipioLoading] = useState(false);
+  const [busquedaMunicipio, setBusquedaMunicipio] = useState("");
+  const [categoriaMunicipio, setCategoriaMunicipio] = useState("");
+  const [paginaMunicipio, setPaginaMunicipio] = useState(1);
+  const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const botonVolverRef = useRef(null);
+
+  const handleCambiarPaginaMunicipio = (nuevaPagina) => {
+    setPaginaMunicipio(nuevaPagina);
+  };
+
+  useEffect(() => {
+    if (paginaMunicipio > 1) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [paginaMunicipio]);
+
+  useEffect(() => {
+    if (selectedMunicipioId) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [selectedMunicipioId]);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -709,7 +989,37 @@ function Detail() {
           setMunicipios(municipiosData);
         }
 
-        const item = await getPatrimonioById(id);
+        let item = null;
+        if (id) {
+          item = await getPatrimonioById(id);
+        } else if (slug) {
+          const items = await getPatrimonios();
+          if (Array.isArray(items)) {
+            item = items.find((it) => {
+              const nameMatch = slugify(it.nombre) === String(slug);
+              if (!nameMatch) return false;
+              if (municipio) {
+                const mi = (it.municipio && typeof it.municipio === "string")
+                  ? it.municipio
+                  : it.municipio && typeof it.municipio === "object"
+                  ? it.municipio.nombre || it.municipio.nombre_corto
+                  : it.municipioNombre || it.municipio_nombre || null;
+
+                if (mi) return slugify(mi) === String(municipio);
+
+                if (it.municipioId && Array.isArray(municipiosData)) {
+                  const m = municipiosData.find((m) => String(m.id) === String(it.municipioId));
+                  if (m) return slugify(m.nombre) === String(municipio);
+                }
+
+                return false;
+              }
+
+              return true;
+            });
+          }
+        }
+
         if (!item) {
           setPatrimonio(null);
           return;
@@ -723,13 +1033,15 @@ function Detail() {
     };
 
     cargarDatos();
-  }, [id]);
+  }, [id, slug, municipio]);
 
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;
     setSelectedMunicipioId(municipioId);
+    setPaginaMunicipio(1);
     setMunicipioLoading(true);
     setMunicipioPatrimonios([]);
+    window.scrollTo({ top: 0, behavior: "auto" });
 
     try {
       const items = await getPatrimonios();
@@ -750,7 +1062,64 @@ function Detail() {
   useEffect(() => {
     setMunicipioPatrimonios([]);
     setSelectedMunicipioId(null);
+    setBusquedaMunicipio("");
+    setCategoriaMunicipio("");
+    setPaginaMunicipio(1);
   }, [patrimonio]);
+
+  useEffect(() => {
+    setPaginaMunicipio(1);
+  }, [busquedaMunicipio, categoriaMunicipio]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        if (!mostrarBotonVolver) setMostrarBotonVolver(true);
+        setIsScrolling(true);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsScrolling(false);
+        }, 2000);
+      } else {
+        setMostrarBotonVolver(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, [mostrarBotonVolver]);
+
+  const filteredMunicipioPatrimonios = useMemo(() => {
+    if (!selectedMunicipioId) return [];
+
+    return municipioPatrimonios.filter((item) => {
+      const matchesSearch = busquedaMunicipio.trim() === ""
+        ? true
+        : String(item.nombre || "").toLowerCase().includes(busquedaMunicipio.trim().toLowerCase());
+
+      const matchesCategory = !categoriaMunicipio
+        ? true
+        : normalizeCategoryKey(item.categoria) === normalizeCategoryKey(categoriaMunicipio);
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [municipioPatrimonios, busquedaMunicipio, categoriaMunicipio, selectedMunicipioId]);
+
+  const getPageNumbers = (paginaActual, totalPaginas) => {
+    const inicio = Math.max(1, paginaActual - 1);
+    const longitud = Math.min(3, totalPaginas - (inicio - 1));
+    return Array.from({ length: longitud }, (_, i) => inicio + i).filter(
+      (numero) => numero >= 1 && numero <= totalPaginas
+    );
+  };
+
+  const itemsPorPagina = 4;
+  const totalPaginasMunicipio = Math.ceil(filteredMunicipioPatrimonios.length / itemsPorPagina);
+  const indicieInicio = (paginaMunicipio - 1) * itemsPorPagina;
+  const patrimoniosPaginados = filteredMunicipioPatrimonios.slice(indicieInicio, indicieInicio + itemsPorPagina);
 
   if (patrimonio === undefined) {
     return null;
@@ -771,9 +1140,9 @@ function Detail() {
       <nav className="breadcrumbs">
         <Link to="/">Inicio</Link>
         <span className="crumb-sep">›</span>
-        <Link to="/">Patrimonio</Link>
-        <span className="crumb-sep">›</span>
-        {patrimonio && patrimonio.municipioId ? (
+        {showMunicipioDetails ? (
+          <span className="crumb-current">{nombreMunicipio}</span>
+        ) : patrimonio && patrimonio.municipioId ? (
           <>
             <button
               type="button"
@@ -783,27 +1152,133 @@ function Detail() {
               {nombreMunicipio}
             </button>
             <span className="crumb-sep">›</span>
+            <span className="crumb-current">{patrimonio.nombre}</span>
           </>
-        ) : null}
-        <span className="crumb-current">{showMunicipioDetails ? nombreMunicipio : patrimonio.nombre}</span>
+        ) : (
+          <span className="crumb-current">{patrimonio.nombre}</span>
+        )}
       </nav>
 
       {showMunicipioDetails ? (
         <section className="municipio-details">
+          <div className="catalogo-filters-section">
+            <div className="catalogo-search-box">
+              <div className="filter-header">
+                <span className="filter-label">Buscar patrimonio</span>
+              </div>
+              <div className="catalogo-search-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Escribe el nombre..."
+                  value={busquedaMunicipio}
+                  onChange={(e) => setBusquedaMunicipio(e.target.value)}
+                  className="catalogo-search-input"
+                />
+                {busquedaMunicipio && (
+                  <button
+                    className="catalogo-search-clear-btn"
+                    onClick={() => setBusquedaMunicipio("")}
+                    aria-label="Limpiar búsqueda"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="catalogo-category-filter">
+              <div className="filter-header">
+                <span className="filter-label">Filtrar por categoría</span>
+              </div>
+              <select
+                value={categoriaMunicipio}
+                onChange={(e) => setCategoriaMunicipio(e.target.value)}
+                className="catalogo-select"
+              >
+                <option value="">Todas</option>
+                <option value="material">Material</option>
+                <option value="inmaterial">Inmaterial</option>
+                <option value="natural">Natural</option>
+              </select>
+            </div>
+          </div>
+
           <h2 className="section-title">Patrimonios en {nombreMunicipio}</h2>
           {municipioLoading ? (
             <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
-          ) : municipioPatrimonios.length === 0 ? (
+          ) : filteredMunicipioPatrimonios.length === 0 ? (
             <p className="lead">No se encontraron patrimonios en {nombreMunicipio}.</p>
           ) : (
-            municipioPatrimonios.map((item) => (
-              <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
-            ))
+            <>
+              <div className="municipio-results">
+                {patrimoniosPaginados.map((item) => (
+                  <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
+                ))}
+              </div>
+
+              {totalPaginasMunicipio > 1 && (
+                <div className="catalogo-municipio-pagination">
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio - 1)}
+                    disabled={paginaMunicipio === 1}
+                    aria-label="Página anterior"
+                  >
+                    ← Anterior
+                  </button>
+
+                  <div className="catalogo-page-numbers">
+                    {paginaMunicipio > 2 && totalPaginasMunicipio > 3 && (
+                      <>
+                        <button
+                          className="catalogo-page-num"
+                          onClick={() => handleCambiarPaginaMunicipio(1)}
+                        >
+                          1
+                        </button>
+                        {paginaMunicipio > 3 && (
+                          <span className="pagination-dots">...</span>
+                        )}
+                      </>
+                    )}
+
+                    {getPageNumbers(paginaMunicipio, totalPaginasMunicipio).map((num) => (
+                      <button
+                        key={num}
+                        className={`catalogo-page-num ${num === paginaMunicipio ? "active" : ""}`}
+                        onClick={() => handleCambiarPaginaMunicipio(num)}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio + 1)}
+                    disabled={paginaMunicipio === totalPaginasMunicipio}
+                    aria-label="Página siguiente"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       ) : (
         <PatrimonioDetailEntry item={patrimonio} municipioNombre={nombreMunicipio} />
       )}
+
+      <button
+        ref={botonVolverRef}
+        className={`catalogo-scroll-top ${mostrarBotonVolver ? "visible" : ""}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Volver al inicio"
+        title="Volver al inicio"
+      >
+        ↑
+      </button>
     </div>
   );
 }

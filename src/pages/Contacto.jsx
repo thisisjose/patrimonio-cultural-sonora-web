@@ -14,6 +14,8 @@ function Contacto() {
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState({ loading: false, success: "", error: "" });
+  
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -32,6 +34,10 @@ function Contacto() {
       validationErrors.correo = "Ingresa un correo válido, por ejemplo usuario@mail.com.";
     }
 
+    if (formData.telefono.trim() && formData.telefono.trim().length > 20) {
+      validationErrors.telefono = "El teléfono no puede exceder 20 caracteres.";
+    }
+
     if (!formData.mensaje.trim()) {
       validationErrors.mensaje = "Por favor escribe tu comentario o sugerencia.";
     }
@@ -41,6 +47,16 @@ function Contacto() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === "telefono") {
+      const soloNumeros = value.replace(/[^0-9]/g, ""); 
+      
+      setFormData((prev) => ({ ...prev, [name]: soloNumeros }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setStatus({ loading: false, success: "", error: "" });
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setStatus({ loading: false, success: "", error: "" });
@@ -55,6 +71,7 @@ function Contacto() {
     }
 
     setStatus({ loading: true, success: "", error: "" });
+    setShowFeedback(false); 
 
     try {
       await api.post("/contacto", {
@@ -63,15 +80,38 @@ function Contacto() {
         telefono: formData.telefono.trim(),
         mensaje: formData.mensaje.trim(),
       });
+
       setStatus({ loading: false, success: "Mensaje enviado correctamente. Gracias por tu sugerencia.", error: "" });
       setFormData({ nombre: "", correo: "", telefono: "", mensaje: "" });
       setErrors({});
+
+      setTimeout(() => setShowFeedback(true), 50);
+
+      setTimeout(() => {
+        setShowFeedback(false); 
+        
+        setTimeout(() => {
+          setStatus((prev) => ({ ...prev, success: "" }));
+        }, 450);
+      }, 3500);
+
     } catch (error) {
-      setStatus({ loading: false, success: "", error: "Ocurrió un problema al enviar el mensaje. Intenta nuevamente más tarde." });
+      const serverMsg = error.response?.data?.msg || "Ocurrió un problema al enviar el mensaje. Intenta nuevamente más tarde.";
+      
+      setStatus({ loading: false, success: "", error: serverMsg });
+      
+      setTimeout(() => setShowFeedback(true), 50);
+
+      setTimeout(() => {
+        setShowFeedback(false);
+        setTimeout(() => {
+          setStatus((prev) => ({ ...prev, error: "" }));
+        }, 450);
+      }, 3500);
     }
   };
 
-  return (
+return (
     <section className="contacto-page contacto-container">
       <h1 className="hero-title" style={{ textAlign: 'center' }}>Contáctanos</h1>
 
@@ -119,9 +159,21 @@ function Contacto() {
 
       <form className="contacto-form" onSubmit={handleSubmit} noValidate>
         <h2>Envía tu sugerencia</h2>
-
-        {status.error && <div className="contacto-form-feedback contacto-form-error" role="alert">{status.error}</div>}
-        {status.success && <div className="contacto-form-feedback contacto-form-success" role="status">{status.success}</div>}
+        {status.error && (
+          <div className={`contacto-form-feedback-wrapper ${showFeedback ? 'show' : ''}`}>
+            <div className="contacto-form-feedback contacto-form-error" role="alert">
+              {status.error}
+            </div>
+          </div>
+        )}
+        
+        {status.success && (
+          <div className={`contacto-form-feedback-wrapper ${showFeedback ? 'show' : ''}`}>
+            <div className="contacto-form-feedback contacto-form-success" role="status">
+              {status.success}
+            </div>
+          </div>
+        )}
 
         <div className="contacto-form-row">
           <div className="contacto-form-group">
@@ -167,6 +219,7 @@ function Contacto() {
             placeholder="(Opcional)"
             disabled={status.loading}
           />
+          {errors.telefono && <span className="contacto-form-field-error">{errors.telefono}</span>}
         </div>
 
         <div className="contacto-form-group">
