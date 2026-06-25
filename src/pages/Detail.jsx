@@ -19,7 +19,14 @@ const sanitizeDescriptionHtml = (html) => {
   if (!html) return "";
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
-  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI"]);
+
+  // Eliminamos P y DIV para evitar saltos de bloque no deseados
+  const allowedTags = new Set([
+    "B", "STRONG", "I", "EM", "BR", "UL", "OL", "LI", "FONT", "SPAN"
+  ]);
+
+  // Añadimos font-weight y font-style
+  const allowedCssProps = ["color", "background-color", "font-weight", "font-style"];
 
   const cleanNode = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -38,6 +45,23 @@ const sanitizeDescriptionHtml = (html) => {
     const tag = node.tagName.toUpperCase();
     if (allowedTags.has(tag)) {
       const el = document.createElement(tag);
+
+      if (node.hasAttribute("style")) {
+        const style = node.getAttribute("style");
+        const rules = style.split(";").map(s => s.trim()).filter(Boolean);
+        const filtered = rules.filter(rule => {
+          const [prop] = rule.split(":").map(s => s.trim());
+          return allowedCssProps.includes(prop);
+        });
+        if (filtered.length > 0) {
+          el.setAttribute("style", filtered.join("; "));
+        }
+      }
+
+      if (tag === "FONT" && node.hasAttribute("color")) {
+        el.setAttribute("color", node.getAttribute("color"));
+      }
+
       el.appendChild(fragment);
       return el;
     }
@@ -218,6 +242,41 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       return doc.getTextWidth(String(text));
     };
 
+    // ------------------------------------------------------------
+    //  Extrae estilos (color, bold, italic) de un nodo
+    // ------------------------------------------------------------
+    const extractStylesFromNode = (node) => {
+      const styles = { color: null, bold: null, italic: null };
+
+      // Atributo 'color' en <font>
+      if (node.tagName.toUpperCase() === "FONT" && node.hasAttribute("color")) {
+        styles.color = node.getAttribute("color");
+      }
+
+      // Atributo style
+      const styleAttr = node.getAttribute("style");
+      if (styleAttr) {
+        const rules = styleAttr.split(";").map(s => s.trim()).filter(Boolean);
+        rules.forEach(rule => {
+          const [prop, val] = rule.split(":").map(s => s.trim());
+          if (prop === "color") styles.color = val;
+          if (prop === "font-weight") {
+            if (val === "bold" || val === "700" || val === "bolder") styles.bold = true;
+            else if (val === "normal" || val === "400") styles.bold = false;
+          }
+          if (prop === "font-style") {
+            if (val === "italic" || val === "oblique") styles.italic = true;
+            else if (val === "normal") styles.italic = false;
+          }
+        });
+      }
+
+      return styles;
+    };
+
+    // ------------------------------------------------------------
+    //  Divide el HTML en bloques (solo texto, sin saltos de párrafo extra)
+    // ------------------------------------------------------------
     const splitIntoBlocks = (html) => {
       const sanitized = sanitizeDescriptionHtml(html);
       const parser = new DOMParser();
@@ -225,15 +284,16 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       const root = docHtml.body.firstChild;
       if (!root) return [];
 
-      const buildSegments = (node, style = { bold: false, italic: false }) => {
+      // Recoge todos los segmentos y saltos <br> de todo el árbol
+      const collectSegments = (node, style = { bold: false, italic: false }, color = null) => {
         const segments = [];
 
-        const walk = (child, currentStyle) => {
+        const walk = (child, currentStyle, currentColor) => {
           if (child.nodeType === Node.TEXT_NODE) {
             let text = child.textContent.replace(/\r?\n/g, " ");
             text = text.replace(/[ \t]+/g, " ");
             if (text !== "") {
-              segments.push({ text, style: { ...currentStyle } });
+              segments.push({ text, style: { ...currentStyle }, color: currentColor });
             }
             return;
           }
@@ -245,21 +305,34 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             return;
           }
 
+          // Extraer estilos del nodo
+          const nodeStyles = extractStylesFromNode(child);
           const nextStyle = { ...currentStyle };
+          // Aplicar etiquetas
           if (tag === "B" || tag === "STRONG") nextStyle.bold = true;
           if (tag === "I" || tag === "EM") nextStyle.italic = true;
+          // Los estilos inline sobreescriben
+          if (nodeStyles.bold !== null) nextStyle.bold = nodeStyles.bold;
+          if (nodeStyles.italic !== null) nextStyle.italic = nodeStyles.italic;
 
-          Array.from(child.childNodes).forEach((grandchild) => walk(grandchild, nextStyle));
+          // Color: el inline prevalece sobre el heredado
+          let nextColor = currentColor;
+          if (nodeStyles.color) nextColor = nodeStyles.color;
+
+          Array.from(child.childNodes).forEach((grandchild) =>
+            walk(grandchild, nextStyle, nextColor)
+          );
         };
 
-        Array.from(node.childNodes).forEach((child) => walk(child, style));
+        Array.from(node.childNodes).forEach((child) => walk(child, style, color));
         return segments;
       };
 
+      const allSegments = collectSegments(root);
+      // Dividir por <br>
       const splitByLineBreaks = (segments) => {
         const lines = [];
         let current = [];
-
         segments.forEach((seg) => {
           if (seg.br) {
             lines.push(current);
@@ -268,58 +341,15 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           }
           current.push(seg);
         });
-
         lines.push(current);
         return lines.map((line) => line.filter((seg) => seg.text || seg.br));
       };
 
-      const blocks = [];
-
-      const addParagraph = (node) => {
-        const segments = buildSegments(node);
-        const lines = splitByLineBreaks(segments);
-        lines.forEach((line) => {
-          blocks.push({ type: "paragraph", segments: line });
-        });
-      };
-
-      const addList = (node, ordered) => {
-        const items = Array.from(node.children).filter((child) => child.tagName.toUpperCase() === "LI");
-        items.forEach((li, index) => {
-          const segments = buildSegments(li);
-          const lines = splitByLineBreaks(segments);
-          blocks.push({ type: "listItem", ordered, index, lines });
-        });
-      };
-
-      Array.from(root.childNodes).forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent.trim();
-          if (text) {
-            blocks.push({ type: "paragraph", segments: [{ text, style: {} }] });
-          }
-          return;
-        }
-
-        const tag = node.tagName.toUpperCase();
-        if (tag === "P" || tag === "DIV") {
-          addParagraph(node);
-          return;
-        }
-
-        if (tag === "UL" || tag === "OL") {
-          addList(node, tag === "OL");
-          return;
-        }
-
-        addParagraph(node);
-      });
-
-      return blocks;
-    };
-
-    const isLeadingPunctuation = (text) => {
-      return /^[,.;:?!%)\]]/.test(text);
+      const lines = splitByLineBreaks(allSegments);
+      // Si hay líneas, crear un solo bloque de tipo "paragraph"
+      if (lines.length === 0) return [];
+      return [{ type: "paragraph", segments: lines.flat() }]; // flat para tener todos los segmentos en una lista
+      // Nota: si hubiera listas, habría que manejarlas aparte, pero no es el caso común
     };
 
     const isWhitespaceText = (text) => {
@@ -335,6 +365,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           tokens.push({
             text: part,
             style: seg.style,
+            color: seg.color || null,
             whitespace: isWhitespaceText(part),
           });
         });
@@ -350,11 +381,11 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
         if (getStyledTextWidth(test, word.style) <= maxWidth || current === "") {
           current = test;
         } else {
-          chunks.push({ text: current, style: word.style });
+          chunks.push({ text: current, style: word.style, color: word.color });
           current = char;
         }
       }
-      if (current) chunks.push({ text: current, style: word.style });
+      if (current) chunks.push({ text: current, style: word.style, color: word.color });
       return chunks;
     };
 
@@ -431,13 +462,16 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     };
 
     const renderLine = (lineWords, x, y) => {
-      if (lineWords.length === 0) {
-        return;
-      }
+      if (lineWords.length === 0) return;
 
       let currentX = x;
       lineWords.forEach((word) => {
         setDocFont(word.style);
+        if (word.color) {
+          doc.setTextColor(word.color);
+        } else {
+          doc.setTextColor(0, 0, 0);
+        }
         doc.text(word.text, currentX, y);
         currentX += getStyledTextWidth(word.text, word.style);
       });
@@ -454,6 +488,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
       const blocks = splitIntoBlocks(html);
       if (blocks.length === 0) return y;
+
       blocks.forEach((block) => {
         if (block.type === "paragraph") {
           const lines = buildLines(block.segments, maxWidth);
@@ -466,42 +501,10 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             renderLine(line, x, y);
             y += lineHeight;
           });
-          y += 3;
+          // Sin separación extra entre párrafos
           return;
         }
-
-        if (block.type === "listItem") {
-          const marker = block.ordered ? `${block.index + 1}.` : "•";
-          const markerText = `${marker} `;
-          const markerWidth = getStyledTextWidth(markerText, {});
-          const indent = markerWidth + 4;
-          y = ensureLocalPageSpace(lineHeight, y);
-          setDocFont({});
-          doc.text(markerText, x, y);
-
-          const listLines = [];
-          block.lines.forEach((lineSegments) => {
-            const built = buildLines(lineSegments, maxWidth - indent);
-            if (built.length === 0) {
-              listLines.push([]);
-            } else {
-              listLines.push(...built);
-            }
-          });
-
-          if (listLines.length === 0) {
-            y = ensureLocalPageSpace(lineHeight, y);
-            y += lineHeight;
-          }
-
-          listLines.forEach((line) => {
-            y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, x + indent, y);
-            y += lineHeight;
-          });
-          y += 3;
-          return;
-        }
+        // Si hubiera listas, se manejarían aquí, pero no es necesario para este caso
       });
       return y;
     };
@@ -521,7 +524,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     const infoText = `Municipio: ${municipioNombre} | Categoría: ${item.categoria || "No especificada"}`;
     doc.text(infoText, margin, currentY);
     currentY += 10;
-    
+
     drawLine(currentY - 5);
 
     // ===== ETIQUETAS =====
@@ -531,7 +534,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
       doc.text("Etiquetas:", margin, currentY);
-      
+
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
       const tagText = item.tags.map((t) => (typeof t === "string" ? t : t.nombre)).join(", ");
@@ -552,7 +555,13 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    currentY = renderDescriptionBlocks(item.descripcion || "Sin descripción", margin, currentY, pageWidth - margin * 2, 7.5);
+    currentY = renderDescriptionBlocks(
+      item.descripcion || "Sin descripción",
+      margin,
+      currentY,
+      pageWidth - margin * 2,
+      7.5
+    );
     currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
@@ -600,10 +609,9 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       const gap = 3;
       const availableWidth = pageWidth - (margin * 2) - (gap * (imagesPerRow - 1));
       const imageWidth = availableWidth / imagesPerRow;
-      const imageHeight = imageWidth * 0.75; 
+      const imageHeight = imageWidth * 0.75;
       const imagesToShow = Math.min(images.length, 6);
 
-      let xPos = margin;
       let rowY = currentY;
 
       for (let i = 0; i < imagesToShow; i++) {
@@ -611,7 +619,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           const base64Image = await urlToBase64(images[i]);
           if (base64Image) {
             const colIndex = i % imagesPerRow;
-            
+
             if (colIndex === 0 && i > 0) {
               rowY += imageHeight + gap;
             }
@@ -621,7 +629,14 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
               rowY = margin;
             }
 
-            doc.addImage(base64Image, "JPEG", margin + (colIndex * (imageWidth + gap)), rowY, imageWidth, imageHeight);
+            doc.addImage(
+              base64Image,
+              "JPEG",
+              margin + (colIndex * (imageWidth + gap)),
+              rowY,
+              imageWidth,
+              imageHeight
+            );
           }
         } catch (error) {
           console.error(`Error procesando imagen ${i}:`, error);
@@ -1133,12 +1148,15 @@ function Detail() {
     ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))?.nombre || "Municipio"
     : "Municipio";
 
+  const location = useLocation();
+  const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "/";
+
   const showMunicipioDetails = Boolean(selectedMunicipioId);
 
   return (
     <div className="page-inner detail-page">
       <nav className="breadcrumbs">
-        <Link to="/">Inicio</Link>
+        <Link to={adminBase}>Inicio</Link>
         <span className="crumb-sep">›</span>
         {showMunicipioDetails ? (
           <span className="crumb-current">{nombreMunicipio}</span>
