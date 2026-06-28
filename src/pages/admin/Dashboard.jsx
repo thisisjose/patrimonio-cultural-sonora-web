@@ -356,6 +356,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [totales, setTotales] = useState({ total: 0, pendientes: 0, registrados: 0 });
 
   // Estados para los pasos en modales
   const [stepNuevo, setStepNuevo] = useState(0);
@@ -370,27 +371,29 @@ export default function AdminDashboard() {
 
   // ---------- CARGA DE DATOS ----------
   const cargarDatos = async (page = 1) => {
-    try {
-      setLoading(true);
-      setError("");
-      const [respPatrimonios, respMunicipios, respTags] = await Promise.all([
-        getAllPatrimoniosAdmin(page, limit),
-        getMunicipios(),
-        getAllTags(),
-      ]);
-      setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
-      setTagsList(Array.isArray(respTags) ? respTags : []);
-      const data = respPatrimonios || {};
-      setPatrimonios(data.patrimonios || []);
-      setTotalPages(data.totalPages || 1);
-      setCurrentPage(data.currentPage || page);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudieron cargar los datos.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    setError("");
+    const [respPatrimonios, respMunicipios, respTags] = await Promise.all([
+      getAllPatrimoniosAdmin(page, limit),
+      getMunicipios(),
+      getAllTags(),
+    ]);
+    setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
+    setTagsList(Array.isArray(respTags) ? respTags : []);
+    const data = respPatrimonios || {};
+    setPatrimonios(data.patrimonios || []);
+    setTotalPages(data.totalPages || 1);
+    setCurrentPage(data.currentPage || page);
+    // --- Guardar los totales reales ---
+    setTotales(data.totales || { total: 0, pendientes: 0, registrados: 0 });
+  } catch (err) {
+    console.error(err);
+    setError("No se pudieron cargar los datos.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     cargarDatos(currentPage);
@@ -820,8 +823,8 @@ export default function AdminDashboard() {
     return matchesMunicipio && matchesCategoria && matchesEstado && matchesSearch;
   });
 
-  const registrados = patrimoniosUI.filter((p) => p.estado === "registrado").length;
-  const pendientes = patrimoniosUI.filter((p) => p.estado === "pendiente").length;
+  // const registrados = patrimoniosUI.filter((p) => p.estado === "registrado").length;
+  // const pendientes = patrimoniosUI.filter((p) => p.estado === "pendiente").length;
 
   // ---------- LIGHTBOX ----------
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -872,621 +875,657 @@ export default function AdminDashboard() {
     <>
       {/* ============ MODAL NUEVO ============ */}
       {modalNuevo && (
-  <div className="overlay" onClick={() => setModalNuevo(false)}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">Nuevo Patrimonio</div>
-        <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
-      </div>
-      <div className="modal-body">
-        <StepIndicator current={stepNuevo} total={3} />
+        <div className="overlay" onClick={() => setModalNuevo(false)}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Nuevo Patrimonio</div>
+              <button className="modal-close" onClick={() => setModalNuevo(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <StepIndicator current={stepNuevo} total={3} />
 
-        {/* PASO 0: IMÁGENES */}
-        {stepNuevo === 0 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Imagen de portada</h4>
-              <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadNuevo} />
-              {formNuevo.portadaFile && (
-                <div className="edit-portada-wrapper" style={{ marginTop: "8px" }}>
-                  <img src={URL.createObjectURL(formNuevo.portadaFile)} alt="Vista previa portada" className="edit-portada-preview" />
-                  <small>{formNuevo.portadaFile.name}</small>
+              {/* PASO 0: IMÁGENES */}
+              {stepNuevo === 0 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Portada</h4>
+                    {formNuevo.portadaFile && (
+                      <div className="edit-portada-wrapper" style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                        <img
+                          src={URL.createObjectURL(formNuevo.portadaFile)}
+                          alt="Vista previa portada"
+                          className="edit-portada-preview"
+                          onClick={() => {
+                            const allImages = [
+                              { url: URL.createObjectURL(formNuevo.portadaFile), alt: 'Portada' },
+                              ...formNuevo.imagenesFiles.map((f, i) => ({ url: URL.createObjectURL(f), alt: `Galería ${i+1}` }))
+                            ];
+                            openLightbox(allImages, 0);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <button
+                          className="image-zoom-btn-small"
+                          onClick={() => {
+                            const allImages = [
+                              { url: URL.createObjectURL(formNuevo.portadaFile), alt: 'Portada' },
+                              ...formNuevo.imagenesFiles.map((f, i) => ({ url: URL.createObjectURL(f), alt: `Galería ${i+1}` }))
+                            ];
+                            openLightbox(allImages, 0);
+                          }}
+                        >⤢</button>
+                      </div>
+                    )}
+                    <h4 className="section-title-small" style={{ marginTop: "12px" }}>Cambiar portada</h4>
+                    <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadNuevo} />
+                    {formNuevo.portadaFile && <small>Archivo seleccionado: {formNuevo.portadaFile.name}</small>}
+                  </div>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Galería de imágenes</h4>
+                    <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadNuevo} />
+                    {formNuevo.imagenesFiles.length > 0 && (
+                      <div className="gallery-grid">
+                        {formNuevo.imagenesFiles.map((file, idx) => {
+                          const allImages = [
+                            { url: URL.createObjectURL(formNuevo.portadaFile), alt: 'Portada' },
+                            ...formNuevo.imagenesFiles.map((f, i) => ({ url: URL.createObjectURL(f), alt: `Galería ${i+1}` }))
+                          ];
+                          return (
+                            <div key={idx} className="gallery-item">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`preview-${idx}`}
+                                onClick={() => openLightbox(allImages, idx + 1)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              <button type="button" className="ab delete small" onClick={() => removeGaleriaFileNuevo(idx)}>Quitar</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 1: DATOS (sin cambios) */}
+              {stepNuevo === 1 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Nombre</h4>
+                      <input className="form-input" value={formNuevo.nombre} onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })} />
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción</h4>
+                      <RichTextEditor
+                        value={formNuevo.descripcion}
+                        onChange={(value) => setFormNuevo({ ...formNuevo, descripcion: value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="section-right">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Municipio</h4>
+                      <select className="form-input" value={formNuevo.municipioId} onChange={e => setFormNuevo({ ...formNuevo, municipioId: e.target.value })}>
+                        <option value="">Selecciona</option>
+                        {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Categoría</h4>
+                      <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}>
+                        <option>Material</option>
+                        <option>Inmaterial</option>
+                        <option>Natural</option>
+                      </select>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Tags</h4>
+                      <div className="current-tags">
+                        {formNuevo.tags.map(tag => (
+                          <span key={tag} className="tag-badge editable">
+                            {tag}
+                            <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formNuevo, setFormNuevo, tag)}>✕</button>
+                          </span>
+                        ))}
+                        {formNuevo.tags.length === 0 && <span className="no-tags">Sin tags</span>}
+                      </div>
+                      <div className="add-tag-row">
+                        <input type="text" className="form-input" placeholder="Nuevo tag" value={formNuevo.newTagInput} onChange={e => setFormNuevo(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)} />
+                        <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)}>Agregar</button>
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Enlaces relacionados</h4>
+                      <div className="links-list">
+                        {formNuevo.links.map((link, idx) => (
+                          <div key={idx} className="link-item">
+                            <span><strong>{link.titulo}</strong>: <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a></span>
+                            <button type="button" className="ab delete small" onClick={() => removeLinkFromForm(formNuevo, setFormNuevo, idx)}>✕</button>
+                          </div>
+                        ))}
+                        {formNuevo.links.length === 0 && <div className="no-tags">No hay enlaces agregados</div>}
+                      </div>
+                      <div className="add-link-row">
+                        <input type="text" className="form-input" placeholder="Título" value={formNuevo.newLinkTitulo || ""} onChange={e => setFormNuevo(prev => ({ ...prev, newLinkTitulo: e.target.value }))} />
+                        <input type="url" className="form-input" placeholder="URL" value={formNuevo.newLinkUrl || ""} onChange={e => setFormNuevo(prev => ({ ...prev, newLinkUrl: e.target.value }))} />
+                        <button type="button" className="btn-secondary small" onClick={() => addLinkToForm(formNuevo, setFormNuevo)}>Agregar</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 2: UBICACIONES (sin cambios) */}
+              {stepNuevo === 2 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Mapa</h4>
+                    <MapPicker ubicaciones={formNuevo.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formNuevo, setFormNuevo, coords, nombre)} />
+                  </div>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Ingreso manual y lista</h4>
+                    <div className="manual-location-input">
+                      <input
+                        type="text"
+                        placeholder="Coordenadas (lat, lng)"
+                        value={formNuevo.manualCoordenadas}
+                        onChange={(e) => setFormNuevo(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
+                        className="form-input"
+                        style={{ marginBottom: "8px" }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nombre del punto (opcional)"
+                        value={formNuevo.manualNombrePunto}
+                        onChange={(e) => setFormNuevo(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
+                        className="form-input"
+                        style={{ marginBottom: "8px" }}
+                      />
+                      <button type="button" className="btn-secondary" onClick={() => agregarUbicacionManual(formNuevo, setFormNuevo)}>
+                        Agregar ubicación
+                      </button>
+                    </div>
+                    {formNuevo.ubicaciones.length > 0 && (
+                      <div className="ubicaciones-list">
+                        {formNuevo.ubicaciones.map((ubi, idx) => (
+                          <div key={idx} className="ubicacion-item">
+                            <div className="ubicacion-header">
+                              <input type="text" className="form-input ubicacion-nombre" value={ubi.nombre_punto || ""} placeholder="Nombre del punto" onChange={(e) => actualizarNombreUbicacion(formNuevo, setFormNuevo, idx, e.target.value)} />
+                              <div className="ubicacion-actions">
+                                {!ubi.es_principal && <button type="button" className="ab small" onClick={() => marcarPrincipal(formNuevo, setFormNuevo, idx)}>★ Principal</button>}
+                                {ubi.es_principal && <span className="principal-badge">Principal</span>}
+                                <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formNuevo, setFormNuevo, idx)}>Eliminar</button>
+                              </div>
+                            </div>
+                            <div className="ubicacion-coords">
+                              <span>Lat: {ubi.latitud}</span>
+                              <span>Lng: {ubi.longitud}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Galería de imágenes</h4>
-              <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadNuevo} />
-              {formNuevo.imagenesFiles.length > 0 && (
-                <div className="gallery-grid">
-                  {formNuevo.imagenesFiles.map((file, idx) => (
-                    <div key={idx} className="gallery-item">
-                      <img src={URL.createObjectURL(file)} alt={`preview-${idx}`} />
-                      <button type="button" className="ab delete small" onClick={() => removeGaleriaFileNuevo(idx)}>Quitar</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* PASO 1: DATOS */}
-        {stepNuevo === 1 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <div className="form-section">
-                <h4 className="section-title-small">Nombre</h4>
-                <input className="form-input" value={formNuevo.nombre} onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })} />
-              </div>
-              <div className="form-section">
-                <h4 className="section-title-small">Descripción</h4>
-                <RichTextEditor
-                  value={formNuevo.descripcion}
-                  onChange={(value) => setFormNuevo({ ...formNuevo, descripcion: value })}
-                />
-              </div>
-            </div>
-            <div className="section-right">
-              <div className="form-section">
-                <h4 className="section-title-small">Municipio</h4>
-                <select className="form-input" value={formNuevo.municipioId} onChange={e => setFormNuevo({ ...formNuevo, municipioId: e.target.value })}>
-                  <option value="">Selecciona</option>
-                  {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                </select>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Categoría</h4>
-                <select className="form-input" value={formNuevo.categoria} onChange={e => setFormNuevo({ ...formNuevo, categoria: e.target.value })}>
-                  <option>Material</option>
-                  <option>Inmaterial</option>
-                  <option>Natural</option>
-                </select>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Tags</h4>
-                <div className="current-tags">
-                  {formNuevo.tags.map(tag => (
-                    <span key={tag} className="tag-badge editable">
-                      {tag}
-                      <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formNuevo, setFormNuevo, tag)}>✕</button>
-                    </span>
-                  ))}
-                  {formNuevo.tags.length === 0 && <span className="no-tags">Sin tags</span>}
-                </div>
-                <div className="add-tag-row">
-                  <input type="text" className="form-input" placeholder="Nuevo tag" value={formNuevo.newTagInput} onChange={e => setFormNuevo(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)} />
-                  <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formNuevo, setFormNuevo, formNuevo.newTagInput)}>Agregar</button>
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Enlaces relacionados</h4>
-                <div className="links-list">
-                  {formNuevo.links.map((link, idx) => (
-                    <div key={idx} className="link-item">
-                      <span><strong>{link.titulo}</strong>: <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a></span>
-                      <button type="button" className="ab delete small" onClick={() => removeLinkFromForm(formNuevo, setFormNuevo, idx)}>✕</button>
-                    </div>
-                  ))}
-                  {formNuevo.links.length === 0 && <div className="no-tags">No hay enlaces agregados</div>}
-                </div>
-                <div className="add-link-row">
-                  <input type="text" className="form-input" placeholder="Título" value={formNuevo.newLinkTitulo || ""} onChange={e => setFormNuevo(prev => ({ ...prev, newLinkTitulo: e.target.value }))} />
-                  <input type="url" className="form-input" placeholder="URL" value={formNuevo.newLinkUrl || ""} onChange={e => setFormNuevo(prev => ({ ...prev, newLinkUrl: e.target.value }))} />
-                  <button type="button" className="btn-secondary small" onClick={() => addLinkToForm(formNuevo, setFormNuevo)}>Agregar</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 2: UBICACIONES */}
-        {stepNuevo === 2 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Mapa</h4>
-              <MapPicker ubicaciones={formNuevo.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formNuevo, setFormNuevo, coords, nombre)} />
-            </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Ingreso manual y lista</h4>
-              <div className="manual-location-input">
-                <input
-                  type="text"
-                  placeholder="Coordenadas (lat, lng)"
-                  value={formNuevo.manualCoordenadas}
-                  onChange={(e) => setFormNuevo(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
-                  className="form-input"
-                  style={{ marginBottom: "8px" }}
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre del punto (opcional)"
-                  value={formNuevo.manualNombrePunto}
-                  onChange={(e) => setFormNuevo(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
-                  className="form-input"
-                  style={{ marginBottom: "8px" }}
-                />
-                <button type="button" className="btn-secondary" onClick={() => agregarUbicacionManual(formNuevo, setFormNuevo)}>
-                  Agregar ubicación
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={goToPrevNuevo} disabled={stepNuevo === 0}>
+                Anterior
+              </button>
+              {isLastStepNuevo ? (
+                <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar"}
                 </button>
-              </div>
-              {formNuevo.ubicaciones.length > 0 && (
-                <div className="ubicaciones-list">
-                  {formNuevo.ubicaciones.map((ubi, idx) => (
-                    <div key={idx} className="ubicacion-item">
-                      <div className="ubicacion-header">
-                        <input type="text" className="form-input ubicacion-nombre" value={ubi.nombre_punto || ""} placeholder="Nombre del punto" onChange={(e) => actualizarNombreUbicacion(formNuevo, setFormNuevo, idx, e.target.value)} />
-                        <div className="ubicacion-actions">
-                          {!ubi.es_principal && <button type="button" className="ab small" onClick={() => marcarPrincipal(formNuevo, setFormNuevo, idx)}>★ Principal</button>}
-                          {ubi.es_principal && <span className="principal-badge">Principal</span>}
-                          <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formNuevo, setFormNuevo, idx)}>Eliminar</button>
-                        </div>
-                      </div>
-                      <div className="ubicacion-coords">
-                        <span>Lat: {ubi.latitud}</span>
-                        <span>Lng: {ubi.longitud}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              ) : (
+                <button className="btn-primary" onClick={goToNextNuevo}>
+                  Siguiente
+                </button>
               )}
+              <button className="btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="modal-footer">
-        <button className="btn-secondary" onClick={goToPrevNuevo} disabled={stepNuevo === 0}>
-          Anterior
-        </button>
-        {isLastStepNuevo ? (
-          <button className="btn-primary" onClick={guardarNuevo} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-        ) : (
-          <button className="btn-primary" onClick={goToNextNuevo}>
-            Siguiente
-          </button>
-        )}
-        <button className="btn-secondary" onClick={() => setModalNuevo(false)}>Cancelar</button>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {/* ============ MODAL VER ============ */}
       {modalVer && (
-  <div className="overlay" onClick={cerrarVer}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">{modalVer.nombre}</div>
-        <button className="modal-close" onClick={cerrarVer}>✕</button>
-      </div>
-      <div className="modal-body">
-        <StepIndicator current={stepVer} total={3} />
-
-        {/* PASO 0: IMÁGENES */}
-        {stepVer === 0 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Portada</h4>
-              <div className="view-main-image">
-                <img
-                  src={modalVer.imagen}
-                  alt={modalVer.nombre}
-                  onClick={() => {
-                    const allImages = [
-                      { url: modalVer.imagen, alt: modalVer.nombre },
-                      ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                    ];
-                    openLightbox(allImages, 0);
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <button
-                  className="image-zoom-btn"
-                  onClick={() => {
-                    const allImages = [
-                      { url: modalVer.imagen, alt: modalVer.nombre },
-                      ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                    ];
-                    openLightbox(allImages, 0);
-                  }}
-                >⤢</button>
-              </div>
+        <div className="overlay" onClick={cerrarVer}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">{modalVer.nombre}</div>
+              <button className="modal-close" onClick={cerrarVer}>✕</button>
             </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Galería</h4>
-              {modalVer.galeria && modalVer.galeria.length > 0 ? (
-                <div className="gallery-grid">
-                  {modalVer.galeria.map((img, idx) => {
-                    const allImages = [
-                      { url: modalVer.imagen, alt: modalVer.nombre },
-                      ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
-                    ];
-                    return (
-                      <div key={img.id} className="gallery-item">
+            <div className="modal-body">
+              <StepIndicator current={stepVer} total={3} />
+
+              {/* PASO 0: IMÁGENES */}
+              {stepVer === 0 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Portada</h4>
+                    {modalVer.imagen && (
+                      <div className="edit-portada-wrapper" style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
                         <img
-                          src={img.url}
-                          alt={`galería ${idx}`}
-                          onClick={() => openLightbox(allImages, idx + 1)}
+                          src={modalVer.imagen}
+                          alt={modalVer.nombre}
+                          className="edit-portada-preview"
+                          onClick={() => {
+                            const allImages = [
+                              { url: modalVer.imagen, alt: modalVer.nombre },
+                              ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                            ];
+                            openLightbox(allImages, 0);
+                          }}
                           style={{ cursor: 'pointer' }}
                         />
+                        <button
+                          className="image-zoom-btn-small"
+                          onClick={() => {
+                            const allImages = [
+                              { url: modalVer.imagen, alt: modalVer.nombre },
+                              ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                            ];
+                            openLightbox(allImages, 0);
+                          }}
+                        >⤢</button>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="no-tags">Sin imágenes en galería</div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* PASO 1: DATOS */}
-        {stepVer === 1 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <div className="form-section">
-                <h4 className="section-title-small">Nombre</h4>
-                <div className="form-value">{modalVer.nombre}</div>
-              </div>
-              {modalVer.descripcion && (
-                <div className="form-section">
-                  <h4 className="section-title-small">Descripción</h4>
-                  <div className="form-value description-text" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(modalVer.descripcion) }} />
-                </div>
-              )}
-            </div>
-            <div className="section-right">
-              <div className="form-section">
-                <h4 className="section-title-small">Categoría</h4>
-                <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Estado</h4>
-                <div className="view-badges">
-                  <span className={`bst ${modalVer.estado}`}>
-                    <span className={`dot ${modalVer.estado === "registrado" ? "green" : "amber"}`} />
-                    {modalVer.estado === "registrado" ? "Registrado" : "Pendiente"}
-                  </span>
-                  {isSupremo && (
-                    <button
-                      className="ab editar"
-                      onClick={() => handleCambiarEstado(modalVer, modalVer.estado === "pendiente" ? "registrado" : "pendiente")}
-                    >
-                      Cambiar estado
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Municipio</h4>
-                <div className="form-value">
-                  {municipios.find(m => m.id === modalVer.municipioId)?.nombre || "No especificado"}
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Tags</h4>
-                <div className="tags-list">
-                  {modalVer.tags && modalVer.tags.length > 0 ? (
-                    modalVer.tags.map((tag, idx) => (
-                      <span key={idx} className="tag-badge">
-                        {typeof tag === 'object' ? tag.nombre : tag}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="tag-badge">Sin tags</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Enlaces relacionados</h4>
-                {modalVer.links && modalVer.links.length > 0 ? (
-                  <div className="links-list-view">
-                    {modalVer.links.map((link, idx) => (
-                      <div key={idx} className="link-item">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          {link.titulo || link.url}
-                        </a>
-                      </div>
-                    ))}
+                    )}
                   </div>
-                ) : (
-                  <div className="no-tags">Sin enlaces registrados</div>
-                )}
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Fechas</h4>
-                <div className="view-dates">
-                  <div><strong>Registro:</strong> {modalVer.fechaRegistro}</div>
-                  <div><strong>Actualización:</strong> {modalVer.fechaActualizacion}</div>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Galería</h4>
+                    {modalVer.galeria && modalVer.galeria.length > 0 ? (
+                      <div className="gallery-grid">
+                        {modalVer.galeria.map((img, idx) => {
+                          const allImages = [
+                            { url: modalVer.imagen, alt: modalVer.nombre },
+                            ...(modalVer.galeria || []).map(g => ({ url: g.url, alt: modalVer.nombre }))
+                          ];
+                          return (
+                            <div key={img.id} className="gallery-item">
+                              <img
+                                src={img.url}
+                                alt={`galería ${idx}`}
+                                onClick={() => openLightbox(allImages, idx + 1)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="no-tags">Sin imágenes en galería</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 2: UBICACIONES */}
-        {stepVer === 2 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Mapa</h4>
-              {modalVer.ubicaciones && modalVer.ubicaciones.length > 0 ? (
-                <StaticMap ubicaciones={modalVer.ubicaciones} />
-              ) : (
-                <div className="no-tags">Sin ubicaciones registradas</div>
               )}
-            </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Lista de ubicaciones</h4>
-              {modalVer.ubicaciones && modalVer.ubicaciones.length > 0 ? (
-                <div className="ubicaciones-list">
-                  {modalVer.ubicaciones.map((ubi, idx) => (
-                    <div key={idx} className="ubicacion-item">
-                      <div className="ubicacion-header">
-                        <strong>{ubi.nombre_punto || `Punto ${idx + 1}`}</strong>
-                        {ubi.es_principal && <span className="principal-badge">Principal</span>}
-                      </div>
-                      <div className="ubicacion-coords">
-                        <span>Lat: {ubi.latitud}</span>
-                        <span>Lng: {ubi.longitud}</span>
-                      </div>
-                      <a
-                        href={`https://www.google.com/maps?q=${ubi.latitud},${ubi.longitud}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="maps-link"
-                      >
-                        Ver en mapa
-                      </a>
+
+              {/* PASO 1: DATOS (sin cambios) */}
+              {stepVer === 1 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Nombre</h4>
+                      <div className="form-value">{modalVer.nombre}</div>
                     </div>
-                  ))}
+                    {modalVer.descripcion && (
+                      <div className="form-section">
+                        <h4 className="section-title-small">Descripción</h4>
+                        <div className="form-value description-text" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(modalVer.descripcion) }} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="section-right">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Categoría</h4>
+                      <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Estado</h4>
+                      <div className="view-badges">
+                        <span className={`bst ${modalVer.estado}`}>
+                          <span className={`dot ${modalVer.estado === "registrado" ? "green" : "amber"}`} />
+                          {modalVer.estado === "registrado" ? "Registrado" : "Pendiente"}
+                        </span>
+                        {isSupremo && (
+                          <button
+                            className="ab editar"
+                            onClick={() => handleCambiarEstado(modalVer, modalVer.estado === "pendiente" ? "registrado" : "pendiente")}
+                          >
+                            Cambiar estado
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Municipio</h4>
+                      <div className="form-value">
+                        {municipios.find(m => m.id === modalVer.municipioId)?.nombre || "No especificado"}
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Tags</h4>
+                      <div className="tags-list">
+                        {modalVer.tags && modalVer.tags.length > 0 ? (
+                          modalVer.tags.map((tag, idx) => (
+                            <span key={idx} className="tag-badge">
+                              {typeof tag === 'object' ? tag.nombre : tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="tag-badge">Sin tags</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Enlaces relacionados</h4>
+                      {modalVer.links && modalVer.links.length > 0 ? (
+                        <div className="links-list-view">
+                          {modalVer.links.map((link, idx) => (
+                            <div key={idx} className="link-item">
+                              <a href={link.url} target="_blank" rel="noopener noreferrer">
+                                {link.titulo || link.url}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="no-tags">Sin enlaces registrados</div>
+                      )}
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Fechas</h4>
+                      <div className="view-dates">
+                        <div><strong>Registro:</strong> {modalVer.fechaRegistro}</div>
+                        <div><strong>Actualización:</strong> {modalVer.fechaActualizacion}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* PASO 2: UBICACIONES (sin cambios) */}
+              {stepVer === 2 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Mapa</h4>
+                    {modalVer.ubicaciones && modalVer.ubicaciones.length > 0 ? (
+                      <StaticMap ubicaciones={modalVer.ubicaciones} />
+                    ) : (
+                      <div className="no-tags">Sin ubicaciones registradas</div>
+                    )}
+                  </div>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Lista de ubicaciones</h4>
+                    {modalVer.ubicaciones && modalVer.ubicaciones.length > 0 ? (
+                      <div className="ubicaciones-list">
+                        {modalVer.ubicaciones.map((ubi, idx) => (
+                          <div key={idx} className="ubicacion-item">
+                            <div className="ubicacion-header">
+                              <strong>{ubi.nombre_punto || `Punto ${idx + 1}`}</strong>
+                              {ubi.es_principal && <span className="principal-badge">Principal</span>}
+                            </div>
+                            <div className="ubicacion-coords">
+                              <span>Lat: {ubi.latitud}</span>
+                              <span>Lng: {ubi.longitud}</span>
+                            </div>
+                            <a
+                              href={`https://www.google.com/maps?q=${ubi.latitud},${ubi.longitud}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="maps-link"
+                            >
+                              Ver en mapa
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="no-tags">Sin ubicaciones registradas</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={goToPrevVer} disabled={stepVer === 0}>
+                Anterior
+              </button>
+              {isLastStepVer ? (
+                <>
+                  <button className="btn-primary" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
+                  <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
+                </>
               ) : (
-                <div className="no-tags">Sin ubicaciones registradas</div>
+                <button className="btn-primary" onClick={goToNextVer}>
+                  Siguiente
+                </button>
               )}
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="modal-footer">
-        <button className="btn-secondary" onClick={goToPrevVer} disabled={stepVer === 0}>
-          Anterior
-        </button>
-        {isLastStepVer ? (
-          <>
-            <button className="btn-primary" onClick={() => { cerrarVer(); abrirEditar(modalVer); }}>Editar</button>
-            <button className="btn-secondary" onClick={cerrarVer}>Cerrar</button>
-          </>
-        ) : (
-          <button className="btn-primary" onClick={goToNextVer}>
-            Siguiente
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {/* ============ MODAL EDITAR ============ */}
-     {modalEditar && (
-  <div className="overlay" onClick={cerrarEditar}>
-    <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <div className="modal-title">Editar Patrimonio</div>
-        <button className="modal-close" onClick={cerrarEditar}>✕</button>
-      </div>
-      <div className="modal-body">
-        <StepIndicator current={stepEditar} total={3} />
-
-        {/* PASO 0: IMÁGENES */}
-        {stepEditar === 0 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Portada actual</h4>
-              {modalEditar?.imagen && (
-                <div className="edit-portada-wrapper" style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                  <img src={modalEditar.imagen} alt="portada actual" className="edit-portada-preview" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }} style={{ cursor: 'pointer' }} />
-                  <button className="image-zoom-btn-small" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }}>⤢</button>
-                </div>
-              )}
-              <h4 className="section-title-small" style={{ marginTop: "12px" }}>Cambiar portada</h4>
-              <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
-              {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
+      {modalEditar && (
+        <div className="overlay" onClick={cerrarEditar}>
+          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Editar Patrimonio</div>
+              <button className="modal-close" onClick={cerrarEditar}>✕</button>
             </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Galería actual</h4>
-              <div className="gallery-grid">
-                {formEditar.galeriaActual?.map((img, idx) => (
-                  <div key={img.id} className="gallery-item">
-                    <img src={img.url} alt="galería" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, idx + 1); }} style={{ cursor: 'pointer' }} />
-                    <label className="gallery-check">
-                      <input type="checkbox" checked={formEditar.imagenesAEliminar?.includes(img.id)} onChange={() => toggleEliminarImagen(img.id)} /> Eliminar
-                    </label>
+            <div className="modal-body">
+              <StepIndicator current={stepEditar} total={3} />
+
+              {/* PASO 0: IMÁGENES (sin cambios) */}
+              {stepEditar === 0 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Portada actual</h4>
+                    {modalEditar?.imagen && (
+                      <div className="edit-portada-wrapper" style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                        <img src={modalEditar.imagen} alt="portada actual" className="edit-portada-preview" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }} style={{ cursor: 'pointer' }} />
+                        <button className="image-zoom-btn-small" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, 0); }}>⤢</button>
+                      </div>
+                    )}
+                    <h4 className="section-title-small" style={{ marginTop: "12px" }}>Cambiar portada</h4>
+                    <input type="file" accept="image/*" className="form-input" onChange={handlePortadaUploadEditar} />
+                    {formEditar.portadaFile && <small>Archivo seleccionado: {formEditar.portadaFile.name}</small>}
                   </div>
-                ))}
-              </div>
-              <h4 className="section-title-small" style={{ marginTop: "12px" }}>Agregar nuevas imágenes</h4>
-              <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
-              {formEditar.imagenesFiles?.length > 0 && (
-                <div className="new-images-list">
-                  {formEditar.imagenesFiles.map((file, idx) => (
-                    <div key={idx} className="new-image-item">
-                      <span>{file.name}</span>
-                      <button type="button" className="ab delete small" onClick={() => { setFormEditar(prev => ({ ...prev, imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx) })); }}>Quitar</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* PASO 1: DATOS */}
-        {stepEditar === 1 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <div className="form-section">
-                <h4 className="section-title-small">Nombre</h4>
-                <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
-              </div>
-              <div className="form-section">
-                <h4 className="section-title-small">Descripción</h4>
-                <RichTextEditor
-                  value={formEditar.descripcion || ""}
-                  onChange={(value) => setFormEditar({ ...formEditar, descripcion: value })}
-                />
-              </div>
-            </div>
-            <div className="section-right">
-              <div className="form-section">
-                <h4 className="section-title-small">Municipio</h4>
-                <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
-                  <option value="">Selecciona</option>
-                  {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                </select>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Categoría</h4>
-                <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
-                  <option>Material</option>
-                  <option>Inmaterial</option>
-                  <option>Natural</option>
-                </select>
-              </div>
-
-              <div className="form-section">
-                <h4 className="section-title-small">Tags</h4>
-                <div className="current-tags">
-                  {formEditar.tags?.map(tag => (
-                    <span key={tag} className="tag-badge editable">
-                      {tag}
-                      <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formEditar, setFormEditar, tag)}>✕</button>
-                    </span>
-                  ))}
-                  {(!formEditar.tags || formEditar.tags.length === 0) && <span className="no-tags">Sin tags</span>}
-                </div>
-                <div className="add-tag-row">
-                  <input type="text" className="form-input" placeholder="Nuevo tag" value={formEditar.newTagInput || ""} onChange={e => setFormEditar(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)} />
-                  <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)}>Agregar</button>
-                </div>
-              </div>
-
-              {isSupremo && (
-                <div className="form-section">
-                  <h4 className="section-title-small">Estado</h4>
-                  <select className="form-input" value={formEditar.estado || "pendiente"} onChange={e => setFormEditar({...formEditar, estado: e.target.value})}>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="registrado">Registrado</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="form-section">
-                <h4 className="section-title-small">Enlaces relacionados</h4>
-                <div className="links-list">
-                  {formEditar.links.map((link, idx) => (
-                    <div key={idx} className="link-item">
-                      <span><strong>{link.titulo}</strong>: <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a></span>
-                      <button type="button" className="ab delete small" onClick={() => removeLinkFromForm(formEditar, setFormEditar, idx)}>✕</button>
-                    </div>
-                  ))}
-                  {formEditar.links.length === 0 && <div className="no-links">No hay enlaces agregados</div>}
-                </div>
-                <div className="add-link-row">
-                  <input type="text" className="form-input" placeholder="Título" value={formEditar.newLinkTitulo || ""} onChange={e => setFormEditar(prev => ({ ...prev, newLinkTitulo: e.target.value }))} />
-                  <input type="url" className="form-input" placeholder="URL" value={formEditar.newLinkUrl || ""} onChange={e => setFormEditar(prev => ({ ...prev, newLinkUrl: e.target.value }))} />
-                  <button type="button" className="btn-secondary small" onClick={() => addLinkToForm(formEditar, setFormEditar)}>Agregar</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 2: UBICACIONES */}
-        {stepEditar === 2 && (
-          <div className="section-two-col">
-            <div className="section-left">
-              <h4 className="section-title-small">Mapa</h4>
-              <MapPicker ubicaciones={formEditar.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formEditar, setFormEditar, coords, nombre)} />
-            </div>
-            <div className="section-right">
-              <h4 className="section-title-small">Ingreso manual y lista</h4>
-              <div className="manual-location-input">
-                <input
-                  type="text"
-                  placeholder="Coordenadas (lat, lng)"
-                  value={formEditar.manualCoordenadas}
-                  onChange={(e) => setFormEditar(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
-                  className="form-input"
-                  style={{ marginBottom: "8px" }}
-                />
-                <input
-                  type="text"
-                  placeholder="Nombre del punto"
-                  value={formEditar.manualNombrePunto}
-                  onChange={(e) => setFormEditar(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
-                  className="form-input"
-                  style={{ marginBottom: "8px" }}
-                />
-                <button type="button" className="btn-secondary" onClick={() => agregarUbicacionManual(formEditar, setFormEditar)}>
-                  Agregar ubicación
-                </button>
-              </div>
-              {formEditar.ubicaciones.length > 0 && (
-                <div className="ubicaciones-list">
-                  {formEditar.ubicaciones.map((ubi, idx) => (
-                    <div key={idx} className="ubicacion-item">
-                      <div className="ubicacion-header">
-                        <input type="text" className="form-input ubicacion-nombre" value={ubi.nombre_punto || ""} placeholder="Nombre del punto" onChange={(e) => actualizarNombreUbicacion(formEditar, setFormEditar, idx, e.target.value)} />
-                        <div className="ubicacion-actions">
-                          {!ubi.es_principal && <button type="button" className="ab small" onClick={() => marcarPrincipal(formEditar, setFormEditar, idx)}>★ Principal</button>}
-                          {ubi.es_principal && <span className="principal-badge">Principal</span>}
-                          <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formEditar, setFormEditar, idx)}>Eliminar</button>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Galería actual</h4>
+                    <div className="gallery-grid">
+                      {formEditar.galeriaActual?.map((img, idx) => (
+                        <div key={img.id} className="gallery-item">
+                          <img src={img.url} alt="galería" onClick={() => { const currentImages = [{ url: modalEditar.imagen, alt: 'Portada' }, ...(formEditar.galeriaActual || []).map(g => ({ url: g.url, alt: 'Galería' }))]; openLightbox(currentImages, idx + 1); }} style={{ cursor: 'pointer' }} />
+                          <label className="gallery-check">
+                            <input type="checkbox" checked={formEditar.imagenesAEliminar?.includes(img.id)} onChange={() => toggleEliminarImagen(img.id)} /> Eliminar
+                          </label>
                         </div>
+                      ))}
+                    </div>
+                    <h4 className="section-title-small" style={{ marginTop: "12px" }}>Agregar nuevas imágenes</h4>
+                    <input type="file" accept="image/*" multiple className="form-input" onChange={handleGaleriaUploadEditar} />
+                    {formEditar.imagenesFiles?.length > 0 && (
+                      <div className="new-images-list">
+                        {formEditar.imagenesFiles.map((file, idx) => (
+                          <div key={idx} className="new-image-item">
+                            <span>{file.name}</span>
+                            <button type="button" className="ab delete small" onClick={() => { setFormEditar(prev => ({ ...prev, imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== idx) })); }}>Quitar</button>
+                          </div>
+                        ))}
                       </div>
-                      <div className="ubicacion-coords">
-                        <span>Lat: {ubi.latitud}</span>
-                        <span>Lng: {ubi.longitud}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 1 y 2 de Editar (sin cambios) */}
+              {stepEditar === 1 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Nombre</h4>
+                      <input className="form-input" value={formEditar.nombre || ""} onChange={e => setFormEditar({...formEditar, nombre: e.target.value})} />
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción</h4>
+                      <RichTextEditor
+                        value={formEditar.descripcion || ""}
+                        onChange={(value) => setFormEditar({ ...formEditar, descripcion: value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="section-right">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Municipio</h4>
+                      <select className="form-input" value={formEditar.municipioId || ""} onChange={e => setFormEditar({...formEditar, municipioId: e.target.value})}>
+                        <option value="">Selecciona</option>
+                        {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Categoría</h4>
+                      <select className="form-input" value={formEditar.categoria || "Material"} onChange={e => setFormEditar({...formEditar, categoria: e.target.value})}>
+                        <option>Material</option>
+                        <option>Inmaterial</option>
+                        <option>Natural</option>
+                      </select>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Tags</h4>
+                      <div className="current-tags">
+                        {formEditar.tags?.map(tag => (
+                          <span key={tag} className="tag-badge editable">
+                            {tag}
+                            <button type="button" className="remove-tag" onClick={() => removeTagFromForm(formEditar, setFormEditar, tag)}>✕</button>
+                          </span>
+                        ))}
+                        {(!formEditar.tags || formEditar.tags.length === 0) && <span className="no-tags">Sin tags</span>}
+                      </div>
+                      <div className="add-tag-row">
+                        <input type="text" className="form-input" placeholder="Nuevo tag" value={formEditar.newTagInput || ""} onChange={e => setFormEditar(prev => ({ ...prev, newTagInput: e.target.value }))} onKeyPress={e => e.key === 'Enter' && addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)} />
+                        <button type="button" className="btn-secondary small" onClick={() => addTagToForm(formEditar, setFormEditar, formEditar.newTagInput)}>Agregar</button>
                       </div>
                     </div>
-                  ))}
+
+                    {isSupremo && (
+                      <div className="form-section">
+                        <h4 className="section-title-small">Estado</h4>
+                        <select className="form-input" value={formEditar.estado || "pendiente"} onChange={e => setFormEditar({...formEditar, estado: e.target.value})}>
+                          <option value="pendiente">Pendiente</option>
+                          <option value="registrado">Registrado</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Enlaces relacionados</h4>
+                      <div className="links-list">
+                        {formEditar.links.map((link, idx) => (
+                          <div key={idx} className="link-item">
+                            <span><strong>{link.titulo}</strong>: <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a></span>
+                            <button type="button" className="ab delete small" onClick={() => removeLinkFromForm(formEditar, setFormEditar, idx)}>✕</button>
+                          </div>
+                        ))}
+                        {formEditar.links.length === 0 && <div className="no-links">No hay enlaces agregados</div>}
+                      </div>
+                      <div className="add-link-row">
+                        <input type="text" className="form-input" placeholder="Título" value={formEditar.newLinkTitulo || ""} onChange={e => setFormEditar(prev => ({ ...prev, newLinkTitulo: e.target.value }))} />
+                        <input type="url" className="form-input" placeholder="URL" value={formEditar.newLinkUrl || ""} onChange={e => setFormEditar(prev => ({ ...prev, newLinkUrl: e.target.value }))} />
+                        <button type="button" className="btn-secondary small" onClick={() => addLinkToForm(formEditar, setFormEditar)}>Agregar</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stepEditar === 2 && (
+                <div className="section-two-col">
+                  <div className="section-left">
+                    <h4 className="section-title-small">Mapa</h4>
+                    <MapPicker ubicaciones={formEditar.ubicaciones} onLocationAdd={(coords, nombre) => agregarUbicacion(formEditar, setFormEditar, coords, nombre)} />
+                  </div>
+                  <div className="section-right">
+                    <h4 className="section-title-small">Ingreso manual y lista</h4>
+                    <div className="manual-location-input">
+                      <input
+                        type="text"
+                        placeholder="Coordenadas (lat, lng)"
+                        value={formEditar.manualCoordenadas}
+                        onChange={(e) => setFormEditar(prev => ({ ...prev, manualCoordenadas: e.target.value }))}
+                        className="form-input"
+                        style={{ marginBottom: "8px" }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nombre del punto"
+                        value={formEditar.manualNombrePunto}
+                        onChange={(e) => setFormEditar(prev => ({ ...prev, manualNombrePunto: e.target.value }))}
+                        className="form-input"
+                        style={{ marginBottom: "8px" }}
+                      />
+                      <button type="button" className="btn-secondary" onClick={() => agregarUbicacionManual(formEditar, setFormEditar)}>
+                        Agregar ubicación
+                      </button>
+                    </div>
+                    {formEditar.ubicaciones.length > 0 && (
+                      <div className="ubicaciones-list">
+                        {formEditar.ubicaciones.map((ubi, idx) => (
+                          <div key={idx} className="ubicacion-item">
+                            <div className="ubicacion-header">
+                              <input type="text" className="form-input ubicacion-nombre" value={ubi.nombre_punto || ""} placeholder="Nombre del punto" onChange={(e) => actualizarNombreUbicacion(formEditar, setFormEditar, idx, e.target.value)} />
+                              <div className="ubicacion-actions">
+                                {!ubi.es_principal && <button type="button" className="ab small" onClick={() => marcarPrincipal(formEditar, setFormEditar, idx)}>★ Principal</button>}
+                                {ubi.es_principal && <span className="principal-badge">Principal</span>}
+                                <button type="button" className="ab delete small" onClick={() => eliminarUbicacion(formEditar, setFormEditar, idx)}>Eliminar</button>
+                              </div>
+                            </div>
+                            <div className="ubicacion-coords">
+                              <span>Lat: {ubi.latitud}</span>
+                              <span>Lng: {ubi.longitud}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
-      </div>
 
-      <div className="modal-footer">
-        <button className="btn-secondary" onClick={goToPrevEditar} disabled={stepEditar === 0}>
-          Anterior
-        </button>
-        {isLastStepEditar ? (
-          <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </button>
-        ) : (
-          <button className="btn-primary" onClick={goToNextEditar}>
-            Siguiente
-          </button>
-        )}
-        <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={goToPrevEditar} disabled={stepEditar === 0}>
+                Anterior
+              </button>
+              {isLastStepEditar ? (
+                <button className="btn-primary" onClick={guardarEdicion} disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
+              ) : (
+                <button className="btn-primary" onClick={goToNextEditar}>
+                  Siguiente
+                </button>
+              )}
+              <button className="btn-secondary" onClick={cerrarEditar}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============ MODAL GESTIÓN TAGS ============ */}
       {modalTagsOpen && (
@@ -1540,10 +1579,28 @@ export default function AdminDashboard() {
         {error && <div className="error-banner">{error}</div>}
 
         <div className="metrics">
-          <div className="m-card"><div><div className="m-label">Pendientes</div><div className="m-value">{pendientes}</div><div className="m-sub">Requieren revisión</div></div></div>
-          <div className="m-card"><div><div className="m-label">Registrados</div><div className="m-value">{registrados}</div><div className="m-sub">Catalogados y activos</div></div></div>
-          <div className="m-card"><div><div className="m-label">Total</div><div className="m-value">{patrimoniosUI.length}</div><div className="m-sub">En el inventario</div></div></div>
-        </div>
+  <div className="m-card">
+    <div>
+      <div className="m-label">Pendientes</div>
+      <div className="m-value">{totales.pendientes}</div>
+      <div className="m-sub">Requieren revisión</div>
+    </div>
+  </div>
+  <div className="m-card">
+    <div>
+      <div className="m-label">Registrados</div>
+      <div className="m-value">{totales.registrados}</div>
+      <div className="m-sub">Catalogados y activos</div>
+    </div>
+  </div>
+  <div className="m-card">
+    <div>
+      <div className="m-label">Total</div>
+      <div className="m-value">{totales.total}</div>
+      <div className="m-sub">En el inventario</div>
+    </div>
+  </div>
+</div>
 
         <div className="card">
           <div className="tbar">
