@@ -15,6 +15,11 @@ export const getPatrimonioParaReporte = async (id) => {
   return response.data;
 };
 
+export const getMetricasPatrimonios = async () => {
+  const response = await api.get("/admin/metricas");
+  return response.data;
+};
+
 export const getAllPatrimoniosAdmin = async (page = 1, limit = 10) => {
   const response = await api.get("/admin/patrimonios", {
     params: { page, limit } 

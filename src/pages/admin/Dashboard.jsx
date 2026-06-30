@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 import {
+  getMetricasPatrimonios,
   getAllPatrimoniosAdmin,
   createPatrimonio,
   updatePatrimonio,
@@ -358,7 +359,6 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [totales, setTotales] = useState({ total: 0, pendientes: 0, registrados: 0 });
 
-  // Estados para los pasos en modales
   const [stepNuevo, setStepNuevo] = useState(0);
   const [stepEditar, setStepEditar] = useState(0);
   const [stepVer, setStepVer] = useState(0);
@@ -370,14 +370,15 @@ export default function AdminDashboard() {
   }, [municipios]);
 
   // ---------- CARGA DE DATOS ----------
-  const cargarDatos = async (page = 1) => {
+const cargarDatos = async (page = 1) => {
   try {
     setLoading(true);
     setError("");
-    const [respPatrimonios, respMunicipios, respTags] = await Promise.all([
+    const [respPatrimonios, respMunicipios, respTags, respMetricas] = await Promise.all([
       getAllPatrimoniosAdmin(page, limit),
       getMunicipios(),
       getAllTags(),
+      getMetricasPatrimonios(),  
     ]);
     setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
     setTagsList(Array.isArray(respTags) ? respTags : []);
@@ -385,8 +386,7 @@ export default function AdminDashboard() {
     setPatrimonios(data.patrimonios || []);
     setTotalPages(data.totalPages || 1);
     setCurrentPage(data.currentPage || page);
-    // --- Guardar los totales reales ---
-    setTotales(data.totales || { total: 0, pendientes: 0, registrados: 0 });
+    setTotales(respMetricas || { total: 0, pendientes: 0, registrados: 0 });
   } catch (err) {
     console.error(err);
     setError("No se pudieron cargar los datos.");
