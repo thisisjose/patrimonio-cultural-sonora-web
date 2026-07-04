@@ -296,7 +296,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
     const patrimonioSlug = slugify(item.nombre);
     const municipioSlug = municipio ? `/${slugify(municipio)}` : "";
     const adminPrefix = isAdminRoute ? "/admin" : "";
-    return `${adminPrefix}${municipioSlug}/${patrimonioSlug}/patrimonio`;
+    return `${adminPrefix}${municipioSlug}/${patrimonioSlug}`;
   };
 
   const truncateText = (text = "", max = 90) => {

@@ -293,7 +293,7 @@ function Catalogo() {
                         to={(() => {
                           const municipioNombre = getMunicipioName(item, municipios);
                           const municipioSlug = municipioNombre ? `/${slugify(municipioNombre)}` : "";
-                          return `${adminBase}${municipioSlug}/${slugify(item.nombre)}/patrimonio`;
+                          return `${adminBase}${municipioSlug}/${slugify(item.nombre)}`;
                         })()}
                         className="patrimonio-card patrimonio-card-link"
                         aria-label={`Ver detalle de ${item.nombre}`}

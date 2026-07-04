@@ -192,7 +192,7 @@ function Home() {
     const municipioSlug = municipioName ? slugify(municipioName) : null;
     const slug = item ? slugify(item.nombre) : id;
     const path = municipioSlug
-      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      ? `${adminBase}/${municipioSlug}/${slug}`
       : `${adminBase}/patrimonio/${id}`;
     navigate(path);
   };
@@ -203,7 +203,7 @@ function Home() {
     const municipioSlug = municipioName ? slugify(municipioName) : null;
     const slug = item ? slugify(item.nombre) : id;
     const path = municipioSlug
-      ? `${adminBase}/${municipioSlug}/${slug}/patrimonio`
+      ? `${adminBase}/${municipioSlug}/${slug}`
       : `${adminBase}/patrimonio/${id}`;
     navigate(path);
   };
