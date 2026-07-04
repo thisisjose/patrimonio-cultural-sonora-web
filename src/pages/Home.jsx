@@ -356,6 +356,14 @@ function Home() {
 
       <section className="popular-section">
         <h2 className="section-title">Consulta el catálogo</h2>
+        <div className="catalogo-button-container">
+          <button
+            className="catalogo-view-btn"
+            onClick={() => navigate(`${adminBase}/catalogo`)}
+          >
+            Ver catálogo completo →
+          </button>
+        </div>
         <div className="popular-row">
           {patrimoniosAleatorios.map((item) => (
             <article

@@ -520,6 +520,10 @@
   margin-top: 2.5rem;
 }
 
+.popular-section .catalogo-button-container {
+  margin-bottom: 2rem;
+}
+
 .catalogo-view-btn {
   padding: 1rem 2rem;
   background: var(--secondary-blue);

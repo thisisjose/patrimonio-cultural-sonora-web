@@ -1,8 +1,8 @@
 /* Mapa interactivo */
 .map-wrapper {
-  max-width: 1200px;
+  max-width: 1000px;
   width: 100%;
-  height: 650px;
+  height: 700px;
   margin: 0 auto;
   border-radius: 14px;
   overflow: hidden;
