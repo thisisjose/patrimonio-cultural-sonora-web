@@ -51,6 +51,12 @@ const AdminLayout = () => {
               Contacto
             </NavLink>
             <NavLink
+              to="/admin/catalogo"
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              Catálogo
+            </NavLink>
+            <NavLink
               to="/admin/dashboard"
               className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
             >
@@ -106,6 +112,13 @@ const AdminLayout = () => {
                   onClick={() => setOpen(false)}
                 >
                   Contacto
+                </NavLink>
+                <NavLink
+                  to="/admin/catalogo"
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  onClick={() => setOpen(false)}
+                >
+                  Catálogo
                 </NavLink>
                 <NavLink
                   to="/admin/dashboard"
@@ -166,6 +179,7 @@ const AdminLayout = () => {
               <h4>Navegación</h4>
               <ul className="footer-links">
                 <li><NavLink to="/admin">Inicio</NavLink></li>
+                <li><NavLink to="/admin/catalogo">Catálogo</NavLink></li>
                 <li><NavLink to="/admin/acerca">Acerca</NavLink></li>
                 <li><NavLink to="/admin/contacto">Contacto</NavLink></li>
                 <li><NavLink to="/admin/dashboard">Dashboard</NavLink></li>
