@@ -857,7 +857,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             <div className="detail-tags-below">
               {tags.length > 0 ? (
                 <>
-                  Tag{tags.length > 1 ? "s" : ""}: {" "}
+                  Etiqueta{tags.length > 1 ? "s" : ""}: {" "}
                   {tags.map((tag, index) => (
                     <button key={index} type="button" className="tag-badge" onClick={() => handleTagClick(tag)}>
                       {formatTag(tag)}
@@ -865,7 +865,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                   ))}
                 </>
               ) : (
-                <>Tag: <span className="tag-badge">Sin tag</span></>
+                <>Etiquetas: <span className="tag-badge">Sin etiquetas</span></>
               )}
             </div>
           </div>
