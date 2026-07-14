@@ -345,9 +345,24 @@
   word-break: break-word;
 }
 
-.detail-description p,
-.detail-description div {
-  margin: 0 0 1rem 0;
+/* ---------- NUEVOS ESTILOS PARA CITAS, LISTAS Y FORMATOS ---------- */
+.detail-description blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #ccc;
+  background-color: #f9f9f9;
+  font-style: italic;
+  color: #555;
+  border-radius: 0 8px 8px 0;
+}
+
+.detail-description cite {
+  display: block;
+  margin-top: 0.5em;
+  text-align: right;
+  font-style: italic;
+  color: #888;
+  font-size: 0.9em;
 }
 
 .detail-description ul,
@@ -359,6 +374,23 @@
 .detail-description li {
   margin: 0.35rem 0;
 }
+
+.detail-description strong,
+.detail-description b {
+  font-weight: 700;
+}
+
+.detail-description em,
+.detail-description i {
+  font-style: italic;
+}
+
+.detail-description p,
+.detail-description div {
+  margin: 0 0 1rem 0;
+}
+
+/* ---------- FIN NUEVOS ESTILOS ---------- */
 
 .detail-links {
   display: flex;

@@ -1137,6 +1137,57 @@ tr:hover td {
   font-family: 'DM Mono', monospace;
 }
 
+/* ---------- ESTILOS PARA LA DESCRIPCIÓN EN MODAL VER (CITAS) ---------- */
+.description-text {
+  max-height: none;
+  overflow: visible;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+/* Citas */
+.description-text blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #ccc;
+  background-color: #f1f3f5;
+  font-style: italic;
+  color: #3d4d45;
+  border-radius: 0 8px 8px 0;
+}
+
+.description-text cite {
+  display: block;
+  margin-top: 0.5em;
+  text-align: right;
+  font-style: italic;
+  color: #6b7d73;
+  font-size: 0.9em;
+}
+
+/* Listas */
+.description-text ul,
+.description-text ol {
+  margin: 0.5em 0 0.5em 1.5em;
+}
+
+.description-text li {
+  margin-bottom: 0.2em;
+}
+
+/* Negritas y cursivas */
+.description-text strong,
+.description-text b {
+  font-weight: 700;
+}
+
+.description-text em,
+.description-text i {
+  font-style: italic;
+}
+
 /* ---------- UTILIDADES ---------- */
 .empty {
   padding: 48px 20px;
@@ -1398,4 +1449,3 @@ tr:hover td {
     height: 350px !important;
   }
 }
-

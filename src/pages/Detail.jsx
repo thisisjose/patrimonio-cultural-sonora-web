@@ -8,6 +8,7 @@ import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
+import DOMPurify from 'dompurify'; // <--- NUEVA IMPORTACIÓN
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -15,6 +16,7 @@ const buildImageUrl = (value) => {
   return value.startsWith("http") ? value : `${API_HOST}${value}`;
 };
 
+// ---------- ESTA FUNCIÓN SE MANTIENE EXCLUSIVAMENTE PARA EL PDF ----------
 const sanitizeDescriptionHtml = (html) => {
   if (!html) return "";
   const parser = new DOMParser();
@@ -832,7 +834,17 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           )}
 
           <div className="detail-info">
-            <div className="detail-description" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(item.descripcion || "") }} />
+            {/* ---------- DESCRIPCIÓN CON DOMPurify ---------- */}
+            <div
+              className="detail-description"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(item.descripcion || "", {
+                  ADD_TAGS: ['blockquote', 'cite', 'font'],
+                  ADD_ATTR: ['style', 'class', 'color'],
+                  FORBID_TAGS: ['script', 'style', 'iframe'],
+                })
+              }}
+            />
 
             {/* ENLACES RELACIONADOS */}
             {links.length > 0 && (
@@ -1302,3 +1314,4 @@ function Detail() {
 }
 
 export default Detail;
+

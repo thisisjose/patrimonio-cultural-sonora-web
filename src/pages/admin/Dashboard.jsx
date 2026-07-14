@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 
+// Importaciones de servicios
 import {
   getMetricasPatrimonios,
   getAllPatrimoniosAdmin,
@@ -16,11 +17,20 @@ import { useAuth } from "../../Hooks/useAuth";
 import { API_HOST } from "../../services/apiConfig.js";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../../utils/categoryUtils";
 
+// Mapa
 import { MapContainer, TileLayer, useMapEvents, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+
+// Estilos globales
 import "../../styles/pages/admin/Dashboard.css";
 
+// ---------- NUEVO: Importación del editor avanzado ----------
+import Editor from '@webbycrown/react-advanced-richtext-editor';
+import '@webbycrown/react-advanced-richtext-editor/dist/styles.css';
+import DOMPurify from 'dompurify';
+
+// Configuración de iconos de Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -97,189 +107,55 @@ function StaticMap({ ubicaciones }) {
   );
 }
 
-// ---------- SANITIZER HTML ----------
-function sanitizeDescriptionHtml(html) {
-  if (!html) return "";
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
-  const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI", "FONT"]);
+// ---------- SANITIZER HTML (se mantiene para mostrar la descripción en el modal Ver) ----------
+// function sanitizeDescriptionHtml(html) {
+//   if (!html) return "";
+//   const parser = new DOMParser();
+//   const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+//   const allowedTags = new Set(["B", "STRONG", "I", "EM", "P", "DIV", "BR", "UL", "OL", "LI", "FONT"]);
 
-  const cleanNode = (node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return document.createTextNode(node.textContent);
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) {
-      return null;
-    }
+//   const cleanNode = (node) => {
+//     if (node.nodeType === Node.TEXT_NODE) {
+//       return document.createTextNode(node.textContent);
+//     }
+//     if (node.nodeType !== Node.ELEMENT_NODE) {
+//       return null;
+//     }
 
-    const fragment = document.createDocumentFragment();
-    node.childNodes.forEach((child) => {
-      const cleanedChild = cleanNode(child);
-      if (cleanedChild) fragment.appendChild(cleanedChild);
-    });
+//     const fragment = document.createDocumentFragment();
+//     node.childNodes.forEach((child) => {
+//       const cleanedChild = cleanNode(child);
+//       if (cleanedChild) fragment.appendChild(cleanedChild);
+//     });
 
-    const tag = node.tagName.toUpperCase();
-    if (allowedTags.has(tag)) {
-      const el = document.createElement(tag);
-      if (tag === "FONT" && node.hasAttribute("color")) {
-        el.setAttribute("color", node.getAttribute("color"));
-      }
-      el.appendChild(fragment);
-      return el;
-    }
+//     const tag = node.tagName.toUpperCase();
+//     if (allowedTags.has(tag)) {
+//       const el = document.createElement(tag);
+//       if (tag === "FONT" && node.hasAttribute("color")) {
+//         el.setAttribute("color", node.getAttribute("color"));
+//       }
+//       el.appendChild(fragment);
+//       return el;
+//     }
 
-    return fragment;
-  };
+//     return fragment;
+//   };
 
-  const wrapper = document.createElement("div");
-  const source = doc.body.firstChild;
-  if (source) {
-    source.childNodes.forEach((child) => {
-      const cleanedChild = cleanNode(child);
-      if (cleanedChild) wrapper.appendChild(cleanedChild);
-    });
-  }
+//   const wrapper = document.createElement("div");
+//   const source = doc.body.firstChild;
+//   if (source) {
+//     source.childNodes.forEach((child) => {
+//       const cleanedChild = cleanNode(child);
+//       if (cleanedChild) wrapper.appendChild(cleanedChild);
+//     });
+//   }
 
-  let cleanedHtml = wrapper.innerHTML;
-  cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
-  return cleanedHtml.trim();
-}
+//   let cleanedHtml = wrapper.innerHTML;
+//   cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+//   return cleanedHtml.trim();
+// }
 
-// ---------- RICH TEXT EDITOR ----------
-function RichTextEditor({ value, onChange }) {
-  const editorRef = useRef(null);
-  const [focused, setFocused] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('#000000');
-  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-  const pickerRef = useRef(null);
-
-  const presetColors = [
-    '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
-    '#FFA500', '#FF00FF', '#00FFFF', '#808080', '#800000',
-    '#800080', '#008080',
-  ];
-
-  const updateValue = (html) => {
-    const cleanHtml = sanitizeDescriptionHtml(html);
-    if (cleanHtml !== value) {
-      onChange(cleanHtml);
-    }
-  };
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const sanitized = sanitizeDescriptionHtml(value || "");
-    if (editorRef.current.innerHTML !== sanitized) {
-      editorRef.current.innerHTML = sanitized;
-    }
-  }, [value]);
-
-  const applyFormat = (command, commandValue = null) => {
-    document.execCommand(command, false, commandValue);
-    updateValue(editorRef.current?.innerHTML || "");
-    editorRef.current?.focus();
-    if (command === 'foreColor' && commandValue) {
-      setSelectedColor(commandValue);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-        setIsColorPickerOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handlePaste = (event) => {
-    event.preventDefault();
-    const text = event.clipboardData.getData("text/plain");
-    document.execCommand("insertText", false, text);
-  };
-
-  const handleInput = () => {
-    updateValue(editorRef.current?.innerHTML || "");
-  };
-
-  const togglePicker = (e) => {
-    e.preventDefault();
-    setIsColorPickerOpen((prev) => !prev);
-  };
-
-  const handleColorSelect = (color) => {
-    applyFormat('foreColor', color);
-    setIsColorPickerOpen(false);
-  };
-
-  const handleClearColor = () => {
-    applyFormat('foreColor', '#000000');
-    setIsColorPickerOpen(false);
-  };
-
-  return (
-    <div className={`richtext-editor ${focused ? "focused" : ""}`}>
-      <div className="richtext-toolbar">
-        <button type="button" className="editor-button" title="Negrita" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold"); }}><strong>B</strong></button>
-        <button type="button" className="editor-button" title="Cursiva" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic"); }}><em>I</em></button>
-        <button type="button" className="editor-button" title="Párrafo" onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "p"); }}>P</button>
-        <button type="button" className="editor-button" title="Lista con viñetas" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList"); }}>•</button>
-        <button type="button" className="editor-button" title="Lista numerada" onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList"); }}>1.</button>
-
-        <div className="color-picker-dropdown" ref={pickerRef}>
-          <button
-            type="button"
-            className="color-picker-button"
-            title="Color de texto"
-            onMouseDown={togglePicker}
-          >
-            <span className="color-indicator" style={{ backgroundColor: selectedColor }} />
-          </button>
-          {isColorPickerOpen && (
-            <div className="color-picker-dropdown-content">
-              {presetColors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  style={{ backgroundColor: color }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleColorSelect(color);
-                  }}
-                  title={color}
-                />
-              ))}
-              <button
-                type="button"
-                className="clear-color-btn"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleClearColor();
-                }}
-                title="Quitar color (negro)"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <div
-        ref={editorRef}
-        className="editor-content form-input"
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-multiline="true"
-        onFocus={() => setFocused(true)}
-        onBlur={() => { setFocused(false); updateValue(editorRef.current?.innerHTML || ""); }}
-        onInput={handleInput}
-        onPaste={handlePaste}
-      />
-    </div>
-  );
-}
+// ---------- ELIMINADO: componente RichTextEditor personalizado ----------
 
 // ---------- INDICADOR DE PASOS ----------
 const StepIndicator = ({ current, total }) => {
@@ -370,30 +246,30 @@ export default function AdminDashboard() {
   }, [municipios]);
 
   // ---------- CARGA DE DATOS ----------
-const cargarDatos = async (page = 1) => {
-  try {
-    setLoading(true);
-    setError("");
-    const [respPatrimonios, respMunicipios, respTags, respMetricas] = await Promise.all([
-      getAllPatrimoniosAdmin(page, limit),
-      getMunicipios(),
-      getAllTags(),
-      getMetricasPatrimonios(),  
-    ]);
-    setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
-    setTagsList(Array.isArray(respTags) ? respTags : []);
-    const data = respPatrimonios || {};
-    setPatrimonios(data.patrimonios || []);
-    setTotalPages(data.totalPages || 1);
-    setCurrentPage(data.currentPage || page);
-    setTotales(respMetricas || { total: 0, pendientes: 0, registrados: 0 });
-  } catch (err) {
-    console.error(err);
-    setError("No se pudieron cargar los datos.");
-  } finally {
-    setLoading(false);
-  }
-};
+  const cargarDatos = async (page = 1) => {
+    try {
+      setLoading(true);
+      setError("");
+      const [respPatrimonios, respMunicipios, respTags, respMetricas] = await Promise.all([
+        getAllPatrimoniosAdmin(page, limit),
+        getMunicipios(),
+        getAllTags(),
+        getMetricasPatrimonios(),
+      ]);
+      setMunicipios(Array.isArray(respMunicipios) ? respMunicipios : []);
+      setTagsList(Array.isArray(respTags) ? respTags : []);
+      const data = respPatrimonios || {};
+      setPatrimonios(data.patrimonios || []);
+      setTotalPages(data.totalPages || 1);
+      setCurrentPage(data.currentPage || page);
+      setTotales(respMetricas || { total: 0, pendientes: 0, registrados: 0 });
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar los datos.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     cargarDatos(currentPage);
@@ -823,9 +699,6 @@ const cargarDatos = async (page = 1) => {
     return matchesMunicipio && matchesCategoria && matchesEstado && matchesSearch;
   });
 
-  // const registrados = patrimoniosUI.filter((p) => p.estado === "registrado").length;
-  // const pendientes = patrimoniosUI.filter((p) => p.estado === "pendiente").length;
-
   // ---------- LIGHTBOX ----------
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState([]);
@@ -948,7 +821,7 @@ const cargarDatos = async (page = 1) => {
                 </div>
               )}
 
-              {/* PASO 1: DATOS (sin cambios) */}
+              {/* PASO 1: DATOS (con el nuevo editor) */}
               {stepNuevo === 1 && (
                 <div className="section-two-col">
                   <div className="section-left">
@@ -958,9 +831,11 @@ const cargarDatos = async (page = 1) => {
                     </div>
                     <div className="form-section">
                       <h4 className="section-title-small">Descripción</h4>
-                      <RichTextEditor
-                        value={formNuevo.descripcion}
+                      <Editor
+                        value={formNuevo.descripcion || ''}
                         onChange={(value) => setFormNuevo({ ...formNuevo, descripcion: value })}
+                        height={500}
+                        width="100%"
                       />
                     </div>
                   </div>
@@ -1020,7 +895,7 @@ const cargarDatos = async (page = 1) => {
                 </div>
               )}
 
-              {/* PASO 2: UBICACIONES (sin cambios) */}
+              {/* PASO 2: UBICACIONES */}
               {stepNuevo === 2 && (
                 <div className="section-two-col">
                   <div className="section-left">
@@ -1166,96 +1041,103 @@ const cargarDatos = async (page = 1) => {
                 </div>
               )}
 
-              {/* PASO 1: DATOS (sin cambios) */}
-              {stepVer === 1 && (
-                <div className="section-two-col">
-                  <div className="section-left">
-                    <div className="form-section">
-                      <h4 className="section-title-small">Nombre</h4>
-                      <div className="form-value">{modalVer.nombre}</div>
-                    </div>
-                    {modalVer.descripcion && (
-                      <div className="form-section">
-                        <h4 className="section-title-small">Descripción</h4>
-                        <div className="form-value description-text" dangerouslySetInnerHTML={{ __html: sanitizeDescriptionHtml(modalVer.descripcion) }} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="section-right">
-                    <div className="form-section">
-                      <h4 className="section-title-small">Categoría</h4>
-                      <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
-                    </div>
+              {/* PASO 1: DATOS (mostrando descripción con sanitize) */}
+             {stepVer === 1 && (
+  <div className="section-two-col">
+    {/* Columna izquierda: Nombre y Descripción */}
+    <div className="section-left">
+      <div className="form-section">
+        <h4 className="section-title-small">Nombre</h4>
+        <div className="form-value">{modalVer.nombre}</div>
+      </div>
+      {modalVer.descripcion && (
+        <div className="form-section">
+          <h4 className="section-title-small">Descripción</h4>
+          <div
+            className="form-value description-text"
+            dangerouslySetInnerHTML={{ __html: modalVer.descripcion }}
+            style={{ maxHeight: 'none', overflow: 'visible', lineHeight: '1.6' }}
+          />
+        </div>
+      )}
+    </div>
 
-                    <div className="form-section">
-                      <h4 className="section-title-small">Estado</h4>
-                      <div className="view-badges">
-                        <span className={`bst ${modalVer.estado}`}>
-                          <span className={`dot ${modalVer.estado === "registrado" ? "green" : "amber"}`} />
-                          {modalVer.estado === "registrado" ? "Registrado" : "Pendiente"}
-                        </span>
-                        {isSupremo && (
-                          <button
-                            className="ab editar"
-                            onClick={() => handleCambiarEstado(modalVer, modalVer.estado === "pendiente" ? "registrado" : "pendiente")}
-                          >
-                            Cambiar estado
-                          </button>
-                        )}
-                      </div>
-                    </div>
+    {/* Columna derecha: resto de campos */}
+    <div className="section-right">
+      <div className="form-section">
+        <h4 className="section-title-small">Categoría</h4>
+        <span className={`bcat ${getCategoryClass(modalVer.categoria)}`}>{getCategoryLabel(modalVer.categoria)}</span>
+      </div>
 
-                    <div className="form-section">
-                      <h4 className="section-title-small">Municipio</h4>
-                      <div className="form-value">
-                        {municipios.find(m => m.id === modalVer.municipioId)?.nombre || "No especificado"}
-                      </div>
-                    </div>
+      <div className="form-section">
+        <h4 className="section-title-small">Estado</h4>
+        <div className="view-badges">
+          <span className={`bst ${modalVer.estado}`}>
+            <span className={`dot ${modalVer.estado === "registrado" ? "green" : "amber"}`} />
+            {modalVer.estado === "registrado" ? "Registrado" : "Pendiente"}
+          </span>
+          {isSupremo && (
+            <button
+              className="ab editar"
+              onClick={() => handleCambiarEstado(modalVer, modalVer.estado === "pendiente" ? "registrado" : "pendiente")}
+            >
+              Cambiar estado
+            </button>
+          )}
+        </div>
+      </div>
 
-                    <div className="form-section">
-                      <h4 className="section-title-small">Tags</h4>
-                      <div className="tags-list">
-                        {modalVer.tags && modalVer.tags.length > 0 ? (
-                          modalVer.tags.map((tag, idx) => (
-                            <span key={idx} className="tag-badge">
-                              {typeof tag === 'object' ? tag.nombre : tag}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="tag-badge">Sin tags</span>
-                        )}
-                      </div>
-                    </div>
+      <div className="form-section">
+        <h4 className="section-title-small">Municipio</h4>
+        <div className="form-value">
+          {municipios.find(m => m.id === modalVer.municipioId)?.nombre || "No especificado"}
+        </div>
+      </div>
 
-                    <div className="form-section">
-                      <h4 className="section-title-small">Enlaces relacionados</h4>
-                      {modalVer.links && modalVer.links.length > 0 ? (
-                        <div className="links-list-view">
-                          {modalVer.links.map((link, idx) => (
-                            <div key={idx} className="link-item">
-                              <a href={link.url} target="_blank" rel="noopener noreferrer">
-                                {link.titulo || link.url}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="no-tags">Sin enlaces registrados</div>
-                      )}
-                    </div>
+      <div className="form-section">
+        <h4 className="section-title-small">Tags</h4>
+        <div className="tags-list">
+          {modalVer.tags && modalVer.tags.length > 0 ? (
+            modalVer.tags.map((tag, idx) => (
+              <span key={idx} className="tag-badge">
+                {typeof tag === 'object' ? tag.nombre : tag}
+              </span>
+            ))
+          ) : (
+            <span className="tag-badge">Sin tags</span>
+          )}
+        </div>
+      </div>
 
-                    <div className="form-section">
-                      <h4 className="section-title-small">Fechas</h4>
-                      <div className="view-dates">
-                        <div><strong>Registro:</strong> {modalVer.fechaRegistro}</div>
-                        <div><strong>Actualización:</strong> {modalVer.fechaActualizacion}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+      <div className="form-section">
+        <h4 className="section-title-small">Enlaces relacionados</h4>
+        {modalVer.links && modalVer.links.length > 0 ? (
+          <div className="links-list-view">
+            {modalVer.links.map((link, idx) => (
+              <div key={idx} className="link-item">
+                <a href={link.url} target="_blank" rel="noopener noreferrer">
+                  {link.titulo || link.url}
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="no-tags">Sin enlaces registrados</div>
+        )}
+      </div>
 
-              {/* PASO 2: UBICACIONES (sin cambios) */}
+      <div className="form-section">
+        <h4 className="section-title-small">Fechas</h4>
+        <div className="view-dates">
+          <div><strong>Registro:</strong> {modalVer.fechaRegistro}</div>
+          <div><strong>Actualización:</strong> {modalVer.fechaActualizacion}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+              {/* PASO 2: UBICACIONES */}
               {stepVer === 2 && (
                 <div className="section-two-col">
                   <div className="section-left">
@@ -1329,7 +1211,7 @@ const cargarDatos = async (page = 1) => {
             <div className="modal-body">
               <StepIndicator current={stepEditar} total={3} />
 
-              {/* PASO 0: IMÁGENES (sin cambios) */}
+              {/* PASO 0: IMÁGENES */}
               {stepEditar === 0 && (
                 <div className="section-two-col">
                   <div className="section-left">
@@ -1372,7 +1254,7 @@ const cargarDatos = async (page = 1) => {
                 </div>
               )}
 
-              {/* PASO 1 y 2 de Editar (sin cambios) */}
+              {/* PASO 1: DATOS (con el nuevo editor) */}
               {stepEditar === 1 && (
                 <div className="section-two-col">
                   <div className="section-left">
@@ -1382,9 +1264,11 @@ const cargarDatos = async (page = 1) => {
                     </div>
                     <div className="form-section">
                       <h4 className="section-title-small">Descripción</h4>
-                      <RichTextEditor
-                        value={formEditar.descripcion || ""}
+                      <Editor
+                        value={formEditar.descripcion || ''}
                         onChange={(value) => setFormEditar({ ...formEditar, descripcion: value })}
+                        height={500}
+                        width="100%"
                       />
                     </div>
                   </div>
@@ -1579,28 +1463,28 @@ const cargarDatos = async (page = 1) => {
         {error && <div className="error-banner">{error}</div>}
 
         <div className="metrics">
-  <div className="m-card">
-    <div>
-      <div className="m-label">Pendientes</div>
-      <div className="m-value">{totales.pendientes}</div>
-      <div className="m-sub">Requieren revisión</div>
-    </div>
-  </div>
-  <div className="m-card">
-    <div>
-      <div className="m-label">Registrados</div>
-      <div className="m-value">{totales.registrados}</div>
-      <div className="m-sub">Catalogados y activos</div>
-    </div>
-  </div>
-  <div className="m-card">
-    <div>
-      <div className="m-label">Total</div>
-      <div className="m-value">{totales.total}</div>
-      <div className="m-sub">En el inventario</div>
-    </div>
-  </div>
-</div>
+          <div className="m-card">
+            <div>
+              <div className="m-label">Pendientes</div>
+              <div className="m-value">{totales.pendientes}</div>
+              <div className="m-sub">Requieren revisión</div>
+            </div>
+          </div>
+          <div className="m-card">
+            <div>
+              <div className="m-label">Registrados</div>
+              <div className="m-value">{totales.registrados}</div>
+              <div className="m-sub">Catalogados y activos</div>
+            </div>
+          </div>
+          <div className="m-card">
+            <div>
+              <div className="m-label">Total</div>
+              <div className="m-value">{totales.total}</div>
+              <div className="m-sub">En el inventario</div>
+            </div>
+          </div>
+        </div>
 
         <div className="card">
           <div className="tbar">

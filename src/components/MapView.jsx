@@ -5,9 +5,10 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "leaflet.markercluster";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom"; 
+import { useNavigate, useLocation } from "react-router-dom";
 import { normalizeCategoryKey } from "../utils/categoryUtils";
 import slugify from "../utils/slugify";
+import DOMPurify from 'dompurify';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -38,43 +39,7 @@ const parseUbicaciones = (ubicaciones) => {
   return Array.isArray(ubicaciones) ? ubicaciones : [];
 };
 
-const sanitizeHtml = (html) => {
-  if (typeof html !== "string") return "";
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-
-  const sanitizeNode = (node) => {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const tagName = node.tagName.toLowerCase();
-      if (["script", "style", "iframe", "object", "embed", "link", "meta"].includes(tagName)) {
-        node.remove();
-        return;
-      }
-
-      for (const attr of Array.from(node.attributes)) {
-        const name = attr.name.toLowerCase();
-        const value = attr.value.trim().toLowerCase();
-        if (
-          name.startsWith("on") ||
-          name === "srcdoc" ||
-          name === "formaction" ||
-          name === "style" ||
-          (name === "href" && value.startsWith("javascript:")) ||
-          (name === "src" && value.startsWith("javascript:"))
-        ) {
-          node.removeAttribute(attr.name);
-        }
-      }
-    }
-
-    for (const child of Array.from(node.childNodes)) {
-      sanitizeNode(child);
-    }
-  };
-
-  sanitizeNode(doc.body);
-  return doc.body.innerHTML;
-};
+// ---------- ELIMINADA la función sanitizeHtml ----------
 
 const getItemLocations = (item) => {
   const raw = parseUbicaciones(item.ubicaciones);
@@ -151,8 +116,14 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
 
           const desc = document.createElement("p");
           desc.className = "popup-desc";
+
+          // ---------- USO DE DOMPurify CON CONFIGURACIÓN ----------
           desc.innerHTML = item.descripcion
-            ? sanitizeHtml(item.descripcion)
+            ? DOMPurify.sanitize(item.descripcion, {
+                ADD_TAGS: ['blockquote', 'cite', 'font'],
+                ADD_ATTR: ['style', 'class', 'color'],
+                FORBID_TAGS: ['script', 'style', 'iframe'],
+              })
             : "Sin descripción disponible.";
           popupContent.appendChild(desc);
 
@@ -264,7 +235,7 @@ function MapControls({ center, zoom }) {
 
 function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interactive = true, municipios = [] }) {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   const getMunicipioNameForItem = (item) => {
@@ -340,7 +311,7 @@ function MapView({ patrimonios, center = [29.0729, -110.9559], zoom = 7, interac
         getCircleColor={getCircleColor}
         truncateText={truncateText}
         interactive={interactive}
-        getDetailPath={getDetailPath} 
+        getDetailPath={getDetailPath}
       />
       {interactive && <MapControls center={center} zoom={zoom} />}
     </MapContainer>
