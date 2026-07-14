@@ -8,7 +8,7 @@ import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
 import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
-import DOMPurify from 'dompurify'; // <--- NUEVA IMPORTACIÓN
+import DOMPurify from 'dompurify'; 
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -22,13 +22,14 @@ const sanitizeDescriptionHtml = (html) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
 
-  // Eliminamos P y DIV para evitar saltos de bloque no deseados
   const allowedTags = new Set([
-    "B", "STRONG", "I", "EM", "BR", "UL", "OL", "LI", "FONT", "SPAN"
+    "B", "STRONG", "I", "EM", "BR", "UL", "OL", "LI", "FONT", "SPAN",
+    "BLOCKQUOTE", "CITE", "IMG", "U", "DIV", "P"
   ]);
 
-  // Añadimos font-weight y font-style
-  const allowedCssProps = ["color", "background-color", "font-weight", "font-style"];
+  const allowedCssProps = [
+    "color", "background-color", "font-weight", "font-style", "text-decoration"
+  ];
 
   const cleanNode = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -62,6 +63,10 @@ const sanitizeDescriptionHtml = (html) => {
 
       if (tag === "FONT" && node.hasAttribute("color")) {
         el.setAttribute("color", node.getAttribute("color"));
+      }
+
+      if (tag === "IMG" && node.hasAttribute("src")) {
+        el.setAttribute("src", node.getAttribute("src"));
       }
 
       el.appendChild(fragment);
@@ -192,7 +197,13 @@ const normalizePatrimonioData = (item) => {
 // Función para convertir imagen URL a base64
 const urlToBase64 = async (url) => {
   try {
-    const response = await fetch(url);
+    // Si la URL es relativa, construir absoluta
+    let fullUrl = url;
+    if (!url.startsWith('http')) {
+      fullUrl = `${API_HOST}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+    const response = await fetch(fullUrl);
+    if (!response.ok) throw new Error('Network response was not ok');
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -200,7 +211,7 @@ const urlToBase64 = async (url) => {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Error converting image to base64:", error);
+    console.error('Error converting image to base64:', error);
     return null;
   }
 };
@@ -248,111 +259,221 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     //  Extrae estilos (color, bold, italic) de un nodo
     // ------------------------------------------------------------
     const extractStylesFromNode = (node) => {
-      const styles = { color: null, bold: null, italic: null };
+  const styles = { color: null, bold: null, italic: null, underline: null };
 
-      // Atributo 'color' en <font>
-      if (node.tagName.toUpperCase() === "FONT" && node.hasAttribute("color")) {
-        styles.color = node.getAttribute("color");
+  if (node.tagName.toUpperCase() === "FONT" && node.hasAttribute("color")) {
+    styles.color = node.getAttribute("color");
+  }
+
+  const styleAttr = node.getAttribute("style");
+  if (styleAttr) {
+    const rules = styleAttr.split(";").map(s => s.trim()).filter(Boolean);
+    rules.forEach(rule => {
+      const [prop, val] = rule.split(":").map(s => s.trim());
+      if (prop === "color") styles.color = val;
+      if (prop === "font-weight") {
+        if (val === "bold" || val === "700" || val === "bolder") styles.bold = true;
+        else if (val === "normal" || val === "400") styles.bold = false;
       }
-
-      // Atributo style
-      const styleAttr = node.getAttribute("style");
-      if (styleAttr) {
-        const rules = styleAttr.split(";").map(s => s.trim()).filter(Boolean);
-        rules.forEach(rule => {
-          const [prop, val] = rule.split(":").map(s => s.trim());
-          if (prop === "color") styles.color = val;
-          if (prop === "font-weight") {
-            if (val === "bold" || val === "700" || val === "bolder") styles.bold = true;
-            else if (val === "normal" || val === "400") styles.bold = false;
-          }
-          if (prop === "font-style") {
-            if (val === "italic" || val === "oblique") styles.italic = true;
-            else if (val === "normal") styles.italic = false;
-          }
-        });
+      if (prop === "font-style") {
+        if (val === "italic" || val === "oblique") styles.italic = true;
+        else if (val === "normal") styles.italic = false;
       }
+      if (prop === "text-decoration") {
+        if (val === "underline") styles.underline = true;
+        else if (val === "none") styles.underline = false;
+      }
+    });
+  }
 
-      return styles;
-    };
+  if (node.tagName.toUpperCase() === "U") {
+    styles.underline = true;
+  }
+
+  return styles;
+};
 
     // ------------------------------------------------------------
     //  Divide el HTML en bloques (solo texto, sin saltos de párrafo extra)
     // ------------------------------------------------------------
     const splitIntoBlocks = (html) => {
-      const sanitized = sanitizeDescriptionHtml(html);
-      const parser = new DOMParser();
-      const docHtml = parser.parseFromString(`<div>${sanitized}</div>`, "text/html");
-      const root = docHtml.body.firstChild;
-      if (!root) return [];
+  const sanitized = sanitizeDescriptionHtml(html);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${sanitized}</div>`, "text/html");
+  const root = doc.body.firstChild;
+  if (!root) return [];
 
-      // Recoge todos los segmentos y saltos <br> de todo el árbol
-      const collectSegments = (node, style = { bold: false, italic: false }, color = null) => {
-        const segments = [];
+  const blocks = [];
 
-        const walk = (child, currentStyle, currentColor) => {
-          if (child.nodeType === Node.TEXT_NODE) {
-            let text = child.textContent.replace(/\r?\n/g, " ");
-            text = text.replace(/[ \t]+/g, " ");
-            if (text !== "") {
-              segments.push({ text, style: { ...currentStyle }, color: currentColor });
+  const processNode = (node, currentBlock = null) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent.replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      // Si no hay bloque o el bloque actual no es paragraph/blockquote/list, creamos uno
+      let block = currentBlock;
+      if (!block || !['paragraph', 'blockquote', 'list'].includes(block.type)) {
+        block = { type: 'paragraph', segments: [] };
+        blocks.push(block);
+      }
+      // Si es list, no añadimos texto directamente, se maneja en los LI
+      if (block.type === 'list') {
+        // El texto dentro de un LI se añade como segmento del ítem actual
+        const lastItem = block.items && block.items.length > 0 ? block.items[block.items.length - 1] : null;
+        if (lastItem) {
+          lastItem.segments.push({ text, style: {}, color: null });
+        }
+      } else {
+        block.segments.push({ text, style: {}, color: null });
+      }
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const tag = node.tagName.toUpperCase();
+
+    // Salto de línea
+    if (tag === 'BR') {
+      let block = currentBlock || blocks[blocks.length - 1];
+      if (block && block.type === 'paragraph') {
+        block.segments.push({ br: true });
+      } else {
+        // Si no hay bloque, creamos uno con un salto
+        const newBlock = { type: 'paragraph', segments: [{ br: true }] };
+        blocks.push(newBlock);
+      }
+      return;
+    }
+
+    // Imagen
+    if (tag === 'IMG') {
+      const src = node.getAttribute('src');
+      if (src) {
+        blocks.push({ type: 'image', src });
+      }
+      return;
+    }
+
+    // Bloque de cita
+    if (tag === 'BLOCKQUOTE') {
+      const quoteBlock = { type: 'blockquote', segments: [] };
+      blocks.push(quoteBlock);
+      // Procesar hijos dentro del blockquote, pasando el bloque como contexto
+      Array.from(node.childNodes).forEach(child => processNode(child, quoteBlock));
+      return;
+    }
+
+    // Listas
+    if (tag === 'UL' || tag === 'OL') {
+      const listBlock = { type: 'list', ordered: tag === 'OL', items: [] };
+      blocks.push(listBlock);
+      // Procesar hijos (LI)
+      Array.from(node.childNodes).forEach(child => {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName.toUpperCase() === 'LI') {
+          const item = { segments: [] };
+          // Procesar el contenido del LI
+          Array.from(child.childNodes).forEach(subChild => {
+            if (subChild.nodeType === Node.TEXT_NODE) {
+              const text = subChild.textContent.replace(/\s+/g, ' ').trim();
+              if (text) item.segments.push({ text, style: {}, color: null });
+            } else {
+              // Si hay elementos dentro del LI (negritas, etc.) los procesamos
+              // De manera recursiva, pero añadiendo al item actual
+              const processInline = (n) => {
+                if (n.nodeType === Node.TEXT_NODE) {
+                  const t = n.textContent.replace(/\s+/g, ' ').trim();
+                  if (t) item.segments.push({ text: t, style: {}, color: null });
+                  return;
+                }
+                if (n.nodeType !== Node.ELEMENT_NODE) return;
+                const tagInline = n.tagName.toUpperCase();
+                if (['B', 'STRONG', 'I', 'EM', 'U', 'FONT', 'SPAN'].includes(tagInline)) {
+                  const styles = extractStylesFromNode(n);
+                  Array.from(n.childNodes).forEach(gc => {
+                    if (gc.nodeType === Node.TEXT_NODE) {
+                      const t = gc.textContent.replace(/\s+/g, ' ').trim();
+                      if (t) item.segments.push({ text: t, style: styles, color: styles.color || null });
+                    } else {
+                      processInline(gc);
+                    }
+                  });
+                } else {
+                  // Otros elementos, procesar hijos
+                  Array.from(n.childNodes).forEach(gc => processInline(gc));
+                }
+              };
+              processInline(subChild);
             }
-            return;
+          });
+          listBlock.items.push(item);
+        }
+      });
+      return;
+    }
+
+    // Elementos de texto con estilo (P, DIV, SPAN, FONT, etc.)
+    if (['P', 'DIV', 'SPAN', 'FONT', 'B', 'STRONG', 'I', 'EM', 'U', 'CITE'].includes(tag)) {
+      const nodeStyles = extractStylesFromNode(node);
+      // Procesar hijos y añadir al bloque actual (o crear uno)
+      let block = currentBlock;
+      if (!block || !['paragraph', 'blockquote', 'list'].includes(block.type)) {
+        block = { type: 'paragraph', segments: [] };
+        blocks.push(block);
+      }
+      Array.from(node.childNodes).forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          const text = child.textContent.replace(/\s+/g, ' ').trim();
+          if (text) {
+            // Añadir al bloque actual
+            if (block.type === 'list') {
+              const lastItem = block.items && block.items.length > 0 ? block.items[block.items.length - 1] : null;
+              if (lastItem) {
+                lastItem.segments.push({ text, style: nodeStyles, color: nodeStyles.color || null });
+              }
+            } else {
+              block.segments.push({ text, style: nodeStyles, color: nodeStyles.color || null });
+            }
           }
+        } else {
+          // Procesar recursivamente, manteniendo el mismo bloque
+          processNode(child, block);
+        }
+      });
+      return;
+    }
 
-          if (child.nodeType !== Node.ELEMENT_NODE) return;
-          const tag = child.tagName.toUpperCase();
-          if (tag === "BR") {
-            segments.push({ br: true });
-            return;
-          }
+    // Cualquier otro elemento: procesar hijos (por ejemplo, dentro de blockquote)
+    Array.from(node.childNodes).forEach(child => processNode(child, currentBlock));
+  };
 
-          // Extraer estilos del nodo
-          const nodeStyles = extractStylesFromNode(child);
-          const nextStyle = { ...currentStyle };
-          // Aplicar etiquetas
-          if (tag === "B" || tag === "STRONG") nextStyle.bold = true;
-          if (tag === "I" || tag === "EM") nextStyle.italic = true;
-          // Los estilos inline sobreescriben
-          if (nodeStyles.bold !== null) nextStyle.bold = nodeStyles.bold;
-          if (nodeStyles.italic !== null) nextStyle.italic = nodeStyles.italic;
+  // Iniciar procesamiento desde el root
+  Array.from(root.childNodes).forEach(child => processNode(child, null));
 
-          // Color: el inline prevalece sobre el heredado
-          let nextColor = currentColor;
-          if (nodeStyles.color) nextColor = nodeStyles.color;
+  // Limpiar bloques vacíos y fusionar consecutivos del mismo tipo (excepto imágenes y listas)
+  const merged = [];
+  let lastType = null;
+  let currentMerged = null;
+  blocks.forEach(block => {
+    if (block.type === 'paragraph' && (!block.segments || block.segments.length === 0)) return;
+    if (block.type === 'blockquote' && (!block.segments || block.segments.length === 0)) return;
+    if (block.type === 'list' && (!block.items || block.items.length === 0)) return;
+    if (block.type === 'image' && !block.src) return;
 
-          Array.from(child.childNodes).forEach((grandchild) =>
-            walk(grandchild, nextStyle, nextColor)
-          );
-        };
+    // Fusionar bloques consecutivos del mismo tipo (excepto imágenes y listas)
+    if (block.type !== 'image' && block.type !== 'list' && lastType === block.type && currentMerged) {
+      if (block.type === 'paragraph') {
+        currentMerged.segments = currentMerged.segments.concat(block.segments);
+      } else if (block.type === 'blockquote') {
+        currentMerged.segments = currentMerged.segments.concat(block.segments);
+      }
+    } else {
+      merged.push(block);
+      currentMerged = block;
+      lastType = block.type;
+    }
+  });
 
-        Array.from(node.childNodes).forEach((child) => walk(child, style, color));
-        return segments;
-      };
-
-      const allSegments = collectSegments(root);
-      // Dividir por <br>
-      const splitByLineBreaks = (segments) => {
-        const lines = [];
-        let current = [];
-        segments.forEach((seg) => {
-          if (seg.br) {
-            lines.push(current);
-            current = [];
-            return;
-          }
-          current.push(seg);
-        });
-        lines.push(current);
-        return lines.map((line) => line.filter((seg) => seg.text || seg.br));
-      };
-
-      const lines = splitByLineBreaks(allSegments);
-      // Si hay líneas, crear un solo bloque de tipo "paragraph"
-      if (lines.length === 0) return [];
-      return [{ type: "paragraph", segments: lines.flat() }]; // flat para tener todos los segmentos en una lista
-      // Nota: si hubiera listas, habría que manejarlas aparte, pero no es el caso común
-    };
+  return merged;
+};
 
     const isWhitespaceText = (text) => {
       return /^\s+$/.test(text);
@@ -464,52 +585,142 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     };
 
     const renderLine = (lineWords, x, y) => {
-      if (lineWords.length === 0) return;
+  if (lineWords.length === 0) return;
 
-      let currentX = x;
-      lineWords.forEach((word) => {
-        setDocFont(word.style);
-        if (word.color) {
-          doc.setTextColor(word.color);
-        } else {
-          doc.setTextColor(0, 0, 0);
-        }
-        doc.text(word.text, currentX, y);
-        currentX += getStyledTextWidth(word.text, word.style);
+  let currentX = x;
+  lineWords.forEach((word) => {
+    setDocFont(word.style);
+    if (word.color) {
+      doc.setTextColor(word.color);
+    } else {
+      doc.setTextColor(0, 0, 0);
+    }
+    const text = word.text;
+    const textWidth = getStyledTextWidth(text, word.style);
+    doc.text(text, currentX, y);
+    // Subrayado
+    if (word.style && word.style.underline) {
+      doc.setDrawColor(0, 0, 0);
+      const underlineY = y + 0.5; // ajuste fino
+      doc.line(currentX, underlineY, currentX + textWidth, underlineY);
+    }
+    currentX += textWidth;
+  });
+};
+
+   const renderDescriptionBlocks = async (html, x, y, maxWidth, lineHeight) => {
+  const ensureLocalPageSpace = (height, currentY) => {
+    if (currentY + height > pageHeight - margin) {
+      doc.addPage();
+      currentY = margin;
+    }
+    return currentY;
+  };
+
+  const blocks = splitIntoBlocks(html);
+  if (blocks.length === 0) return y;
+
+  const blockSpacing = 3;
+
+  for (const block of blocks) {
+    if (block.type === 'paragraph') {
+      const lines = buildLines(block.segments, maxWidth);
+      lines.forEach((line) => {
+        y = ensureLocalPageSpace(lineHeight, y);
+        renderLine(line, x, y);
+        y += lineHeight;
       });
-    };
+      y += blockSpacing;
+    } else if (block.type === 'blockquote') {
+      const quoteIndent = 10;
+      const borderX = x + 5;
+      const textX = x + quoteIndent + 5;
+      const quoteWidth = maxWidth - quoteIndent - 5;
 
-    const renderDescriptionBlocks = (html, x, y, maxWidth, lineHeight) => {
-      const ensureLocalPageSpace = (height, currentY) => {
-        if (currentY + height > pageHeight - margin) {
-          doc.addPage();
-          currentY = margin;
-        }
-        return currentY;
-      };
+      const lines = buildLines(block.segments, quoteWidth);
+      let totalHeight = lines.length * lineHeight;
+      y = ensureLocalPageSpace(totalHeight + 2, y);
 
-      const blocks = splitIntoBlocks(html);
-      if (blocks.length === 0) return y;
+      // Borde izquierdo
+      doc.setDrawColor(200, 200, 200);
+      doc.line(borderX, y, borderX, y + totalHeight);
 
-      blocks.forEach((block) => {
-        if (block.type === "paragraph") {
-          const lines = buildLines(block.segments, maxWidth);
-          if (lines.length === 0) {
-            y = ensureLocalPageSpace(lineHeight, y);
-            y += lineHeight;
-          }
-          lines.forEach((line) => {
-            y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, x, y);
-            y += lineHeight;
-          });
-          // Sin separación extra entre párrafos
-          return;
-        }
-        // Si hubiera listas, se manejarían aquí, pero no es necesario para este caso
+      lines.forEach((line) => {
+        y = ensureLocalPageSpace(lineHeight, y);
+        renderLine(line, textX, y);
+        y += lineHeight;
       });
-      return y;
-    };
+      y += blockSpacing;
+    } else if (block.type === 'list') {
+      const listIndent = 8;
+      const bulletX = x + 2;
+      const textX = x + listIndent + 4;
+      const listWidth = maxWidth - listIndent - 4;
+
+      // Para cada item
+      block.items.forEach((item, index) => {
+        const lines = buildLines(item.segments, listWidth);
+        let itemHeight = lines.length * lineHeight;
+        y = ensureLocalPageSpace(itemHeight + 2, y);
+
+        // Dibujar viñeta o número
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const bullet = block.ordered ? `${index + 1}.` : '•';
+        const bulletWidth = doc.getTextWidth(bullet);
+        doc.text(bullet, bulletX, y + lineHeight * 0.7); // ajuste vertical
+
+        lines.forEach((line) => {
+          y = ensureLocalPageSpace(lineHeight, y);
+          renderLine(line, textX, y);
+          y += lineHeight;
+        });
+        y += 1; // separación entre items
+      });
+      y += blockSpacing;
+    } else if (block.type === 'image') {
+      const src = block.src;
+      if (!src) continue;
+      try {
+        // Intentar cargar la imagen con timeout
+        const base64 = await Promise.race([
+          urlToBase64(src),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+        ]);
+        if (!base64) {
+          throw new Error('No se pudo convertir a base64');
+        }
+
+        // Dimensiones máximas
+        const maxImageWidth = maxWidth * 0.9;
+        const maxImageHeight = 100; // mm
+
+        // Obtener dimensiones (podríamos usar un canvas para escalar, pero usamos proporción fija 4:3)
+        let imgWidth = maxImageWidth;
+        let imgHeight = maxImageWidth * 0.75;
+        if (imgHeight > maxImageHeight) {
+          imgHeight = maxImageHeight;
+          imgWidth = imgHeight / 0.75;
+        }
+
+        y = ensureLocalPageSpace(imgHeight + 5, y);
+        doc.addImage(base64, 'JPEG', x + (maxWidth - imgWidth) / 2, y, imgWidth, imgHeight);
+        y += imgHeight + 5;
+      } catch (error) {
+        console.warn('Error al insertar imagen en PDF:', error);
+        y = ensureLocalPageSpace(lineHeight, y);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(10);
+        doc.setTextColor(150, 150, 150);
+        doc.text('[Imagen no disponible]', x, y);
+        y += lineHeight;
+      }
+    }
+  }
+
+  return y;
+};
 
     // ===== TÍTULO =====
     doc.setFont("helvetica", "bold");
@@ -546,25 +757,25 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     }
 
     // ===== DESCRIPCIÓN =====
-    currentY += 5;
-    ensurePageSpace(20);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Descripción", margin, currentY);
-    currentY += 8;
+currentY += 5;
+ensurePageSpace(20);
+doc.setFont("helvetica", "bold");
+doc.setFontSize(12);
+doc.setTextColor(0, 0, 0);
+doc.text("Descripción", margin, currentY);
+currentY += 8;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    currentY = renderDescriptionBlocks(
-      item.descripcion || "Sin descripción",
-      margin,
-      currentY,
-      pageWidth - margin * 2,
-      7.5
-    );
-    currentY += 8;
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+doc.setTextColor(0, 0, 0);
+currentY = await renderDescriptionBlocks(   // <--- AÑADE await
+  item.descripcion || "Sin descripción",
+  margin,
+  currentY,
+  pageWidth - margin * 2,
+  7.5
+);
+currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
     if (item.links && item.links.length > 0) {

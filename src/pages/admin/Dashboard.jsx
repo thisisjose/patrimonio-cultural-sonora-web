@@ -1055,8 +1055,7 @@ export default function AdminDashboard() {
           <h4 className="section-title-small">Descripción</h4>
           <div
             className="form-value description-text"
-            dangerouslySetInnerHTML={{ __html: modalVer.descripcion }}
-            style={{ maxHeight: 'none', overflow: 'visible', lineHeight: '1.6' }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(modalVer.descripcion) }}
           />
         </div>
       )}
