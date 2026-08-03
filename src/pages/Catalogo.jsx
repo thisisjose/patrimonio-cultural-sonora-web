@@ -146,41 +146,52 @@ function Catalogo() {
   }, [patrimoniosFiltrados, municipios]);
 
   // Resetear paginación cuando cambian los filtros
-  useEffect(() => {
-    setPaginasPorMunicipio({});
-  }, [busqueda, categoriaSeleccionada, municipioSeleccionado]);
+ useEffect(() => {
+  setPaginasPorMunicipio({});
+}, [busqueda, categoriaSeleccionada, municipioSeleccionado]);
 
-  // Manejar scroll para mostrar/ocultar botón volver arriba
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const threshold = 400;
+// Manejar scroll para mostrar/ocultar botón volver arriba (Versión Estable)
+useEffect(() => {
+  let listoParaDetectar = false;
 
-      if (scrollTop > threshold && !isScrolling) {
-        setMostrarBotonVolver(true);
-        setIsScrolling(true);
-      }
+  // 1. Ocultamos el botón por defecto al entrar a la sección
+  setMostrarBotonVolver(false);
 
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
+  // 2. Le damos 400ms de "ceguera" al listener. 
+  // Esto asegura que el ScrollToTop ya te llevó a (0,0) antes de evaluar.
+  const timer = setTimeout(() => {
+    listoParaDetectar = true;
+    
+    // Opcional: Revisar dónde quedó el scroll después del tiempo de espera
+    // por si el usuario scrolleó súper rápido al entrar
+    const currentScroll = window.scrollY || document.documentElement.scrollTop;
+    if (currentScroll > 400) {
+      setMostrarBotonVolver(true);
+    }
+  }, 400);
 
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false);
-        if (scrollTop <= threshold) {
-          setMostrarBotonVolver(false);
-        }
-      }, 3000);
-    };
+  const handleScroll = () => {
+    // Si estamos en los primeros 400ms del cambio de página, ignoramos todo
+    if (!listoParaDetectar) return;
 
-    window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, [isScrolling]);
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const threshold = 400;
+
+    if (scrollTop > threshold) {
+      setMostrarBotonVolver(true);
+    } else {
+      setMostrarBotonVolver(false);
+    }
+  };
+
+  window.addEventListener("scroll", handleScroll, { passive: true });
+
+  return () => {
+    // Limpiamos tanto el timer como el evento para evitar fugas de memoria
+    clearTimeout(timer);
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, []);
 
   // Manejar cambio de página por municipio
   const handleCambiarPagina = (municipioName, nuevaPagina) => {
@@ -200,10 +211,45 @@ function Catalogo() {
   };
 
   // Manejar botón volver arriba
-  const handleVolverArriba = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setMostrarBotonVolver(false);
+const handleVolverArriba = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+useEffect(() => {
+  let listoParaDetectar = false;
+
+  // 1. Ocultamos el botón inmediatamente al montar
+  setMostrarBotonVolver(false);
+
+  // 2. Esperamos a que el navegador dibuje los primeros cuadros de la página
+  // Esto asegura que el reseteo de ventana ya ocurrió en el DOM móvil
+  const frameId = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      listoParaDetectar = true;
+    });
+  });
+
+  const handleScroll = () => {
+    // Si aún no se ha completado el render inicial o la posición sigue en 0, no evaluamos
+    if (!listoParaDetectar) return;
+
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    
+    // Si la posición de scroll es 0 (estamos arriba), nos aseguramos de mantenerlo oculto
+    if (scrollTop <= 400) {
+      setMostrarBotonVolver(false);
+    } else {
+      setMostrarBotonVolver(true);
+    }
   };
+
+  window.addEventListener("scroll", handleScroll, { passive: true });
+
+  return () => {
+    cancelAnimationFrame(frameId);
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, []);
 
   return (
     <main className="page page-explore">

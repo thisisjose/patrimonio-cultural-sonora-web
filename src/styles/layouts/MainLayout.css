@@ -4,10 +4,23 @@
   color: #fff;
   padding: 1rem 0;
   box-shadow: var(--shadow);
-  position: sticky;
+  position: fixed !important;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 1000;
   border-bottom: 3px solid var(--accent-sand);
+
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.app-container {
+  padding-top: 65px;
 }
 
 .site-header .container {
@@ -75,7 +88,7 @@
   font-weight: 600;
 }
 
-/* Navegación */
+/* Navegación Desktop */
 .nav-links {
   display: flex;
   gap: 2.5rem;
@@ -123,7 +136,7 @@
   color: #fff;
 }
 
-/* Menú móvil */
+/* Menú móvil (Toggle Button) */
 .mobile-toggle {
   display: none;
   background: rgba(255, 255, 255, 0.12);
@@ -170,39 +183,7 @@
 }
 
 .mobile-menu {
-  background: linear-gradient(180deg, rgba(61, 125, 104, 0.95), rgba(47, 95, 82, 0.96));
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-  position: relative;
-  overflow: hidden;
-  color: var(--primary-dark);
-  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.14);
-}
-
-.mobile-menu .nav-link {
-  color: #fff;
-  font-size: 0.96rem;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-}
-
-.mobile-menu .nav-link:hover,
-.mobile-menu .nav-link.active {
-  color: var(--accent-sand);
-}
-
-.mobile-menu::before,
-.mobile-menu::after {
   display: none;
-}
-
-.mobile-menu-inner {
-  padding: 0.9rem 1rem;
-}
-
-.mobile-menu-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 /* ==================== FOOTER ==================== */
@@ -321,27 +302,152 @@
   font-size: 0.85rem;
 }
 
+header a {
+  text-decoration: none;
+}
+
+footer {
+  padding: 1.75rem 0;
+  background: transparent;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-  .site-header .container {
-    gap: 1rem;
+  /* Ocultar barra de navegación de escritorio */
+  .site-header .container > .nav-links {
+    display: none !important;
   }
 
-  .nav-links {
-    display: none;
-  }
-
+  /* Mostrar botón hamburguesa */
   .mobile-toggle {
-    display: flex;
+    display: flex !important;
+  }
+
+  /* Contenedor del Desplegable Móvil */
+  .mobile-menu {
+    display: block !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(180deg, rgba(45, 90, 76, 0.98), rgba(35, 72, 61, 0.98));
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* Transición limpia */
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.25s ease-in-out,
+                visibility 0.25s;
+  }
+
+  .mobile-menu.open {
+    max-height: 260px !important;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .mobile-menu-inner {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Distribución de la lista de enlaces */
+  .mobile-menu-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    width: 100%;
+  }
+
+  /* Estilos de cada enlace del menú desplegable */
+  .mobile-menu .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 42px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    border-radius: 8px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .mobile-menu .nav-link:hover,
+  .mobile-menu .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    color: var(--accent-sand) !important;
+    font-weight: 600 !important;
+  }
+
+  .mobile-menu .nav-link::after {
+    display: none !important;
+  }
+
+  /* Footer Responsive */
+  .site-footer {
+    text-align: center;
+    padding: 2rem 1rem 1.5rem;
   }
 
   .footer-content {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .footer-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
 
   .footer-logo {
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-logo-main, 
+  .footer-logo-sub {
+    text-align: left;
+  }
+
+  .footer-desc {
+    max-width: 320px;
+    margin: 0 auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .footer-links a {
+    text-decoration: none;
+    font-size: 0.9rem;
   }
 }
 
@@ -387,62 +493,5 @@
 
   .footer-bottom p {
     font-size: 0.8rem;
-  }
-}
-
-.mobile-menu .nav-link {
-  padding: 0.75rem 0;
-  display: block;
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.mobile-menu .nav-link:hover,
-.mobile-menu .nav-link.active {
-  color: var(--accent-sand);
-}
-
-.mobile-menu .nav-link::after {
-  bottom: 0;
-}
-
-header a {
-  text-decoration: none;
-}
-
-footer {
-  padding: 1.75rem 0;
-  background: transparent;
-  color: var(--muted);
-  text-align: center;
-  font-size: 0.95rem;
-}
-
-@media (max-width: 720px) {
-  .nav-links {
-    display: none;
-  }
-
-  .mobile-toggle {
-    display: flex;
-  }
-
-  header {
-    padding: 0.75rem 0;
-  }
-
-  .site-header .container {
-    padding: 0 0.75rem;
-  }
-
-  .logo {
-    font-size: 1rem;
-  }
-
-  .logo .mark {
-    width: 40px;
-    height: 40px;
-    font-size: 0.9rem;
   }
 }

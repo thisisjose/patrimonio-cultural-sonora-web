@@ -154,6 +154,7 @@ button, .button {
 
 .btn-primary:hover {
   background: var(--primary-dark);
+  color: #e7674b;
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
@@ -183,6 +184,28 @@ button, .button {
   color: white;
 }
 
+/* Header de Catálogo y ajuste del botón en móvil */
+.explore-header.catalogo-header-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.explore-header.catalogo-header-section .btn-primary {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  border-radius: 50px;
+  box-sizing: border-box;
+}
+
 /* Utility */
 .sr-only {
   position: absolute;
@@ -206,6 +229,21 @@ button, .button {
   outline-offset: 2px;
 }
 
+/*Editor de texto alineacion*/
+.ql-align-center {
+  text-align: center;
+}
+.ql-align-right {
+  text-align: right;
+}
+.ql-align-justify {
+  text-align: justify;
+}
+.ql-align-left {
+  text-align: left;
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
   .hero-title { font-size: 2.2rem; }
@@ -213,6 +251,22 @@ button, .button {
   h3 { font-size: 1.5rem; }
   .lead { font-size: 1rem; }
   .content { padding: 1.5rem 1rem; }
+}
+
+@media (min-width: 768px) {
+  .explore-header.catalogo-header-section {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+
+  .explore-header.catalogo-header-section .btn-primary {
+    align-self: auto;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: var(--radius-base);
+  }
 }
 
 @media (max-width: 480px) {

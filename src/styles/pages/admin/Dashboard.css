@@ -1441,6 +1441,23 @@ tr:hover td {
   height: 500px !important;
 }
 
+
+/* Estilo del editor  de texto*/
+.ql-container {
+  min-height: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  font-family: inherit;
+}
+
+.ql-toolbar {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  background-color: #f9f9f9;
+}
+
 /* Ajuste para pantallas pequeñas: reducir altura para no saturar */
 @media (max-width: 768px) {
   .section-left .leaflet-container,

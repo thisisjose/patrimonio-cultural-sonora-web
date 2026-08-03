@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './Contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
 
-//PAGINAS PUBLICAS
+// PAGINAS PUBLICAS
 import Home from './pages/Home';
 import Acerca from './pages/Acerca';
 import Contacto from './pages/Contacto';
@@ -14,16 +15,27 @@ import Catalogo from './pages/Catalogo';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
-//PAGINAS ADMIN
+// PAGINAS ADMIN
 import AdminDashboard from './pages/admin/Dashboard';
 import Usuarios from './pages/admin/Usuarios';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
+      
       <AuthProvider>
         <Routes>
-          {/* Rutas públicas (MainLayout) */}
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />

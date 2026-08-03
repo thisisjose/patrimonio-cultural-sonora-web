@@ -4,11 +4,18 @@ import slugify from "../utils/slugify";
 import { jsPDF } from "jspdf";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
-import { getPatrimonioById, getPatrimonios } from "../services/patrimonioService";
+import {
+  getPatrimonioById,
+  getPatrimonios,
+} from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import { API_HOST } from "../services/apiConfig.js";
-import { getCategoryClass, getCategoryLabel, normalizeCategoryKey } from "../utils/categoryUtils";
-import DOMPurify from 'dompurify'; 
+import {
+  getCategoryClass,
+  getCategoryLabel,
+  normalizeCategoryKey,
+} from "../utils/categoryUtils";
+import DOMPurify from "dompurify";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -23,12 +30,40 @@ const sanitizeDescriptionHtml = (html) => {
   const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
 
   const allowedTags = new Set([
-    "B", "STRONG", "I", "EM", "BR", "UL", "OL", "LI", "FONT", "SPAN",
-    "BLOCKQUOTE", "CITE", "IMG", "U", "DIV", "P"
+    "B",
+    "STRONG",
+    "I",
+    "EM",
+    "BR",
+    "UL",
+    "OL",
+    "LI",
+    "FONT",
+    "SPAN",
+    "BLOCKQUOTE",
+    "CITE",
+    "IMG",
+    "U",
+    "DIV",
+    "P",
+    "S",
+    "STRIKE",
+    "DEL",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
   ]);
 
   const allowedCssProps = [
-    "color", "background-color", "font-weight", "font-style", "text-decoration"
+    "color",
+    "background-color",
+    "font-weight",
+    "font-style",
+    "text-decoration",
+    "text-align", // <-- AGREGADO
   ];
 
   const cleanNode = (node) => {
@@ -51,14 +86,21 @@ const sanitizeDescriptionHtml = (html) => {
 
       if (node.hasAttribute("style")) {
         const style = node.getAttribute("style");
-        const rules = style.split(";").map(s => s.trim()).filter(Boolean);
-        const filtered = rules.filter(rule => {
-          const [prop] = rule.split(":").map(s => s.trim());
-          return allowedCssProps.includes(prop);
+        const rules = style
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const filtered = rules.filter((rule) => {
+          const [prop] = rule.split(":").map((s) => s.trim());
+          return allowedCssProps.includes(prop.toLowerCase());
         });
         if (filtered.length > 0) {
           el.setAttribute("style", filtered.join("; "));
         }
+      }
+
+      if (node.hasAttribute("class")) {
+        el.setAttribute("class", node.getAttribute("class"));
       }
 
       if (tag === "FONT" && node.hasAttribute("color")) {
@@ -87,6 +129,16 @@ const sanitizeDescriptionHtml = (html) => {
 
   let cleanedHtml = wrapper.innerHTML;
   cleanedHtml = cleanedHtml.replace(/<(p|div)><\/\1>/g, "");
+
+  cleanedHtml = cleanedHtml
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+<\/(strong|b|i|em|u|s|strike|del|span|font)>/gi, "</$1>")
+    .replace(
+      /<\/(strong|b|i|em|u|s|strike|del|span|font)>\s*([^\s<.,;:!?\)])/gi,
+      "</$1> $2",
+    )
+    .replace(/ {2,}/g, " ");
+
   return cleanedHtml.trim();
 };
 
@@ -162,12 +214,14 @@ const buildLocationList = (item) => {
   const lat = item.latitud ?? item.lat ?? null;
   const lng = item.longitud ?? item.lng ?? null;
   if (lat != null && lng != null) {
-    return [{
-      lat,
-      lng,
-      nombre_punto: item.nombre || "Ubicación",
-      municipio: item.municipio || item.municipioId || "",
-    }];
+    return [
+      {
+        lat,
+        lng,
+        nombre_punto: item.nombre || "Ubicación",
+        municipio: item.municipio || item.municipioId || "",
+      },
+    ];
   }
 
   return [];
@@ -181,29 +235,30 @@ const normalizePatrimonioData = (item) => {
     ubicaciones,
     lat: ubicaciones[0]?.lat ?? item.latitud ?? item.lat ?? null,
     lng: ubicaciones[0]?.lng ?? item.longitud ?? item.lng ?? null,
-    imagen: normalizeImage(item.imagen_url || item.imagen || item.portada) || "https://placehold.co/600x400?text=Sin+imagen",
+    imagen:
+      normalizeImage(item.imagen_url || item.imagen || item.portada) ||
+      "https://placehold.co/600x400?text=Sin+imagen",
     tags: Array.isArray(item.tags) ? item.tags : item.tags ? [item.tags] : [],
     galeria: Array.isArray(item.galeria)
       ? item.galeria
       : Array.isArray(item.galeria_actual)
-      ? item.galeria_actual
-      : Array.isArray(item.imagenes)
-      ? item.imagenes
-      : [],
-    links: Array.isArray(item.links) ? item.links : [],  
+        ? item.galeria_actual
+        : Array.isArray(item.imagenes)
+          ? item.imagenes
+          : [],
+    links: Array.isArray(item.links) ? item.links : [],
   };
 };
 
 // Función para convertir imagen URL a base64
 const urlToBase64 = async (url) => {
   try {
-    // Si la URL es relativa, construir absoluta
     let fullUrl = url;
-    if (!url.startsWith('http')) {
-      fullUrl = `${API_HOST}${url.startsWith('/') ? '' : '/'}${url}`;
+    if (!url.startsWith("http")) {
+      fullUrl = `${API_HOST}${url.startsWith("/") ? "" : "/"}${url}`;
     }
     const response = await fetch(fullUrl);
-    if (!response.ok) throw new Error('Network response was not ok');
+    if (!response.ok) throw new Error("Network response was not ok");
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -211,7 +266,7 @@ const urlToBase64 = async (url) => {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error('Error converting image to base64:', error);
+    console.error("Error converting image to base64:", error);
     return null;
   }
 };
@@ -255,245 +310,223 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       return doc.getTextWidth(String(text));
     };
 
-    // ------------------------------------------------------------
-    //  Extrae estilos (color, bold, italic) de un nodo
-    // ------------------------------------------------------------
-    const extractStylesFromNode = (node) => {
-  const styles = { color: null, bold: null, italic: null, underline: null };
-
-  if (node.tagName.toUpperCase() === "FONT" && node.hasAttribute("color")) {
-    styles.color = node.getAttribute("color");
-  }
-
-  const styleAttr = node.getAttribute("style");
-  if (styleAttr) {
-    const rules = styleAttr.split(";").map(s => s.trim()).filter(Boolean);
-    rules.forEach(rule => {
-      const [prop, val] = rule.split(":").map(s => s.trim());
-      if (prop === "color") styles.color = val;
-      if (prop === "font-weight") {
-        if (val === "bold" || val === "700" || val === "bolder") styles.bold = true;
-        else if (val === "normal" || val === "400") styles.bold = false;
-      }
-      if (prop === "font-style") {
-        if (val === "italic" || val === "oblique") styles.italic = true;
-        else if (val === "normal") styles.italic = false;
-      }
-      if (prop === "text-decoration") {
-        if (val === "underline") styles.underline = true;
-        else if (val === "none") styles.underline = false;
-      }
-    });
-  }
-
-  if (node.tagName.toUpperCase() === "U") {
-    styles.underline = true;
-  }
-
-  return styles;
-};
-
-    // ------------------------------------------------------------
-    //  Divide el HTML en bloques (solo texto, sin saltos de párrafo extra)
-    // ------------------------------------------------------------
     const splitIntoBlocks = (html) => {
-  const sanitized = sanitizeDescriptionHtml(html);
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div>${sanitized}</div>`, "text/html");
-  const root = doc.body.firstChild;
-  if (!root) return [];
+      const sanitized = sanitizeDescriptionHtml(html);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(
+        `<div>${sanitized}</div>`,
+        "text/html",
+      );
+      const root = doc.body.firstChild;
+      if (!root) return [];
 
-  const blocks = [];
+      const blocks = [];
 
-  const processNode = (node, currentBlock = null) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent.replace(/\s+/g, ' ').trim();
-      if (!text) return;
-      // Si no hay bloque o el bloque actual no es paragraph/blockquote/list, creamos uno
-      let block = currentBlock;
-      if (!block || !['paragraph', 'blockquote', 'list'].includes(block.type)) {
-        block = { type: 'paragraph', segments: [] };
-        blocks.push(block);
-      }
-      // Si es list, no añadimos texto directamente, se maneja en los LI
-      if (block.type === 'list') {
-        // El texto dentro de un LI se añade como segmento del ítem actual
-        const lastItem = block.items && block.items.length > 0 ? block.items[block.items.length - 1] : null;
-        if (lastItem) {
-          lastItem.segments.push({ text, style: {}, color: null });
+      const processNode = (node, currentBlock = null, inheritedStyles = {}) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent;
+          if (!text || text.trim() === "") return;
+
+          let block = currentBlock;
+          if (!block) {
+            block = {
+              type: "paragraph",
+              align: inheritedStyles.align || "left",
+              segments: [],
+            };
+            blocks.push(block);
+          }
+
+          const segment = {
+            text: text,
+            style: { ...inheritedStyles },
+            color: inheritedStyles.color || null,
+          };
+
+          if (block.type === "list") {
+            const lastItem =
+              block.items && block.items.length > 0
+                ? block.items[block.items.length - 1]
+                : null;
+            if (lastItem) lastItem.segments.push(segment);
+          } else {
+            block.segments.push(segment);
+          }
+          return;
         }
-      } else {
-        block.segments.push({ text, style: {}, color: null });
-      }
-      return;
-    }
 
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-    const tag = node.tagName.toUpperCase();
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        const tag = node.tagName.toUpperCase();
+        const nodeStyles = combineStyles(inheritedStyles, node);
 
-    // Salto de línea
-    if (tag === 'BR') {
-      let block = currentBlock || blocks[blocks.length - 1];
-      if (block && block.type === 'paragraph') {
-        block.segments.push({ br: true });
-      } else {
-        // Si no hay bloque, creamos uno con un salto
-        const newBlock = { type: 'paragraph', segments: [{ br: true }] };
-        blocks.push(newBlock);
-      }
-      return;
-    }
+        if (tag === "BR") {
+          let block = currentBlock || blocks[blocks.length - 1];
+          if (block && block.type === "paragraph") {
+            block.segments.push({ br: true });
+          } else {
+            blocks.push({
+              type: "paragraph",
+              align: nodeStyles.align || inheritedStyles.align || "left",
+              segments: [{ br: true }],
+            });
+          }
+          return;
+        }
 
-    // Imagen
-    if (tag === 'IMG') {
-      const src = node.getAttribute('src');
-      if (src) {
-        blocks.push({ type: 'image', src });
-      }
-      return;
-    }
+        if (["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6"].includes(tag)) {
+          const pBlock = {
+            type: "paragraph",
+            align: nodeStyles.align || inheritedStyles.align || "left",
+            segments: [],
+          };
+          blocks.push(pBlock);
 
-    // Bloque de cita
-    if (tag === 'BLOCKQUOTE') {
-      const quoteBlock = { type: 'blockquote', segments: [] };
-      blocks.push(quoteBlock);
-      // Procesar hijos dentro del blockquote, pasando el bloque como contexto
-      Array.from(node.childNodes).forEach(child => processNode(child, quoteBlock));
-      return;
-    }
+          Array.from(node.childNodes).forEach((child) =>
+            processNode(child, pBlock, nodeStyles),
+          );
+          return;
+        }
 
-    // Listas
-    if (tag === 'UL' || tag === 'OL') {
-      const listBlock = { type: 'list', ordered: tag === 'OL', items: [] };
-      blocks.push(listBlock);
-      // Procesar hijos (LI)
-      Array.from(node.childNodes).forEach(child => {
-        if (child.nodeType === Node.ELEMENT_NODE && child.tagName.toUpperCase() === 'LI') {
-          const item = { segments: [] };
-          // Procesar el contenido del LI
-          Array.from(child.childNodes).forEach(subChild => {
-            if (subChild.nodeType === Node.TEXT_NODE) {
-              const text = subChild.textContent.replace(/\s+/g, ' ').trim();
-              if (text) item.segments.push({ text, style: {}, color: null });
-            } else {
-              // Si hay elementos dentro del LI (negritas, etc.) los procesamos
-              // De manera recursiva, pero añadiendo al item actual
-              const processInline = (n) => {
-                if (n.nodeType === Node.TEXT_NODE) {
-                  const t = n.textContent.replace(/\s+/g, ' ').trim();
-                  if (t) item.segments.push({ text: t, style: {}, color: null });
-                  return;
-                }
-                if (n.nodeType !== Node.ELEMENT_NODE) return;
-                const tagInline = n.tagName.toUpperCase();
-                if (['B', 'STRONG', 'I', 'EM', 'U', 'FONT', 'SPAN'].includes(tagInline)) {
-                  const styles = extractStylesFromNode(n);
-                  Array.from(n.childNodes).forEach(gc => {
-                    if (gc.nodeType === Node.TEXT_NODE) {
-                      const t = gc.textContent.replace(/\s+/g, ' ').trim();
-                      if (t) item.segments.push({ text: t, style: styles, color: styles.color || null });
-                    } else {
-                      processInline(gc);
-                    }
-                  });
-                } else {
-                  // Otros elementos, procesar hijos
-                  Array.from(n.childNodes).forEach(gc => processInline(gc));
-                }
+        if (tag === "BLOCKQUOTE") {
+          const quoteBlock = {
+            type: "blockquote",
+            align: nodeStyles.align || inheritedStyles.align || "left",
+            segments: [],
+          };
+          blocks.push(quoteBlock);
+          Array.from(node.childNodes).forEach((child) =>
+            processNode(child, quoteBlock, nodeStyles),
+          );
+          return;
+        }
+
+        if (tag === "UL" || tag === "OL") {
+          const listBlock = { type: "list", ordered: tag === "OL", items: [] };
+          blocks.push(listBlock);
+          Array.from(node.childNodes).forEach((child) => {
+            if (
+              child.nodeType === Node.ELEMENT_NODE &&
+              child.tagName.toUpperCase() === "LI"
+            ) {
+              const itemStyles = combineStyles(nodeStyles, child);
+              const item = {
+                align: itemStyles.align || "left",
+                segments: [],
               };
-              processInline(subChild);
+              listBlock.items.push(item);
+              Array.from(child.childNodes).forEach((subChild) =>
+                processNode(subChild, listBlock, itemStyles),
+              );
             }
           });
-          listBlock.items.push(item);
+          return;
         }
-      });
-      return;
-    }
 
-    // Elementos de texto con estilo (P, DIV, SPAN, FONT, etc.)
-    if (['P', 'DIV', 'SPAN', 'FONT', 'B', 'STRONG', 'I', 'EM', 'U', 'CITE'].includes(tag)) {
-      const nodeStyles = extractStylesFromNode(node);
-      // Procesar hijos y añadir al bloque actual (o crear uno)
-      let block = currentBlock;
-      if (!block || !['paragraph', 'blockquote', 'list'].includes(block.type)) {
-        block = { type: 'paragraph', segments: [] };
-        blocks.push(block);
-      }
-      Array.from(node.childNodes).forEach(child => {
-        if (child.nodeType === Node.TEXT_NODE) {
-          const text = child.textContent.replace(/\s+/g, ' ').trim();
-          if (text) {
-            // Añadir al bloque actual
-            if (block.type === 'list') {
-              const lastItem = block.items && block.items.length > 0 ? block.items[block.items.length - 1] : null;
-              if (lastItem) {
-                lastItem.segments.push({ text, style: nodeStyles, color: nodeStyles.color || null });
-              }
-            } else {
-              block.segments.push({ text, style: nodeStyles, color: nodeStyles.color || null });
-            }
-          }
-        } else {
-          // Procesar recursivamente, manteniendo el mismo bloque
-          processNode(child, block);
+        Array.from(node.childNodes).forEach((child) =>
+          processNode(child, currentBlock, nodeStyles),
+        );
+      };
+
+      Array.from(root.childNodes).forEach((child) => processNode(child, null));
+
+      return blocks.filter((block) => {
+        if (block.type === "paragraph" || block.type === "blockquote") {
+          return block.segments && block.segments.length > 0;
         }
+        if (block.type === "list") {
+          return block.items && block.items.length > 0;
+        }
+        return true;
       });
-      return;
-    }
-
-    // Cualquier otro elemento: procesar hijos (por ejemplo, dentro de blockquote)
-    Array.from(node.childNodes).forEach(child => processNode(child, currentBlock));
-  };
-
-  // Iniciar procesamiento desde el root
-  Array.from(root.childNodes).forEach(child => processNode(child, null));
-
-  // Limpiar bloques vacíos y fusionar consecutivos del mismo tipo (excepto imágenes y listas)
-  const merged = [];
-  let lastType = null;
-  let currentMerged = null;
-  blocks.forEach(block => {
-    if (block.type === 'paragraph' && (!block.segments || block.segments.length === 0)) return;
-    if (block.type === 'blockquote' && (!block.segments || block.segments.length === 0)) return;
-    if (block.type === 'list' && (!block.items || block.items.length === 0)) return;
-    if (block.type === 'image' && !block.src) return;
-
-    // Fusionar bloques consecutivos del mismo tipo (excepto imágenes y listas)
-    if (block.type !== 'image' && block.type !== 'list' && lastType === block.type && currentMerged) {
-      if (block.type === 'paragraph') {
-        currentMerged.segments = currentMerged.segments.concat(block.segments);
-      } else if (block.type === 'blockquote') {
-        currentMerged.segments = currentMerged.segments.concat(block.segments);
-      }
-    } else {
-      merged.push(block);
-      currentMerged = block;
-      lastType = block.type;
-    }
-  });
-
-  return merged;
-};
-
-    const isWhitespaceText = (text) => {
-      return /^\s+$/.test(text);
     };
 
     const splitWords = (segments) => {
       const tokens = [];
       segments.forEach((seg) => {
         if (!seg.text) return;
-        const parts = seg.text.split(/(\s+)/).filter((part) => part.length > 0);
+        const parts = seg.text.split(/(\s+)/);
         parts.forEach((part) => {
+          if (!part) return;
           tokens.push({
             text: part,
             style: seg.style,
             color: seg.color || null,
-            whitespace: isWhitespaceText(part),
+            whitespace: /^\s+$/.test(part),
           });
         });
       });
       return tokens;
+    };
+
+    const combineStyles = (parentStyles = {}, node) => {
+      const styles = { ...parentStyles };
+      if (!node || node.nodeType !== Node.ELEMENT_NODE) return styles;
+
+      const tag = node.tagName ? node.tagName.toUpperCase() : "";
+
+      // 1. Clases de Quill / editores WYSIWYG
+      if (node.classList) {
+        if (node.classList.contains("ql-align-center")) styles.align = "center";
+        if (node.classList.contains("ql-align-right")) styles.align = "right";
+        if (node.classList.contains("ql-align-justify"))
+          styles.align = "justify";
+      }
+
+      // 2. Estilos inline
+      if (node.getAttribute && node.getAttribute("style")) {
+        const styleAttr = node.getAttribute("style").toLowerCase();
+        if (
+          styleAttr.includes("text-align: center") ||
+          styleAttr.includes("text-align:center")
+        ) {
+          styles.align = "center";
+        } else if (
+          styleAttr.includes("text-align: right") ||
+          styleAttr.includes("text-align:right")
+        ) {
+          styles.align = "right";
+        } else if (
+          styleAttr.includes("text-align: justify") ||
+          styleAttr.includes("text-align:justify")
+        ) {
+          styles.align = "justify";
+        } else if (
+          styleAttr.includes("text-align: left") ||
+          styleAttr.includes("text-align:left")
+        ) {
+          styles.align = "left";
+        }
+
+        if (
+          styleAttr.includes("text-decoration: underline") ||
+          styleAttr.includes("text-decoration:underline")
+        ) {
+          styles.underline = true;
+        }
+        if (
+          styleAttr.includes("text-decoration: line-through") ||
+          styleAttr.includes("text-decoration:line-through")
+        ) {
+          styles.strikethrough = true;
+        }
+      }
+
+      // 3. Atributo HTML align
+      if (node.getAttribute && node.getAttribute("align")) {
+        const alignAttr = node.getAttribute("align").toLowerCase();
+        if (["center", "right", "justify", "left"].includes(alignAttr)) {
+          styles.align = alignAttr;
+        }
+      }
+
+      // Estilos de formato HTML
+      if (tag === "B" || tag === "STRONG") styles.bold = true;
+      if (tag === "I" || tag === "EM") styles.italic = true;
+      if (tag === "U") styles.underline = true;
+      if (tag === "S" || tag === "STRIKE" || tag === "DEL")
+        styles.strikethrough = true;
+
+      return styles;
     };
 
     const splitLongWord = (word, maxWidth) => {
@@ -501,14 +534,18 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       let current = "";
       for (const char of word.text) {
         const test = current + char;
-        if (getStyledTextWidth(test, word.style) <= maxWidth || current === "") {
+        if (
+          getStyledTextWidth(test, word.style) <= maxWidth ||
+          current === ""
+        ) {
           current = test;
         } else {
           chunks.push({ text: current, style: word.style, color: word.color });
           current = char;
         }
       }
-      if (current) chunks.push({ text: current, style: word.style, color: word.color });
+      if (current)
+        chunks.push({ text: current, style: word.style, color: word.color });
       return chunks;
     };
 
@@ -584,143 +621,195 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       return lines;
     };
 
-    const renderLine = (lineWords, x, y) => {
-  if (lineWords.length === 0) return;
+    const renderLine = (lineWords, x, y, maxWidth, align = "left") => {
+      if (!lineWords || lineWords.length === 0) return;
 
-  let currentX = x;
-  lineWords.forEach((word) => {
-    setDocFont(word.style);
-    if (word.color) {
-      doc.setTextColor(word.color);
-    } else {
-      doc.setTextColor(0, 0, 0);
-    }
-    const text = word.text;
-    const textWidth = getStyledTextWidth(text, word.style);
-    doc.text(text, currentX, y);
-    // Subrayado
-    if (word.style && word.style.underline) {
-      doc.setDrawColor(0, 0, 0);
-      const underlineY = y + 0.5; // ajuste fino
-      doc.line(currentX, underlineY, currentX + textWidth, underlineY);
-    }
-    currentX += textWidth;
-  });
-};
+      doc.setFontSize(10);
 
-   const renderDescriptionBlocks = async (html, x, y, maxWidth, lineHeight) => {
-  const ensureLocalPageSpace = (height, currentY) => {
-    if (currentY + height > pageHeight - margin) {
-      doc.addPage();
-      currentY = margin;
-    }
-    return currentY;
-  };
-
-  const blocks = splitIntoBlocks(html);
-  if (blocks.length === 0) return y;
-
-  const blockSpacing = 3;
-
-  for (const block of blocks) {
-    if (block.type === 'paragraph') {
-      const lines = buildLines(block.segments, maxWidth);
-      lines.forEach((line) => {
-        y = ensureLocalPageSpace(lineHeight, y);
-        renderLine(line, x, y);
-        y += lineHeight;
-      });
-      y += blockSpacing;
-    } else if (block.type === 'blockquote') {
-      const quoteIndent = 10;
-      const borderX = x + 5;
-      const textX = x + quoteIndent + 5;
-      const quoteWidth = maxWidth - quoteIndent - 5;
-
-      const lines = buildLines(block.segments, quoteWidth);
-      let totalHeight = lines.length * lineHeight;
-      y = ensureLocalPageSpace(totalHeight + 2, y);
-
-      // Borde izquierdo
-      doc.setDrawColor(200, 200, 200);
-      doc.line(borderX, y, borderX, y + totalHeight);
-
-      lines.forEach((line) => {
-        y = ensureLocalPageSpace(lineHeight, y);
-        renderLine(line, textX, y);
-        y += lineHeight;
-      });
-      y += blockSpacing;
-    } else if (block.type === 'list') {
-      const listIndent = 8;
-      const bulletX = x + 2;
-      const textX = x + listIndent + 4;
-      const listWidth = maxWidth - listIndent - 4;
-
-      // Para cada item
-      block.items.forEach((item, index) => {
-        const lines = buildLines(item.segments, listWidth);
-        let itemHeight = lines.length * lineHeight;
-        y = ensureLocalPageSpace(itemHeight + 2, y);
-
-        // Dibujar viñeta o número
-        doc.setFont('helvetica', 'normal');
+      let totalLineWidth = 0;
+      lineWords.forEach((word) => {
+        setDocFont(word.style);
         doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        const bullet = block.ordered ? `${index + 1}.` : '•';
-        const bulletWidth = doc.getTextWidth(bullet);
-        doc.text(bullet, bulletX, y + lineHeight * 0.7); // ajuste vertical
-
-        lines.forEach((line) => {
-          y = ensureLocalPageSpace(lineHeight, y);
-          renderLine(line, textX, y);
-          y += lineHeight;
-        });
-        y += 1; // separación entre items
+        totalLineWidth += getStyledTextWidth(word.text, word.style);
       });
-      y += blockSpacing;
-    } else if (block.type === 'image') {
-      const src = block.src;
-      if (!src) continue;
-      try {
-        // Intentar cargar la imagen con timeout
-        const base64 = await Promise.race([
-          urlToBase64(src),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]);
-        if (!base64) {
-          throw new Error('No se pudo convertir a base64');
-        }
 
-        // Dimensiones máximas
-        const maxImageWidth = maxWidth * 0.9;
-        const maxImageHeight = 100; // mm
+      let currentX = x;
+      const cleanAlign = String(align || "left")
+        .toLowerCase()
+        .trim();
 
-        // Obtener dimensiones (podríamos usar un canvas para escalar, pero usamos proporción fija 4:3)
-        let imgWidth = maxImageWidth;
-        let imgHeight = maxImageWidth * 0.75;
-        if (imgHeight > maxImageHeight) {
-          imgHeight = maxImageHeight;
-          imgWidth = imgHeight / 0.75;
-        }
-
-        y = ensureLocalPageSpace(imgHeight + 5, y);
-        doc.addImage(base64, 'JPEG', x + (maxWidth - imgWidth) / 2, y, imgWidth, imgHeight);
-        y += imgHeight + 5;
-      } catch (error) {
-        console.warn('Error al insertar imagen en PDF:', error);
-        y = ensureLocalPageSpace(lineHeight, y);
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(10);
-        doc.setTextColor(150, 150, 150);
-        doc.text('[Imagen no disponible]', x, y);
-        y += lineHeight;
+      if (cleanAlign === "center") {
+        currentX = x + Math.max(0, (maxWidth - totalLineWidth) / 2);
+      } else if (cleanAlign === "right") {
+        currentX = x + Math.max(0, maxWidth - totalLineWidth);
       }
-    }
-  }
 
-  return y;
-};
+      lineWords.forEach((word) => {
+        setDocFont(word.style);
+        doc.setFontSize(10);
+
+        if (word.color) {
+          doc.setTextColor(word.color);
+          doc.setDrawColor(word.color);
+        } else {
+          doc.setTextColor(0, 0, 0);
+          doc.setDrawColor(0, 0, 0);
+        }
+
+        const text = word.text;
+        const textWidth = getStyledTextWidth(text, word.style);
+        doc.text(text, currentX, y);
+
+        if (word.style && word.style.underline) {
+          doc.setLineWidth(0.2);
+          doc.line(currentX, y + 0.8, currentX + textWidth, y + 0.8);
+        }
+
+        if (word.style && word.style.strikethrough) {
+          doc.setLineWidth(0.2);
+          doc.line(currentX, y - 1.2, currentX + textWidth, y - 1.2);
+        }
+
+        currentX += textWidth;
+      });
+    };
+
+    const renderDescriptionBlocks = async (
+      html,
+      x,
+      y,
+      maxWidth,
+      lineHeight,
+    ) => {
+      const ensureLocalPageSpace = (height, currentY) => {
+        if (currentY + height > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        return currentY;
+      };
+
+      const blocks = splitIntoBlocks(html);
+      if (blocks.length === 0) return y;
+
+      const blockSpacing = 3;
+
+      for (const block of blocks) {
+        if (block.type === "paragraph") {
+          const align =
+            block.align ||
+            block.segments?.find((s) => s.style?.align)?.style?.align ||
+            "left";
+          const lines = buildLines(block.segments, maxWidth);
+
+          lines.forEach((line) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, x, y, maxWidth, align);
+            y += lineHeight;
+          });
+          y += blockSpacing;
+        } else if (block.type === "blockquote") {
+          const quoteIndent = 10;
+          const borderX = x + 5;
+          const textX = x + quoteIndent + 5;
+          const quoteWidth = maxWidth - quoteIndent - 5;
+
+          const align =
+            block.align ||
+            block.segments?.find((s) => s.style?.align)?.style?.align ||
+            "left";
+          const lines = buildLines(block.segments, quoteWidth);
+          let totalHeight = lines.length * lineHeight;
+          y = ensureLocalPageSpace(totalHeight + 2, y);
+
+          doc.setDrawColor(200, 200, 200);
+          doc.line(borderX, y, borderX, y + totalHeight);
+
+          lines.forEach((line) => {
+            y = ensureLocalPageSpace(lineHeight, y);
+            renderLine(line, textX, y, quoteWidth, align);
+            y += lineHeight;
+          });
+          y += blockSpacing;
+        } else if (block.type === "list") {
+          const listIndent = 8;
+          const bulletX = x + 2;
+          const textX = x + listIndent + 2;
+          const listWidth = maxWidth - listIndent - 2;
+
+          block.items.forEach((item, index) => {
+            const align =
+              item.align ||
+              item.segments?.find((s) => s.style?.align)?.style?.align ||
+              "left";
+            const lines = buildLines(item.segments, listWidth);
+            if (lines.length === 0) return;
+
+            let itemHeight = lines.length * lineHeight;
+            y = ensureLocalPageSpace(itemHeight + 2, y);
+
+            setDocFont({ bold: false, italic: false });
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            const bullet = block.ordered ? `${index + 1}.` : "•";
+            doc.text(bullet, bulletX, y);
+
+            lines.forEach((line) => {
+              renderLine(line, textX, y, listWidth, align);
+              y += lineHeight;
+            });
+
+            y += 1;
+          });
+          y += blockSpacing;
+        } else if (block.type === "image") {
+          const src = block.src;
+          if (!src) continue;
+          try {
+            const base64 = await Promise.race([
+              urlToBase64(src),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 5000),
+              ),
+            ]);
+            if (!base64) {
+              throw new Error("No se pudo convertir a base64");
+            }
+
+            const maxImageWidth = maxWidth * 0.9;
+            const maxImageHeight = 100;
+
+            let imgWidth = maxImageWidth;
+            let imgHeight = maxImageWidth * 0.75;
+            if (imgHeight > maxImageHeight) {
+              imgHeight = maxImageHeight;
+              imgWidth = imgHeight / 0.75;
+            }
+
+            y = ensureLocalPageSpace(imgHeight + 5, y);
+            doc.addImage(
+              base64,
+              "JPEG",
+              x + (maxWidth - imgWidth) / 2,
+              y,
+              imgWidth,
+              imgHeight,
+            );
+            y += imgHeight + 5;
+          } catch (error) {
+            console.warn("Error al insertar imagen en PDF:", error);
+            y = ensureLocalPageSpace(lineHeight, y);
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(150, 150, 150);
+            doc.text("[Imagen no disponible]", x, y);
+            y += lineHeight;
+          }
+        }
+      }
+
+      return y;
+    };
 
     // ===== TÍTULO =====
     doc.setFont("helvetica", "bold");
@@ -728,7 +817,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setTextColor(0, 0, 0);
     const titleLines = doc.splitTextToSize(item.nombre, pageWidth - margin * 2);
     doc.text(titleLines, margin, currentY);
-    currentY += (titleLines.length * 10) + 5;
+    currentY += titleLines.length * 10 + 5;
 
     // ===== INFORMACIÓN BÁSICA =====
     doc.setFont("helvetica", "italic");
@@ -750,32 +839,37 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 0, 0);
-      const tagText = item.tags.map((t) => (typeof t === "string" ? t : t.nombre)).join(", ");
-      const tagLines = doc.splitTextToSize(tagText, pageWidth - margin * 2 - 20);
+      const tagText = item.tags
+        .map((t) => (typeof t === "string" ? t : t.nombre))
+        .join(", ");
+      const tagLines = doc.splitTextToSize(
+        tagText,
+        pageWidth - margin * 2 - 20,
+      );
       doc.text(tagLines, margin + 20, currentY);
-      currentY += (tagLines.length * 5) + 5;
+      currentY += tagLines.length * 5 + 5;
     }
 
     // ===== DESCRIPCIÓN =====
-currentY += 5;
-ensurePageSpace(20);
-doc.setFont("helvetica", "bold");
-doc.setFontSize(12);
-doc.setTextColor(0, 0, 0);
-doc.text("Descripción", margin, currentY);
-currentY += 8;
+    currentY += 5;
+    ensurePageSpace(20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Descripción", margin, currentY);
+    currentY += 8;
 
-doc.setFont("helvetica", "normal");
-doc.setFontSize(10);
-doc.setTextColor(0, 0, 0);
-currentY = await renderDescriptionBlocks(   // <--- AÑADE await
-  item.descripcion || "Sin descripción",
-  margin,
-  currentY,
-  pageWidth - margin * 2,
-  7.5
-);
-currentY += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    currentY = await renderDescriptionBlocks(
+      item.descripcion || "Sin descripción",
+      margin,
+      currentY,
+      pageWidth - margin * 2,
+      7.5,
+    );
+    currentY += 8;
 
     // ===== ENLACES RELACIONADOS =====
     if (item.links && item.links.length > 0) {
@@ -820,7 +914,7 @@ currentY += 8;
 
       const imagesPerRow = 3;
       const gap = 3;
-      const availableWidth = pageWidth - (margin * 2) - (gap * (imagesPerRow - 1));
+      const availableWidth = pageWidth - margin * 2 - gap * (imagesPerRow - 1);
       const imageWidth = availableWidth / imagesPerRow;
       const imageHeight = imageWidth * 0.75;
       const imagesToShow = Math.min(images.length, 6);
@@ -837,7 +931,10 @@ currentY += 8;
               rowY += imageHeight + gap;
             }
 
-            if (rowY + imageHeight > doc.internal.pageSize.getHeight() - margin) {
+            if (
+              rowY + imageHeight >
+              doc.internal.pageSize.getHeight() - margin
+            ) {
               doc.addPage();
               rowY = margin;
             }
@@ -845,10 +942,10 @@ currentY += 8;
             doc.addImage(
               base64Image,
               "JPEG",
-              margin + (colIndex * (imageWidth + gap)),
+              margin + colIndex * (imageWidth + gap),
               rowY,
               imageWidth,
-              imageHeight
+              imageHeight,
             );
           }
         } catch (error) {
@@ -881,7 +978,10 @@ currentY += 8;
         const title = link?.titulo || link?.title || url;
         if (!url) continue;
         const sourceText = `${title}: ${url}`;
-        const sourceLines = doc.splitTextToSize(sourceText, pageWidth - margin * 2);
+        const sourceLines = doc.splitTextToSize(
+          sourceText,
+          pageWidth - margin * 2,
+        );
         sourceLines.forEach((line) => {
           if (currentY > doc.internal.pageSize.getHeight() - margin) {
             doc.addPage();
@@ -937,7 +1037,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
-  const links = Array.isArray(item.links) ? item.links : [];   // ← NUEVO
+  const links = Array.isArray(item.links) ? item.links : [];
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
   const navigate = useNavigate();
@@ -952,27 +1052,28 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
   const handleCategoryClick = (categoria) => {
     if (!categoria) return;
-    navigate(`${adminBase}/explorar/categoria/${encodeURIComponent(normalizeCategoryKey(categoria))}`);
+    navigate(
+      `${adminBase}/explorar/categoria/${encodeURIComponent(normalizeCategoryKey(categoria))}`,
+    );
   };
 
   const handleTagClick = (tag) => {
     const value = formatTag(tag).trim();
     if (!value) return;
-    navigate(`${adminBase}/explorar/tag/${encodeURIComponent(value.toLowerCase())}`);
+    navigate(
+      `${adminBase}/explorar/tag/${encodeURIComponent(value.toLowerCase())}`,
+    );
   };
 
-  const formatCoordinate = (value) => {
-    if (typeof value === "number") return value.toFixed(5);
-    if (value == null || value === "") return "";
-    return String(value);
-  };
-
-  const googleMapsUrl = mainLocation.lat != null && mainLocation.lng != null
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
-    : null;
+  const googleMapsUrl =
+    mainLocation.lat != null && mainLocation.lng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
+      : null;
 
   const prevImage = () => {
-    setCurrentImageIndex((current) => (current - 1 + images.length) % images.length);
+    setCurrentImageIndex(
+      (current) => (current - 1 + images.length) % images.length,
+    );
   };
 
   const nextImage = () => {
@@ -994,7 +1095,10 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
       <div className="detail-layout">
         <section className="detail-card">
-          <div className="detail-image-container" aria-label={`Galería de ${item.nombre}`}>
+          <div
+            className="detail-image-container"
+            aria-label={`Galería de ${item.nombre}`}
+          >
             <img
               src={images[currentImageIndex]}
               alt={`${item.nombre} foto ${currentImageIndex + 1}`}
@@ -1016,7 +1120,11 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
           {images.length > 1 && (
             <div className="detail-carousel-controls">
-              <button type="button" className="btn-secondary" onClick={prevImage}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={prevImage}
+              >
                 Anterior
               </button>
               <span className="carousel-counter">
@@ -1038,33 +1146,38 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                   className={`thumb-button ${index === currentImageIndex ? "active" : ""}`}
                   aria-label={`Ver imagen ${index + 1}`}
                 >
-                  <img src={src} alt={`${item.nombre} miniatura ${index + 1}`} />
+                  <img
+                    src={src}
+                    alt={`${item.nombre} miniatura ${index + 1}`}
+                  />
                 </button>
               ))}
             </div>
           )}
 
           <div className="detail-info">
-            {/* ---------- DESCRIPCIÓN CON DOMPurify ---------- */}
             <div
               className="detail-description"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(item.descripcion || "", {
-                  ADD_TAGS: ['blockquote', 'cite', 'font'],
-                  ADD_ATTR: ['style', 'class', 'color'],
-                  FORBID_TAGS: ['script', 'style', 'iframe'],
-                })
+                  ADD_TAGS: ["blockquote", "cite", "font"],
+                  ADD_ATTR: ["style", "class", "color"],
+                  FORBID_TAGS: ["script", "style", "iframe"],
+                }),
               }}
             />
 
-            {/* ENLACES RELACIONADOS */}
             {links.length > 0 && (
               <div className="detail-links">
                 <h3 className="section-title-small">Enlaces relacionados</h3>
                 <ul className="links-list">
                   {links.map((link, idx) => (
                     <li key={idx}>
-                      <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         {link.titulo}
                       </a>
                     </li>
@@ -1074,21 +1187,35 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             )}
 
             <div className="detail-category-below">
-              Categoría: <button type="button" className={`category-badge ${getCategoryClass(item.categoria)}`} onClick={() => handleCategoryClick(item.categoria)}>{displayCategoryLabel(item.categoria)}</button>
+              Categoría:{" "}
+              <button
+                type="button"
+                className={`category-badge ${getCategoryClass(item.categoria)}`}
+                onClick={() => handleCategoryClick(item.categoria)}
+              >
+                {displayCategoryLabel(item.categoria)}
+              </button>
             </div>
 
             <div className="detail-tags-below">
               {tags.length > 0 ? (
                 <>
-                  Etiqueta{tags.length > 1 ? "s" : ""}: {" "}
+                  Etiqueta{tags.length > 1 ? "s" : ""}:{" "}
                   {tags.map((tag, index) => (
-                    <button key={index} type="button" className="tag-badge" onClick={() => handleTagClick(tag)}>
+                    <button
+                      key={index}
+                      type="button"
+                      className="tag-badge"
+                      onClick={() => handleTagClick(tag)}
+                    >
                       {formatTag(tag)}
                     </button>
                   ))}
                 </>
               ) : (
-                <>Etiquetas: <span className="tag-badge">Sin etiquetas</span></>
+                <>
+                  Etiquetas: <span className="tag-badge">Sin etiquetas</span>
+                </>
               )}
             </div>
           </div>
@@ -1099,7 +1226,10 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
           <div className="detail-map">
             <MapView
               patrimonios={[item]}
-              center={[mainLocation.lat ?? 29.0729, mainLocation.lng ?? -110.9559]}
+              center={[
+                mainLocation.lat ?? 29.0729,
+                mainLocation.lng ?? -110.9559,
+              ]}
               zoom={15}
               interactive={false}
             />
@@ -1111,7 +1241,10 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
               </h3>
               <ul>
                 {ubicaciones.map((ubi, index) => (
-                  <li key={`${ubi.lat}-${ubi.lng}-${index}`} className="location-item">
+                  <li
+                    key={`${ubi.lat}-${ubi.lng}-${index}`}
+                    className="location-item"
+                  >
                     <div className="location-name">
                       {ubi.nombre_punto || `Ubicación ${index + 1}`}
                     </div>
@@ -1156,8 +1289,16 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
       </div>
 
       {isImageOpen && (
-        <div className="image-modal" role="dialog" aria-modal="true" onClick={() => setIsImageOpen(false)}>
-          <div className="image-modal-inner" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="image-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setIsImageOpen(false)}
+        >
+          <div
+            className="image-modal-inner"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               aria-label="Cerrar imagen"
@@ -1189,7 +1330,9 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 }
 
 function Detail() {
+  // 1. TODOS LOS HOOKS DECLARADOS AL PRINCIPIO
   const { id, slug, municipio } = useParams();
+  const location = useLocation(); // <-- Mover aquí para evitar violar la regla de Hooks
   const [patrimonio, setPatrimonio] = useState();
   const [municipios, setMunicipios] = useState([]);
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
@@ -1237,16 +1380,19 @@ function Detail() {
               const nameMatch = slugify(it.nombre) === String(slug);
               if (!nameMatch) return false;
               if (municipio) {
-                const mi = (it.municipio && typeof it.municipio === "string")
-                  ? it.municipio
-                  : it.municipio && typeof it.municipio === "object"
-                  ? it.municipio.nombre || it.municipio.nombre_corto
-                  : it.municipioNombre || it.municipio_nombre || null;
+                const mi =
+                  it.municipio && typeof it.municipio === "string"
+                    ? it.municipio
+                    : it.municipio && typeof it.municipio === "object"
+                      ? it.municipio.nombre || it.municipio.nombre_corto
+                      : it.municipioNombre || it.municipio_nombre || null;
 
                 if (mi) return slugify(mi) === String(municipio);
 
                 if (it.municipioId && Array.isArray(municipiosData)) {
-                  const m = municipiosData.find((m) => String(m.id) === String(it.municipioId));
+                  const m = municipiosData.find(
+                    (m) => String(m.id) === String(it.municipioId),
+                  );
                   if (m) return slugify(m.nombre) === String(municipio);
                 }
 
@@ -1334,31 +1480,28 @@ function Detail() {
     if (!selectedMunicipioId) return [];
 
     return municipioPatrimonios.filter((item) => {
-      const matchesSearch = busquedaMunicipio.trim() === ""
-        ? true
-        : String(item.nombre || "").toLowerCase().includes(busquedaMunicipio.trim().toLowerCase());
+      const matchesSearch =
+        busquedaMunicipio.trim() === ""
+          ? true
+          : String(item.nombre || "")
+              .toLowerCase()
+              .includes(busquedaMunicipio.trim().toLowerCase());
 
       const matchesCategory = !categoriaMunicipio
         ? true
-        : normalizeCategoryKey(item.categoria) === normalizeCategoryKey(categoriaMunicipio);
+        : normalizeCategoryKey(item.categoria) ===
+          normalizeCategoryKey(categoriaMunicipio);
 
       return matchesSearch && matchesCategory;
     });
-  }, [municipioPatrimonios, busquedaMunicipio, categoriaMunicipio, selectedMunicipioId]);
+  }, [
+    municipioPatrimonios,
+    busquedaMunicipio,
+    categoriaMunicipio,
+    selectedMunicipioId,
+  ]);
 
-  const getPageNumbers = (paginaActual, totalPaginas) => {
-    const inicio = Math.max(1, paginaActual - 1);
-    const longitud = Math.min(3, totalPaginas - (inicio - 1));
-    return Array.from({ length: longitud }, (_, i) => inicio + i).filter(
-      (numero) => numero >= 1 && numero <= totalPaginas
-    );
-  };
-
-  const itemsPorPagina = 4;
-  const totalPaginasMunicipio = Math.ceil(filteredMunicipioPatrimonios.length / itemsPorPagina);
-  const indicieInicio = (paginaMunicipio - 1) * itemsPorPagina;
-  const patrimoniosPaginados = filteredMunicipioPatrimonios.slice(indicieInicio, indicieInicio + itemsPorPagina);
-
+  // 2. RETORNOS CONDICIONALES / EARLY RETURNS SÓLO DESPUÉS DE LOS HOOKS
   if (patrimonio === undefined) {
     return null;
   }
@@ -1367,13 +1510,31 @@ function Detail() {
     return <h2 className="heading-2">Patrimonio no encontrado</h2>;
   }
 
-  const nombreMunicipio = patrimonio && patrimonio.municipioId
-    ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))?.nombre || "Municipio"
-    : "Municipio";
+  const getPageNumbers = (paginaActual, totalPaginas) => {
+    const inicio = Math.max(1, paginaActual - 1);
+    const longitud = Math.min(3, totalPaginas - (inicio - 1));
+    return Array.from({ length: longitud }, (_, i) => inicio + i).filter(
+      (numero) => numero >= 1 && numero <= totalPaginas,
+    );
+  };
 
-  const location = useLocation();
+  const itemsPorPagina = 4;
+  const totalPaginasMunicipio = Math.ceil(
+    filteredMunicipioPatrimonios.length / itemsPorPagina,
+  );
+  const indicieInicio = (paginaMunicipio - 1) * itemsPorPagina;
+  const patrimoniosPaginados = filteredMunicipioPatrimonios.slice(
+    indicieInicio,
+    indicieInicio + itemsPorPagina,
+  );
+
+  const nombreMunicipio =
+    patrimonio && patrimonio.municipioId
+      ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))
+          ?.nombre || "Municipio"
+      : "Municipio";
+
   const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "/";
-
   const showMunicipioDetails = Boolean(selectedMunicipioId);
 
   return (
@@ -1448,12 +1609,18 @@ function Detail() {
           {municipioLoading ? (
             <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
           ) : filteredMunicipioPatrimonios.length === 0 ? (
-            <p className="lead">No se encontraron patrimonios en {nombreMunicipio}.</p>
+            <p className="lead">
+              No se encontraron patrimonios en {nombreMunicipio}.
+            </p>
           ) : (
             <>
               <div className="municipio-results">
                 {patrimoniosPaginados.map((item) => (
-                  <PatrimonioDetailEntry key={item.id} item={item} municipioNombre={nombreMunicipio} />
+                  <PatrimonioDetailEntry
+                    key={item.id}
+                    item={item}
+                    municipioNombre={nombreMunicipio}
+                  />
                 ))}
               </div>
 
@@ -1461,7 +1628,9 @@ function Detail() {
                 <div className="catalogo-municipio-pagination">
                   <button
                     className="catalogo-page-btn"
-                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio - 1)}
+                    onClick={() =>
+                      handleCambiarPaginaMunicipio(paginaMunicipio - 1)
+                    }
                     disabled={paginaMunicipio === 1}
                     aria-label="Página anterior"
                   >
@@ -1483,20 +1652,24 @@ function Detail() {
                       </>
                     )}
 
-                    {getPageNumbers(paginaMunicipio, totalPaginasMunicipio).map((num) => (
-                      <button
-                        key={num}
-                        className={`catalogo-page-num ${num === paginaMunicipio ? "active" : ""}`}
-                        onClick={() => handleCambiarPaginaMunicipio(num)}
-                      >
-                        {num}
-                      </button>
-                    ))}
+                    {getPageNumbers(paginaMunicipio, totalPaginasMunicipio).map(
+                      (num) => (
+                        <button
+                          key={num}
+                          className={`catalogo-page-num ${num === paginaMunicipio ? "active" : ""}`}
+                          onClick={() => handleCambiarPaginaMunicipio(num)}
+                        >
+                          {num}
+                        </button>
+                      ),
+                    )}
                   </div>
 
                   <button
                     className="catalogo-page-btn"
-                    onClick={() => handleCambiarPaginaMunicipio(paginaMunicipio + 1)}
+                    onClick={() =>
+                      handleCambiarPaginaMunicipio(paginaMunicipio + 1)
+                    }
                     disabled={paginaMunicipio === totalPaginasMunicipio}
                     aria-label="Página siguiente"
                   >
@@ -1508,7 +1681,10 @@ function Detail() {
           )}
         </section>
       ) : (
-        <PatrimonioDetailEntry item={patrimonio} municipioNombre={nombreMunicipio} />
+        <PatrimonioDetailEntry
+          item={patrimonio}
+          municipioNombre={nombreMunicipio}
+        />
       )}
 
       <button
@@ -1525,4 +1701,3 @@ function Detail() {
 }
 
 export default Detail;
-

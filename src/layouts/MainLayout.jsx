@@ -1,16 +1,34 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
+  const headerRef = useRef(null);
 
   const currentYear = new Date().getFullYear();
 
+  // Cerrar el menú si se hace clic fuera del header
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (headerRef.current && !headerRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
   return (
     <div className="app-container">
-      <header className="site-header">
+      <header className="site-header" ref={headerRef}>
         <div className="container">
-          <div className="logo">
+          <Link to="/" className="logo">
             <div className="logo-mark">
               <span>PS</span>
             </div>
@@ -18,8 +36,9 @@ function MainLayout() {
               <div className="logo-main">Patrimonio</div>
               <div className="logo-sub">Sonorense</div>
             </div>
-          </div>
+          </Link>
 
+          {/* Navegación Desktop */}
           <nav className="nav-links" role="navigation" aria-label="Main">
             <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end>
               Inicio
@@ -35,6 +54,7 @@ function MainLayout() {
             </NavLink>
           </nav>
 
+          {/* Botón Hamburguesa */}
           <button
             className="mobile-toggle"
             aria-expanded={open}
@@ -47,26 +67,25 @@ function MainLayout() {
           </button>
         </div>
 
-        {open && (
-          <div className="mobile-menu">
-            <div className="container mobile-menu-inner">
-              <div className="mobile-menu-nav">
-                <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={() => setOpen(false)}>
-                  Inicio
-                </NavLink>
-                  <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
-                    Catálogo
-                  </NavLink>
-                <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
-                  Acerca
-                </NavLink>
-                <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
-                  Contacto
-                </NavLink>
-              </div>
-            </div>
+        {/* Desplegable Móvil */}
+        <div className={`mobile-menu ${open ? 'open' : ''}`}>
+          <div className="mobile-menu-inner">
+            <nav className="mobile-menu-nav">
+              <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={() => setOpen(false)}>
+                Inicio
+              </NavLink>
+              <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                Catálogo
+              </NavLink>
+              <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                Acerca
+              </NavLink>
+              <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                Contacto
+              </NavLink>
+            </nav>
           </div>
-        )}
+        </div>
       </header>
 
       <main className="content">

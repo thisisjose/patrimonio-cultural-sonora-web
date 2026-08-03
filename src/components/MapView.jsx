@@ -39,8 +39,6 @@ const parseUbicaciones = (ubicaciones) => {
   return Array.isArray(ubicaciones) ? ubicaciones : [];
 };
 
-// ---------- ELIMINADA la función sanitizeHtml ----------
-
 const getItemLocations = (item) => {
   const raw = parseUbicaciones(item.ubicaciones);
 
@@ -117,14 +115,24 @@ function MarkerCluster({ patrimonios, navigate, getCircleColor, truncateText, in
           const desc = document.createElement("p");
           desc.className = "popup-desc";
 
-          // ---------- USO DE DOMPurify CON CONFIGURACIÓN ----------
-          desc.innerHTML = item.descripcion
+          // ---------- LIMPIEZA DE ETIQUETAS Y EXTRACTION DE TEXTO PLANO ----------
+          const rawCleanHtml = item.descripcion
             ? DOMPurify.sanitize(item.descripcion, {
                 ADD_TAGS: ['blockquote', 'cite', 'font'],
                 ADD_ATTR: ['style', 'class', 'color'],
                 FORBID_TAGS: ['script', 'style', 'iframe'],
               })
+            : "";
+
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = rawCleanHtml;
+          const plainText = tempDiv.textContent || tempDiv.innerText || "";
+
+          // Asigna el texto recortado
+          desc.textContent = plainText 
+            ? truncateText(plainText, 150) 
             : "Sin descripción disponible.";
+
           popupContent.appendChild(desc);
 
           const button = document.createElement("button");
