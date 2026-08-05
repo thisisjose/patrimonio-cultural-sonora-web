@@ -390,6 +390,56 @@
   margin: 0 0 1rem 0;
 }
 
+.detail-description img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+}
+
+.detail-description .image-caption {
+  color: #4a5568;
+  font-size: 0.95rem;
+  text-align: center;
+  display: block;
+  width: 100%;
+  margin: 0.35rem auto 1rem;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.detail-description table {
+  width: auto;
+  min-width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  display: block;
+  overflow-x: auto;
+  table-layout: auto;
+}
+
+.detail-description th,
+.detail-description td {
+  border: 1px solid rgba(15, 61, 41, 0.12);
+  padding: 0.85rem;
+  text-align: left;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.detail-description th {
+  background: rgba(61, 125, 104, 0.08);
+}
+
+@media (max-width: 768px) {
+  .detail-description table {
+    display: block;
+    width: 100%;
+  }
+}
+
 /* ---------- FIN NUEVOS ESTILOS ---------- */
 
 .detail-links {

@@ -35,12 +35,336 @@ import L from "leaflet";
 // Estilos globales
 import "../../styles/pages/admin/Dashboard.css";
 import Editor from "@webbycrown/react-advanced-richtext-editor";
-import "@webbycrown/react-advanced-richtext-editor/dist/styles.css";
 import DOMPurify from "dompurify";
 
 //Imports del editor de texto
-import ReactQuill from "react-quill-new";
+import ReactQuill, { Quill } from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import Table from "quill/modules/table.js";
+
+const ImageFormat = Quill.import("formats/image");
+class ResizableImageBlot extends ImageFormat {
+  static blotName = "image";
+  static tagName = "img";
+
+  static formats(domNode) {
+    const formats = super.formats(domNode) || {};
+    const width = domNode.getAttribute("width") || domNode.style.width;
+    if (width) {
+      formats.width = width;
+    }
+    return formats;
+  }
+
+  format(name, value) {
+    if (name === "width") {
+      if (value) {
+        this.domNode.setAttribute("width", value);
+        this.domNode.style.width = value;
+        this.domNode.style.maxWidth = "100%";
+        this.domNode.style.height = "auto";
+      } else {
+        this.domNode.removeAttribute("width");
+        this.domNode.style.width = null;
+      }
+    } else {
+      super.format(name, value);
+    }
+  }
+}
+
+Quill.register(ResizableImageBlot, true);
+
+const Block = Quill.import("blots/block");
+class ImageCaptionBlot extends Block {
+  static blotName = "image-caption";
+  static tagName = "p";
+  static className = "image-caption";
+  static scope = Block.scope;
+
+  static create(value) {
+    const node = super.create(value);
+    node.classList.add(this.className);
+    return node;
+  }
+
+  static formats(domNode) {
+    return domNode.classList.contains(this.className) ? true : undefined;
+  }
+
+  format(name, value) {
+    if (name === this.statics.blotName) {
+      if (value) {
+        this.domNode.classList.add(this.statics.className);
+      } else {
+        this.domNode.classList.remove(this.statics.className);
+      }
+    } else {
+      super.format(name, value);
+    }
+  }
+}
+
+Quill.register(ImageCaptionBlot);
+Table.register();
+Quill.register("modules/table", Table);
+
+const IMAGE_MIN_PERCENT = 20;
+const IMAGE_SIZE_STEP = 20;
+const IMAGE_MAX_PERCENT = IMAGE_MIN_PERCENT + IMAGE_SIZE_STEP * 3;
+
+const setImageWidth = (image, percent) => {
+  if (!image) return;
+  const widthValue = `${percent}%`;
+  image.style.width = widthValue;
+  image.style.maxWidth = "100%";
+  image.style.height = "auto";
+  image.setAttribute("width", widthValue);
+  image.removeAttribute("height");
+};
+
+const getSelectedImage = (quill) => {
+  const range = quill.getSelection(true);
+  if (!range) return null;
+
+  const [leaf, offset] = quill.getLeaf(range.index);
+  if (leaf && leaf.domNode && leaf.domNode.tagName === "IMG") {
+    return {
+      image: leaf.domNode,
+      index: range.index - offset,
+    };
+  }
+
+  if (range.index > 0) {
+    const [prevLeaf, prevOffset] = quill.getLeaf(range.index - 1);
+    if (prevLeaf && prevLeaf.domNode && prevLeaf.domNode.tagName === "IMG") {
+      return {
+        image: prevLeaf.domNode,
+        index: range.index - 1 - prevOffset,
+      };
+    }
+  }
+
+  let index = range.index;
+  for (let offsetSearch = 1; offsetSearch <= 5 && index - offsetSearch >= 0; offsetSearch += 1) {
+    const [prevLeaf, prevOffset] = quill.getLeaf(index - offsetSearch);
+    if (prevLeaf && prevLeaf.domNode && prevLeaf.domNode.tagName === "IMG") {
+      return {
+        image: prevLeaf.domNode,
+        index: index - offsetSearch - prevOffset,
+      };
+    }
+  }
+
+  return null;
+};
+
+const adjustImageSize = (quill, direction) => {
+  const selected = getSelectedImage(quill);
+  if (!selected) return;
+
+  const { image, index } = selected;
+  let current = IMAGE_MIN_PERCENT;
+  const widthAttr = image.getAttribute("width") || image.style.width || "";
+  if (widthAttr.includes("%")) {
+    current = parseFloat(widthAttr) || current;
+  } else if (widthAttr) {
+    current = (parseFloat(widthAttr) / image.naturalWidth) * 100 || current;
+  }
+
+  const next = Math.max(
+    IMAGE_MIN_PERCENT,
+    Math.min(IMAGE_MAX_PERCENT, current + direction * IMAGE_SIZE_STEP),
+  );
+  if (next === current) return;
+
+  setImageWidth(image, next);
+  quill.formatText(index, 1, { width: `${next}%` }, Quill.sources.USER);
+  quill.setSelection(index + 1, 0, Quill.sources.SILENT);
+};
+
+const promptInsertTable = (quill) => {
+  const rows = Number(window.prompt("Número de filas de la tabla", "3"));
+  const columns = Number(window.prompt("Número de columnas de la tabla", "3"));
+  if (
+    Number.isInteger(rows) &&
+    Number.isInteger(columns) &&
+    rows > 0 &&
+    columns > 0
+  ) {
+    const tableModule = quill.getModule("table");
+    if (tableModule?.insertTable) {
+      tableModule.insertTable(rows, columns);
+      quill.focus();
+    }
+  }
+};
+
+const performTableAction = (quill, action) => {
+  const tableModule = quill.getModule("table");
+  if (!tableModule || typeof tableModule[action] !== "function") return;
+  tableModule[action]();
+  quill.focus();
+};
+
+const insertImageHandler = (quill) => {
+  const input = document.createElement("input");
+  input.setAttribute("type", "file");
+  input.setAttribute("accept", "image/*");
+  input.click();
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target.result;
+      const range = quill.getSelection(true);
+      const index = range?.index ?? quill.getLength();
+      quill.insertEmbed(index, "image", src, Quill.sources.USER);
+      const [leaf] = quill.getLeaf(index);
+      const imageNode =
+        leaf && leaf.domNode && leaf.domNode.tagName === "IMG"
+          ? leaf.domNode
+          : null;
+      if (imageNode) {
+        setImageWidth(imageNode, IMAGE_MIN_PERCENT);
+      }
+      quill.insertText(index + 1, "\n", Quill.sources.USER);
+      quill.removeFormat(index + 1, 1, Quill.sources.USER);
+      quill.formatLine(index + 1, 1, "align", "center", Quill.sources.USER);
+      quill.formatLine(index + 1, 1, "image-caption", true, Quill.sources.USER);
+      quill.setSelection(index + 1, 0, Quill.sources.SILENT);
+    };
+    reader.readAsDataURL(file);
+  };
+};
+
+const setEditorToolbarTooltips = () => {
+  const titles = {
+    "ql-bold": "Negrita",
+    "ql-italic": "Cursiva",
+    "ql-underline": "Subrayado",
+    "ql-strike": "Tachado",
+    "ql-list.ql-ordered": "Lista numerada",
+    "ql-list.ql-bullet": "Lista con viñetas",
+    "ql-align": "Alineación",
+    "ql-image": "Insertar imagen",
+    "ql-imageDecrease": "Reducir imagen",
+    "ql-imageIncrease": "Aumentar imagen",
+    "ql-tableInsert": "Insertar tabla",
+    "ql-tableRowAbove": "Insertar fila arriba",
+    "ql-tableRowBelow": "Insertar fila abajo",
+    "ql-tableColLeft": "Insertar columna izquierda",
+    "ql-tableColRight": "Insertar columna derecha",
+    "ql-tableDeleteRow": "Eliminar fila",
+    "ql-tableDeleteCol": "Eliminar columna",
+  };
+  document.querySelectorAll(".ql-toolbar button, .ql-toolbar select").forEach((element) => {
+    Object.entries(titles).forEach(([selector, title]) => {
+      const [base, extra] = selector.split(".");
+      if (extra) {
+        if (
+          element.classList.contains(base) &&
+          element.classList.contains(extra)
+        ) {
+          element.setAttribute("title", title);
+        }
+      } else if (element.classList.contains(selector)) {
+        element.setAttribute("title", title);
+      }
+    });
+  });
+};
+
+const quillModules = {
+  toolbar: {
+    container: [
+      ["bold", "italic", "underline", "strike"],
+      [{ align: [] }],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [
+        "tableInsert",
+        "tableRowAbove",
+        "tableRowBelow",
+        "tableColLeft",
+        "tableColRight",
+        "tableDeleteRow",
+        "tableDeleteCol",
+      ],
+      ["image", "imageDecrease", "imageIncrease"],
+    ],
+    handlers: {
+      image: function () {
+        insertImageHandler(this.quill);
+      },
+      tableInsert: function () {
+        promptInsertTable(this.quill);
+      },
+      tableRowAbove: function () {
+        performTableAction(this.quill, "insertRowAbove");
+      },
+      tableRowBelow: function () {
+        performTableAction(this.quill, "insertRowBelow");
+      },
+      tableColLeft: function () {
+        performTableAction(this.quill, "insertColumnLeft");
+      },
+      tableColRight: function () {
+        performTableAction(this.quill, "insertColumnRight");
+      },
+      tableDeleteRow: function () {
+        performTableAction(this.quill, "deleteRow");
+      },
+      tableDeleteCol: function () {
+        performTableAction(this.quill, "deleteColumn");
+      },
+      imageDecrease: function () {
+        adjustImageSize(this.quill, -1);
+      },
+      imageIncrease: function () {
+        adjustImageSize(this.quill, 1);
+      },
+    },
+  },
+  keyboard: {
+    bindings: {
+      imageCaptionEnter: {
+        key: "Enter",
+        collapsed: true,
+        handler(range, context) {
+          if (!range) return true;
+          const formats =
+            (context && context.format) || this.quill.getFormat(range);
+          if (!formats || !formats["image-caption"]) {
+            return true;
+          }
+          const insertIndex = range.index;
+          this.quill.insertText(insertIndex, "\n", Quill.sources.USER);
+          const nextIndex = insertIndex + 1;
+          this.quill.removeFormat(nextIndex, 1, Quill.sources.USER);
+          this.quill.formatLine(nextIndex, 1, "image-caption", false, Quill.sources.USER);
+          this.quill.formatLine(nextIndex, 1, "align", false, Quill.sources.USER);
+          this.quill.setSelection(nextIndex, 0, Quill.sources.SILENT);
+          return false;
+        },
+      },
+    },
+  },
+  table: true,
+};
+
+const quillFormats = [
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "align",
+  "list",
+  "image",
+  "table",
+  "width",
+  "image-caption",
+];
 
 // Configuración de iconos de Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -50,17 +374,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-
-//Editor de texto
-const quillModules = {
-  toolbar: [
-    ["bold", "italic", "underline", "strike"],
-    [{ align: [] }],
-    [{ list: "ordered" }, { list: "bullet" }],
-  ],
-};
-
-const quillFormats = ["bold", "italic", "underline", "strike", "align", "list"];
 
 // ---------- COMPONENTE MAP PICKER ----------
 function MapPicker({ ubicaciones = [], onLocationAdd }) {
@@ -354,6 +667,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     cargarDatos(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    if (modalNuevo || modalEditar) {
+      setTimeout(setEditorToolbarTooltips, 100);
+    }
+  }, [modalNuevo, modalEditar]);
 
   // ---------- FUNCIONES DE NAVEGACIÓN (pasos) ----------
   const goToNextNuevo = () => {
@@ -711,10 +1030,14 @@ export default function AdminDashboard() {
       setSaving(true);
       setError("");
       let dataToSend;
+      const hasInlineImage =
+        typeof formEditar.descripcion === "string" &&
+        formEditar.descripcion.includes("<img");
       const hayArchivos =
         formEditar.portadaFile ||
         formEditar.imagenesFiles.length > 0 ||
-        formEditar.imagenesAEliminar.length > 0;
+        formEditar.imagenesAEliminar.length > 0 ||
+        hasInlineImage;
       if (hayArchivos) {
         const fd = new FormData();
         fd.append("nombre", formEditar.nombre);

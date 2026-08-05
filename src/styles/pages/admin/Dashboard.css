@@ -1458,6 +1458,91 @@ tr:hover td {
   background-color: #f9f9f9;
 }
 
+.ql-editor table {
+  width: auto;
+  min-width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: block;
+  table-layout: auto;
+}
+
+.ql-editor th,
+.ql-editor td {
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 0.85rem;
+  min-width: 100px;
+  word-break: break-word;
+}
+
+.ql-editor th {
+  background-color: #f8fafc;
+}
+
+.ql-editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.8rem auto;
+}
+
+.ql-editor .image-caption {
+  color: #4a5568;
+  font-size: 0.95rem;
+  text-align: center;
+  display: block;
+  width: 100%;
+  margin: 0.35rem auto 1rem;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.ql-toolbar .ql-imageDecrease::after {
+  content: "−";
+  font-size: 16px;
+}
+
+.ql-toolbar .ql-imageIncrease::after {
+  content: "+";
+  font-size: 16px;
+}
+
+.ql-toolbar .ql-tableInsert::after {
+  content: "⊞";
+}
+
+.ql-toolbar .ql-tableRowAbove::after {
+  content: "↑";
+}
+
+.ql-toolbar .ql-tableRowBelow::after {
+  content: "↓";
+}
+
+.ql-toolbar .ql-tableColLeft::after {
+  content: "←";
+}
+
+.ql-toolbar .ql-tableColRight::after {
+  content: "→";
+}
+
+.ql-toolbar .ql-tableDeleteRow::after {
+  content: "✕R";
+  font-size: 12px;
+}
+
+.ql-toolbar .ql-tableDeleteCol::after {
+  content: "✕C";
+  font-size: 12px;
+}
+
+.ql-toolbar button {
+  min-width: 40px;
+}
+
 /* Ajuste para pantallas pequeñas: reducir altura para no saturar */
 @media (max-width: 768px) {
   .section-left .leaflet-container,

@@ -43,6 +43,15 @@ const sanitizeDescriptionHtml = (html) => {
     "BLOCKQUOTE",
     "CITE",
     "IMG",
+    "FIGURE",
+    "FIGCAPTION",
+    "TABLE",
+    "THEAD",
+    "TBODY",
+    "TR",
+    "TD",
+    "TH",
+    "CAPTION",
     "U",
     "DIV",
     "P",
@@ -63,7 +72,17 @@ const sanitizeDescriptionHtml = (html) => {
     "font-weight",
     "font-style",
     "text-decoration",
-    "text-align", // <-- AGREGADO
+    "text-align",
+    "width",
+    "max-width",
+    "min-width",
+    "height",
+    "border",
+    "border-collapse",
+    "border-spacing",
+    "padding",
+    "margin",
+    "display",
   ];
 
   const cleanNode = (node) => {
@@ -103,12 +122,24 @@ const sanitizeDescriptionHtml = (html) => {
         el.setAttribute("class", node.getAttribute("class"));
       }
 
+      [
+        "width",
+        "height",
+        "src",
+        "alt",
+        "colspan",
+        "rowspan",
+        "border",
+        "cellpadding",
+        "cellspacing",
+      ].forEach((attr) => {
+        if (node.hasAttribute(attr)) {
+          el.setAttribute(attr, node.getAttribute(attr));
+        }
+      });
+
       if (tag === "FONT" && node.hasAttribute("color")) {
         el.setAttribute("color", node.getAttribute("color"));
-      }
-
-      if (tag === "IMG" && node.hasAttribute("src")) {
-        el.setAttribute("src", node.getAttribute("src"));
       }
 
       el.appendChild(fragment);
@@ -1160,8 +1191,35 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
               className="detail-description"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(item.descripcion || "", {
-                  ADD_TAGS: ["blockquote", "cite", "font"],
-                  ADD_ATTR: ["style", "class", "color"],
+                  ADD_TAGS: [
+                    "blockquote",
+                    "cite",
+                    "font",
+                    "figure",
+                    "figcaption",
+                    "table",
+                    "thead",
+                    "tbody",
+                    "tr",
+                    "td",
+                    "th",
+                    "caption",
+                  ],
+                  ADD_ATTR: [
+                    "style",
+                    "class",
+                    "color",
+                    "width",
+                    "height",
+                    "align",
+                    "border",
+                    "cellpadding",
+                    "cellspacing",
+                    "colspan",
+                    "rowspan",
+                    "src",
+                    "alt",
+                  ],
                   FORBID_TAGS: ["script", "style", "iframe"],
                 }),
               }}
