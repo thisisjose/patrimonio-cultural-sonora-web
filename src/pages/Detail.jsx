@@ -2,6 +2,7 @@
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import slugify from "../utils/slugify";
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import MapView from "../components/MapView";
 import "../styles/pages/Detail.css";
 import {
@@ -284,6 +285,9 @@ const normalizePatrimonioData = (item) => {
 // Función para convertir imagen URL a base64
 const urlToBase64 = async (url) => {
   try {
+    if (!url) return null;
+    if (url.startsWith("data:")) return url;
+
     let fullUrl = url;
     if (!url.startsWith("http")) {
       fullUrl = `${API_HOST}${url.startsWith("/") ? "" : "/"}${url}`;
@@ -404,6 +408,84 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
           return;
         }
 
+        if (tag === "FIGURE") {
+          let imageBlock = null;
+          let captionText = "";
+
+          Array.from(node.childNodes).forEach((child) => {
+            if (child.nodeType !== Node.ELEMENT_NODE) return;
+            const childTag = child.tagName.toUpperCase();
+            if (childTag === "IMG") {
+              const src = child.getAttribute("src") || "";
+              if (src) {
+                const { widthPercent, widthPx } = parseImageSize(child);
+                imageBlock = {
+                  type: "image",
+                  src,
+                  align:
+                    combineStyles(nodeStyles, child).align ||
+                    nodeStyles.align ||
+                    "center",
+                  alt: child.getAttribute("alt") || "",
+                  caption: "",
+                  widthPercent,
+                  widthPx,
+                  height: child.getAttribute("height"),
+                };
+              }
+            } else if (childTag === "FIGCAPTION") {
+              captionText = child.textContent?.trim() || "";
+            }
+          });
+
+          if (imageBlock) {
+            imageBlock.caption = captionText;
+            blocks.push(imageBlock);
+          }
+          return;
+        }
+
+        if (tag === "IMG") {
+          const src = node.getAttribute("src") || "";
+          if (src) {
+            const { widthPercent, widthPx } = parseImageSize(node);
+            blocks.push({
+              type: "image",
+              src,
+              align: nodeStyles.align || inheritedStyles.align || "center",
+              alt: node.getAttribute("alt") || "",
+              caption: "",
+              widthPercent,
+              widthPx,
+              height: node.getAttribute("height"),
+            });
+          }
+          return;
+        }
+
+        if (tag === "TABLE") {
+          const rows = [];
+          let hasHeader = false;
+
+          Array.from(node.querySelectorAll("tr")).forEach((tr) => {
+            const rowCells = [];
+            Array.from(tr.children).forEach((cell) => {
+              const cellTag = cell.tagName.toUpperCase();
+              if (cellTag === "TH" || cellTag === "TD") {
+                const cellText = cell.textContent?.trim() || "";
+                rowCells.push(cellText);
+                if (cellTag === "TH") hasHeader = true;
+              }
+            });
+            if (rowCells.length > 0) rows.push(rowCells);
+          });
+
+          if (rows.length > 0) {
+            blocks.push({ type: "table", rows, hasHeader });
+          }
+          return;
+        }
+
         if (["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6"].includes(tag)) {
           const pBlock = {
             type: "paragraph",
@@ -474,6 +556,10 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     const splitWords = (segments) => {
       const tokens = [];
       segments.forEach((seg) => {
+        if (seg.br) {
+          tokens.push({ br: true });
+          return;
+        }
         if (!seg.text) return;
         const parts = seg.text.split(/(\s+)/);
         parts.forEach((part) => {
@@ -540,6 +626,36 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
         ) {
           styles.strikethrough = true;
         }
+        if (
+          styleAttr.includes("float: right") ||
+          styleAttr.includes("float:right")
+        ) {
+          styles.align = "right";
+        }
+        if (
+          styleAttr.includes("float: left") ||
+          styleAttr.includes("float:left")
+        ) {
+          styles.align = "left";
+        }
+        if (
+          styleAttr.includes("font-style: italic") ||
+          styleAttr.includes("font-style:italic")
+        ) {
+          styles.italic = true;
+        }
+        if (
+          styleAttr.includes("font-weight: bold") ||
+          styleAttr.includes("font-weight:bold") ||
+          /font-weight\s*:\s*(?:[7-9]00|bold)/.test(styleAttr)
+        ) {
+          styles.bold = true;
+        }
+
+        const colorMatch = styleAttr.match(/(?:^|;)\s*color\s*:\s*([^;]+)/);
+        if (colorMatch) {
+          styles.color = colorMatch[1].trim();
+        }
       }
 
       // 3. Atributo HTML align
@@ -556,8 +672,41 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       if (tag === "U") styles.underline = true;
       if (tag === "S" || tag === "STRIKE" || tag === "DEL")
         styles.strikethrough = true;
+      if (tag === "FONT" && node.getAttribute("color")) {
+        styles.color = node.getAttribute("color");
+      }
 
       return styles;
+    };
+
+    const parseImageSize = (node) => {
+      if (!node || node.nodeType !== Node.ELEMENT_NODE) {
+        return { widthPercent: null, widthPx: null };
+      }
+      const widthAttr = node.getAttribute("width") || "";
+      const styleAttr = node.getAttribute("style") || "";
+      let widthPercent = null;
+      let widthPx = null;
+
+      const rawPercent = widthAttr.match(/^\s*(\d+(?:\.\d+)?)\s*%\s*$/);
+      if (rawPercent) {
+        widthPercent = parseFloat(rawPercent[1]);
+      } else if (/^\s*(\d+(?:\.\d+)?)px\s*$/i.test(widthAttr)) {
+        widthPx = parseFloat(widthAttr);
+      }
+
+      if (widthPercent == null && styleAttr) {
+        const styleWidth = styleAttr.match(/width\s*:\s*(\d+(?:\.\d+)?)(%)?/i);
+        if (styleWidth) {
+          if (styleWidth[2] === "%") {
+            widthPercent = parseFloat(styleWidth[1]);
+          } else {
+            widthPx = parseFloat(styleWidth[1]);
+          }
+        }
+      }
+
+      return { widthPercent, widthPx };
     };
 
     const splitLongWord = (word, maxWidth) => {
@@ -640,6 +789,10 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       };
 
       tokens.forEach((token) => {
+        if (token.br) {
+          pushLine();
+          return;
+        }
         if (token.whitespace) {
           addWhitespaceToken(token);
         } else {
@@ -793,6 +946,38 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             y += 1;
           });
           y += blockSpacing;
+        } else if (block.type === "table") {
+          const rows = block.rows || [];
+          if (rows.length > 0) {
+            y = ensureLocalPageSpace(lineHeight, y);
+
+            const header = block.hasHeader ? [rows[0]] : [];
+            const body = block.hasHeader ? rows.slice(1) : rows;
+
+            autoTable(doc, {
+              startY: y,
+              head: header,
+              body,
+              theme: "grid",
+              styles: {
+                fontSize: 9,
+                cellPadding: 3,
+                overflow: "linebreak",
+                valign: "middle",
+              },
+              headStyles: {
+                fillColor: [240, 240, 240],
+                textColor: 20,
+                halign: "center",
+              },
+              tableLineColor: [200, 200, 200],
+              tableLineWidth: 0.1,
+              margin: { left: x, right: margin },
+              tableWidth: maxWidth,
+            });
+
+            y = doc.lastAutoTable.finalY + blockSpacing;
+          }
         } else if (block.type === "image") {
           const src = block.src;
           if (!src) continue;
@@ -810,23 +995,67 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             const maxImageWidth = maxWidth * 0.9;
             const maxImageHeight = 100;
 
+            const naturalSize = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+              img.onerror = () => resolve({ width: null, height: null });
+              img.src = base64;
+            });
+
             let imgWidth = maxImageWidth;
-            let imgHeight = maxImageWidth * 0.75;
-            if (imgHeight > maxImageHeight) {
-              imgHeight = maxImageHeight;
-              imgWidth = imgHeight / 0.75;
+            if (block.widthPercent != null) {
+              imgWidth = Math.min(maxImageWidth, maxImageWidth * (block.widthPercent / 100));
+            } else if (block.widthPx != null && naturalSize.width) {
+              const widthRatio = block.widthPx / naturalSize.width;
+              imgWidth = Math.min(maxImageWidth, maxImageWidth * widthRatio);
             }
 
-            y = ensureLocalPageSpace(imgHeight + 5, y);
+            let imgHeight = naturalSize.width && naturalSize.height
+              ? (imgWidth * naturalSize.height) / naturalSize.width
+              : imgWidth * 0.75;
+
+            if (imgHeight > maxImageHeight) {
+              imgHeight = maxImageHeight;
+              imgWidth = imgHeight * (naturalSize.width && naturalSize.height
+                ? naturalSize.width / naturalSize.height
+                : 4 / 3);
+            }
+
+            const captionLines = block.caption
+              ? doc.splitTextToSize(block.caption, maxWidth)
+              : [];
+            const captionHeight = captionLines.length * lineHeight;
+            y = ensureLocalPageSpace(imgHeight + 5 + captionHeight + blockSpacing, y);
+
+            const imageType = base64.startsWith("data:image/png")
+              ? "PNG"
+              : base64.startsWith("data:image/jpeg") ||
+                base64.startsWith("data:image/jpg")
+              ? "JPEG"
+              : "JPEG";
+
             doc.addImage(
               base64,
-              "JPEG",
+              imageType,
               x + (maxWidth - imgWidth) / 2,
               y,
               imgWidth,
               imgHeight,
             );
             y += imgHeight + 5;
+
+            if (captionLines.length > 0) {
+              doc.setFont("helvetica", "italic");
+              doc.setFontSize(9);
+              captionLines.forEach((captionLine) => {
+                const captionX = block.align === "center"
+                  ? x + Math.max(0, (maxWidth - doc.getTextWidth(captionLine)) / 2)
+                  : x;
+                doc.text(captionLine, captionX, y);
+                y += lineHeight;
+              });
+              y += blockSpacing;
+            }
           } catch (error) {
             console.warn("Error al insertar imagen en PDF:", error);
             y = ensureLocalPageSpace(lineHeight, y);
