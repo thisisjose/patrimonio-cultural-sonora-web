@@ -946,16 +946,18 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
             y += 1;
           });
           y += blockSpacing;
-        } else if (block.type === "table") {
+             } else if (block.type === "table") {
           const rows = block.rows || [];
           if (rows.length > 0) {
-            y = ensureLocalPageSpace(lineHeight, y);
-
+            
+            // CORRECCIÓN 1: Espacio superior. Restamos el blockSpacing para que quede exactamente 1 renglón (lineHeight).
+            const startY = y + blockSpacing - lineHeight; 
+            
             const header = block.hasHeader ? [rows[0]] : [];
             const body = block.hasHeader ? rows.slice(1) : rows;
 
             autoTable(doc, {
-              startY: y,
+              startY: startY, 
               head: header,
               body,
               theme: "grid",
@@ -964,10 +966,11 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
                 cellPadding: 3,
                 overflow: "linebreak",
                 valign: "middle",
+                textColor: [0, 0, 0], // CORRECCIÓN 2: Se fuerza el color negro en el cuerpo
               },
               headStyles: {
                 fillColor: [240, 240, 240],
-                textColor: 20,
+                textColor: [0, 0, 0], // CORRECCIÓN 3: Se fuerza el color negro en el encabezado
                 halign: "center",
               },
               tableLineColor: [200, 200, 200],
@@ -976,7 +979,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
               tableWidth: maxWidth,
             });
 
-            y = doc.lastAutoTable.finalY + blockSpacing;
+            // CORRECCIÓN 4: Espacio inferior. Aquí debe ir un renglón completo de espacio.
+            y = doc.lastAutoTable.finalY + lineHeight; 
           }
         } else if (block.type === "image") {
           const src = block.src;
@@ -1054,7 +1058,6 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
                 doc.text(captionLine, captionX, y);
                 y += lineHeight;
               });
-              y += blockSpacing;
             }
           } catch (error) {
             console.warn("Error al insertar imagen en PDF:", error);

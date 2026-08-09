@@ -409,24 +409,27 @@
 }
 
 .detail-description table {
-  width: auto;
-  min-width: 100%;
-  max-width: 100%;
-  border-collapse: collapse;
+  display: table !important;      /* Vuelve a ser tabla real */
+  width: 100% !important;         /* OBLIGA a ocupar todo el ancho */
+  max-width: 100% !important;
+  min-width: 100% !important;
+  border-collapse: collapse !important;
   margin: 1.2rem 0;
-  display: block;
-  overflow-x: auto;
-  table-layout: auto;
+  table-layout: fixed !important; /* Reparte las 3 columnas en partes iguales */
+  border-spacing: 0;
+  overflow-x: auto;               /* Permite hacer scroll si en móvil es muy ancha */
 }
 
 .detail-description th,
 .detail-description td {
   border: 1px solid rgba(15, 61, 41, 0.12);
   padding: 0.85rem;
-  text-align: left;
+  text-align: center !important;  /* Centrado como se ve en tu captura */
   word-break: break-word;
   white-space: normal;
   overflow-wrap: anywhere;
+  width: auto !important;         /* Elimina cualquier ancho fijo en celdas */
+  box-sizing: border-box !important;
 }
 
 .detail-description th {
