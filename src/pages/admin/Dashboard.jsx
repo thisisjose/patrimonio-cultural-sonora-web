@@ -220,6 +220,12 @@ const insertImageHandler = (quill) => {
       const src = e.target.result;
       const range = quill.getSelection(true);
       const index = range?.index ?? quill.getLength();
+      const captionText = window.prompt(
+        "Pie de imagen (opcional)",
+        "",
+      );
+      const captionValue = captionText === null ? "" : captionText.trim();
+
       quill.insertEmbed(index, "image", src, Quill.sources.USER);
       const [leaf] = quill.getLeaf(index);
       const imageNode =
@@ -229,11 +235,23 @@ const insertImageHandler = (quill) => {
       if (imageNode) {
         setImageWidth(imageNode, IMAGE_MIN_PERCENT);
       }
+
       quill.insertText(index + 1, "\n", Quill.sources.USER);
-      quill.removeFormat(index + 1, 1, Quill.sources.USER);
-      quill.formatLine(index + 1, 1, "align", "center", Quill.sources.USER);
-      quill.formatLine(index + 1, 1, "image-caption", true, Quill.sources.USER);
-      quill.setSelection(index + 1, 0, Quill.sources.SILENT);
+      const captionIndex = index + 2;
+      quill.removeFormat(captionIndex, 1, Quill.sources.USER);
+      quill.formatLine(captionIndex, 1, "align", "center", Quill.sources.USER);
+      quill.formatLine(captionIndex, 1, "image-caption", true, Quill.sources.USER);
+
+      if (captionValue) {
+        quill.insertText(captionIndex, captionValue, Quill.sources.USER);
+        quill.setSelection(
+          captionIndex + captionValue.length,
+          0,
+          Quill.sources.SILENT,
+        );
+      } else {
+        quill.setSelection(captionIndex, 0, Quill.sources.SILENT);
+      }
     };
     reader.readAsDataURL(file);
   };
