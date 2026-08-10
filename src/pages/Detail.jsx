@@ -17,6 +17,8 @@ import {
   normalizeCategoryKey,
 } from "../utils/categoryUtils";
 import DOMPurify from "dompurify";
+import androidLogo from "../Icons/logotipo-de-android.png";
+import appleLogo from "../Icons/logotipo-de-apple.png";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -1333,6 +1335,11 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
       : null;
 
+  const appleMapsUrl =
+    mainLocation.lat != null && mainLocation.lng != null
+      ? `https://maps.apple.com/?ll=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}&q=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
+      : null;
+
   const prevImage = () => {
     setCurrentImageIndex(
       (current) => (current - 1 + images.length) % images.length,
@@ -1556,15 +1563,40 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
               </ul>
             </div>
           )}
-          {googleMapsUrl && (
-            <a
-              className="detail-map-link"
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              Abrir en Google Maps
-            </a>
+          {googleMapsUrl && appleMapsUrl && (
+            <div className="detail-map-actions">
+              <span className="detail-map-actions-label">
+                Abrir ubicación en:
+              </span>
+              <div className="detail-map-buttons">
+                <a
+                  className="detail-map-action-link"
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <img
+                    src={androidLogo}
+                    alt="Google Maps"
+                    className="detail-map-action-icon"
+                  />
+                  Google Maps
+                </a>
+                <a
+                  className="detail-map-action-link"
+                  href={appleMapsUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <img
+                    src={appleLogo}
+                    alt="Apple Maps"
+                    className="detail-map-action-icon"
+                  />
+                  Apple Maps
+                </a>
+              </div>
+            </div>
           )}
           <button
             className="detail-map-link"

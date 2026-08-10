@@ -185,6 +185,67 @@
   box-shadow: 0 12px 30px rgba(26,95,62,0.18);
 }
 
+.detail-map-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.detail-map-actions-label {
+  color: var(--primary-dark);
+  font-weight: 700;
+  min-width: max-content;
+}
+
+.detail-map-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.detail-map-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--secondary-blue);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.detail-map-action-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: invert(1) brightness(2);
+}
+
+.detail-map-action-link:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .detail-map-actions {
+    width: 100%;
+  }
+
+  .detail-map-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .detail-map-action-link {
+    flex: 1 1 45%;
+    min-width: 140px;
+  }
+}
+
 .detail-image-container {
   position: relative;
   width: 100%;
