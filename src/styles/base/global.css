@@ -8,7 +8,7 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+  background: #FFFFFF;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

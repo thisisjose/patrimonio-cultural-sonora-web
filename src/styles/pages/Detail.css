@@ -402,8 +402,9 @@
   text-align: justify;
   text-justify: inter-word;
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
 
 /* ---------- NUEVOS ESTILOS PARA CITAS, LISTAS Y FORMATOS ---------- */

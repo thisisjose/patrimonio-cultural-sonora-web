@@ -387,10 +387,19 @@ function Home() {
                     e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
                   }}
                 />
-                <span className={`category-badge popular-badge ${getCategoryClass(item.categoria)}`}>{getCategoryLabel(item.categoria)}</span>
               </div>
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>
+                <div className="popular-badges-container">
+                  <span className={`popular-category-badge ${getCategoryClass(item.categoria)}`}>
+                    {getCategoryLabel(item.categoria)}
+                  </span>
+                  {getMunicipioName(item, municipios) && (
+                    <span className={`popular-municipio-badge ${getCategoryClass(item.categoria)}`}>
+                      {getMunicipioName(item, municipios)}
+                    </span>
+                  )}
+                </div>
               </div>
             </article>
           ))}

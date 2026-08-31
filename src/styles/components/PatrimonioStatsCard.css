@@ -1,7 +1,7 @@
 /* PatrimonioStatsCard Styles */
 .patrimonio-stats-container {
   position: relative;
-  background: #eeeeee;
+  background: #FFFFFF; /* podría ser todo con eeeeee que lo hace de un tono más gris*/
   border-radius: 24px;
   padding: 2.5rem 1rem;
   margin: 3rem auto;

@@ -176,6 +176,22 @@ const sanitizeDescriptionHtml = (html) => {
   return cleanedHtml.trim();
 };
 
+// ---------- FUNCIÓN PARA LIMPIAR HTML EN LA VISTA WEB ----------
+const cleanWebDescriptionHtml = (html) => {
+  if (!html) return "";
+  
+  let cleanedHtml = html
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+<\/(strong|b|i|em|u|s|strike|del|span|font)>/gi, "</$1>")
+    .replace(
+      /<\/(strong|b|i|em|u|s|strike|del|span|font)>\s*([^\s<.,;:!?\)])/gi,
+      "</$1> $2",
+    )
+    .replace(/ {2,}/g, " ");
+
+  return cleanedHtml.trim();
+};
+
 const displayCategoryLabel = (categoria) => getCategoryLabel(categoria);
 
 const normalizeImage = (image) => {
@@ -1260,7 +1276,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       currentY += 10;
     }
 
-    // ===== FECHA Y HORA DE GENERACIÓN =====
+    // ===== AGREGAR PIE DE PÁGINA EN TODAS LAS PÁGINAS =====
     const generatedAt = new Date();
     const formattedDate = generatedAt.toLocaleString("es-ES", {
       year: "numeric",
@@ -1271,22 +1287,29 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       second: "2-digit",
     });
 
-    if (currentY > doc.internal.pageSize.getHeight() - margin - 20) {
-      doc.addPage();
-      currentY = margin;
+    const footerText = `Consulta: ${formattedDate}`;
+    const totalPages = doc.internal.pages.length - 1; // Restar 1 porque la primera entrada es undefined
+    const footerY = doc.internal.pageSize.getHeight() - 10; // 10mm desde el borde inferior
+
+    // Iterar sobre todas las páginas para agregar el pie de página
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      doc.setPage(pageNum);
+      
+      // Dibujar línea separadora discreta
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+      
+      // Dibujar texto del pie de página
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      
+      // Centrar el texto horizontalmente
+      const textWidth = doc.getTextWidth(footerText);
+      const footerX = (pageWidth - textWidth) / 2;
+      
+      doc.text(footerText, footerX, footerY);
     }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Consulta:", margin, currentY);
-    currentY += 7;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text(formattedDate, margin, currentY);
-    currentY += 10;
 
     doc.save(`${item.nombre}.pdf`);
   } catch (error) {
@@ -1429,7 +1452,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
             <div
               className="detail-description"
               dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(item.descripcion || "", {
+                __html: cleanWebDescriptionHtml(DOMPurify.sanitize(item.descripcion || "", {
                   ADD_TAGS: [
                     "blockquote",
                     "cite",
@@ -1460,7 +1483,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
                     "alt",
                   ],
                   FORBID_TAGS: ["script", "style", "iframe"],
-                }),
+                })),
               }}
             />
 

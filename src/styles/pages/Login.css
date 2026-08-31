@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--bg) 0%, #e0f0e8 100%);
+  background: linear-gradient(135deg, var(--bg) 0%, #FFFFFF 100%);
   font-family: var(--font-sans);
   padding: 1.5rem;
 }
