@@ -423,8 +423,8 @@ function MapPicker({ ubicaciones = [], onLocationAdd }) {
       }}
     >
       <TileLayer
-        attribution="&copy; OpenStreetMap contributors, &copy; Carto"
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapClickHandler onClick={handleClick} />
       {ubicaciones.map((ubi, idx) => (
