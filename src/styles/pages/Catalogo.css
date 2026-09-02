@@ -38,6 +38,12 @@
   min-height: 180px;
 }
 
+.catalogo-explore-card-list .category-badge {
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.9rem;
+}
+
 .catalogo-search-box,
 .catalogo-category-filter {
   display: flex;

@@ -604,6 +604,7 @@ export default function AdminDashboard() {
   };
 
   const [modalNuevo, setModalNuevo] = useState(false);
+  const [nuevoErrors, setNuevoErrors] = useState({});
   const [formNuevo, setFormNuevo] = useState({
     nombre: "",
     municipioId: "",
@@ -624,6 +625,7 @@ export default function AdminDashboard() {
   const handleCerrarModalNuevo = () => {
     setModalNuevo(false);
     setStepNuevo(0);
+    setNuevoErrors({});
 
     // Asignamos una copia fresca del objeto inicial
     setFormNuevo({
@@ -693,8 +695,75 @@ export default function AdminDashboard() {
   }, [modalNuevo, modalEditar]);
 
   // ---------- FUNCIONES DE NAVEGACIÓN (pasos) ----------
+  const limpiarErrorNuevo = (campo) => {
+    setNuevoErrors((prev) => {
+      if (!prev[campo]) return prev;
+      const siguientes = { ...prev };
+      delete siguientes[campo];
+      return siguientes;
+    });
+  };
+
+  const validarArchivosNuevo = () => {
+    const errors = {};
+    if (!formNuevo.portadaFile) {
+      errors.portada = "Este campo es obligatorio";
+    } else if (!formNuevo.portadaFile.type?.startsWith("image/")) {
+      errors.portada = "Selecciona un archivo de imagen válido";
+    }
+    if (formNuevo.imagenesFiles.some((file) => !file.type?.startsWith("image/"))) {
+      errors.galeria = "Todas las imágenes de galería deben ser archivos de imagen válidos";
+    }
+    return errors;
+  };
+
+  const descripcionTieneContenido = (descripcion) =>
+    typeof descripcion === "string" &&
+    descripcion.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim() !== "";
+
+  const validarDatosNuevo = () => {
+    const errors = {};
+    if (!formNuevo.nombre.trim()) errors.nombre = "Este campo es obligatorio";
+    if (!descripcionTieneContenido(formNuevo.descripcion)) {
+      errors.descripcion = "Este campo es obligatorio";
+    }
+    if (!String(formNuevo.municipioId).trim()) {
+      errors.municipioId = "Este campo es obligatorio";
+    }
+    if (!String(formNuevo.categoria).trim()) {
+      errors.categoria = "Este campo es obligatorio";
+    }
+    return errors;
+  };
+
+  const ubicacionEsValida = (ubicacion) =>
+    ubicacion &&
+    Number.isFinite(Number(ubicacion.latitud)) &&
+    Number(ubicacion.latitud) >= -90 &&
+    Number(ubicacion.latitud) <= 90 &&
+    Number.isFinite(Number(ubicacion.longitud)) &&
+    Number(ubicacion.longitud) >= -180 &&
+    Number(ubicacion.longitud) <= 180;
+
+  const validarUbicacionNuevo = () =>
+    formNuevo.ubicaciones.some(ubicacionEsValida)
+      ? {}
+      : { ubicacion: "Agrega una ubicación válida mediante el mapa o ingresando sus coordenadas" };
+
+  const validarNuevo = (hastaPaso = 2) => {
+    const errors = {
+      ...(hastaPaso >= 0 ? validarArchivosNuevo() : {}),
+      ...(hastaPaso >= 1 ? validarDatosNuevo() : {}),
+      ...(hastaPaso >= 2 ? validarUbicacionNuevo() : {}),
+    };
+    setNuevoErrors(errors);
+    return errors;
+  };
+
   const goToNextNuevo = () => {
-    if (stepNuevo < 2) setStepNuevo(stepNuevo + 1);
+    if (stepNuevo < 2 && Object.keys(validarNuevo(stepNuevo)).length === 0) {
+      setStepNuevo(stepNuevo + 1);
+    }
   };
   const goToPrevNuevo = () => {
     if (stepNuevo > 0) setStepNuevo(stepNuevo - 1);
@@ -875,6 +944,7 @@ export default function AdminDashboard() {
       es_principal: esPrincipal,
     });
     setForm((prev) => ({ ...prev, ubicaciones: nuevasUbicaciones }));
+    if (form === formNuevo) limpiarErrorNuevo("ubicacion");
   };
 
   const agregarUbicacionManual = (form, setForm) => {
@@ -922,6 +992,7 @@ export default function AdminDashboard() {
       manualCoordenadas: "",
       manualNombrePunto: "",
     }));
+    if (form === formNuevo) limpiarErrorNuevo("ubicacion");
   };
 
   const eliminarUbicacion = (form, setForm, index) => {
@@ -949,7 +1020,11 @@ export default function AdminDashboard() {
   // ---------- MANEJADORES DE ARCHIVOS (Nuevo) ----------
   const handlePortadaUploadNuevo = (e) => {
     const file = e.target.files?.[0];
-    if (file) setFormNuevo((prev) => ({ ...prev, portadaFile: file }));
+    if (file) {
+      setFormNuevo((prev) => ({ ...prev, portadaFile: file }));
+      limpiarErrorNuevo("portada");
+      limpiarErrorNuevo("general");
+    }
   };
 
   const handleGaleriaUploadNuevo = (e) => {
@@ -958,6 +1033,8 @@ export default function AdminDashboard() {
       ...prev,
       imagenesFiles: [...prev.imagenesFiles, ...files],
     }));
+    limpiarErrorNuevo("galeria");
+    limpiarErrorNuevo("general");
   };
 
   const removeGaleriaFileNuevo = (index) => {
@@ -965,10 +1042,28 @@ export default function AdminDashboard() {
       ...prev,
       imagenesFiles: prev.imagenesFiles.filter((_, i) => i !== index),
     }));
+    limpiarErrorNuevo("galeria");
+    limpiarErrorNuevo("general");
   };
 
   // ---------- GUARDAR NUEVO ----------
   const guardarNuevo = async () => {
+    const errors = validarNuevo(2);
+    if (Object.keys(errors).length > 0) {
+      if (errors.portada || errors.galeria) setStepNuevo(0);
+      else if (
+        errors.nombre ||
+        errors.descripcion ||
+        errors.municipioId ||
+        errors.categoria
+      ) {
+        setStepNuevo(1);
+      } else if (errors.ubicacion) {
+        setStepNuevo(2);
+      }
+      return;
+    }
+    if (saving) return;
     try {
       setSaving(true);
       setError("");
@@ -1010,7 +1105,16 @@ export default function AdminDashboard() {
       handleCerrarModalNuevo();
     } catch (err) {
       console.error(err);
-      setError("No se pudo crear el patrimonio.");
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.mensaje ||
+        err.response?.data?.error ||
+        (typeof err.response?.data === "string" ? err.response.data : "");
+      setNuevoErrors({
+        general:
+          backendMessage ||
+          "No se pudo crear el patrimonio. Verifica los datos e inténtalo nuevamente.",
+      });
     } finally {
       setSaving(false);
     }
@@ -1258,6 +1362,11 @@ export default function AdminDashboard() {
             </div>
             <div className="modal-body">
               <StepIndicator current={stepNuevo} total={3} />
+              {nuevoErrors.general && (
+                <div className="validation-error validation-error-summary" role="alert">
+                  {nuevoErrors.general}
+                </div>
+              )}
 
               {/* PASO 0: IMÁGENES */}
               {stepNuevo === 0 && (
@@ -1324,6 +1433,11 @@ export default function AdminDashboard() {
                       className="form-input"
                       onChange={handlePortadaUploadNuevo}
                     />
+                    {nuevoErrors.portada && (
+                      <div className="validation-error" role="alert">
+                        {nuevoErrors.portada}
+                      </div>
+                    )}
                     {formNuevo.portadaFile && (
                       <small>
                         Archivo seleccionado: {formNuevo.portadaFile.name}
@@ -1339,6 +1453,11 @@ export default function AdminDashboard() {
                       className="form-input"
                       onChange={handleGaleriaUploadNuevo}
                     />
+                    {nuevoErrors.galeria && (
+                      <div className="validation-error" role="alert">
+                        {nuevoErrors.galeria}
+                      </div>
+                    )}
                     {formNuevo.imagenesFiles.length > 0 && (
                       <div className="gallery-grid">
                         {formNuevo.imagenesFiles.map((file, idx) => {
@@ -1385,10 +1504,17 @@ export default function AdminDashboard() {
                       <input
                         className="form-input"
                         value={formNuevo.nombre}
-                        onChange={(e) =>
-                          setFormNuevo({ ...formNuevo, nombre: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setFormNuevo({ ...formNuevo, nombre: e.target.value });
+                          limpiarErrorNuevo("nombre");
+                          limpiarErrorNuevo("general");
+                        }}
                       />
+                      {nuevoErrors.nombre && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.nombre}
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-section">
@@ -1401,16 +1527,23 @@ export default function AdminDashboard() {
                         }
                         theme="snow"
                         value={formNuevo.descripcion || ""}
-                        onChange={(content) =>
+                        onChange={(content) => {
                           setFormNuevo((prev) => ({
                             ...prev,
                             descripcion: content,
-                          }))
-                        }
+                          }));
+                          limpiarErrorNuevo("descripcion");
+                          limpiarErrorNuevo("general");
+                        }}
                         modules={quillModules}
                         formats={quillFormats}
                         placeholder="Escribe la descripción del patrimonio..."
                       />
+                      {nuevoErrors.descripcion && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.descripcion}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="section-right">
@@ -1419,12 +1552,14 @@ export default function AdminDashboard() {
                       <select
                         className="form-input"
                         value={formNuevo.municipioId}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setFormNuevo({
                             ...formNuevo,
                             municipioId: e.target.value,
-                          })
-                        }
+                          });
+                          limpiarErrorNuevo("municipioId");
+                          limpiarErrorNuevo("general");
+                        }}
                       >
                         <option value="">Selecciona</option>
                         {municipios.map((m) => (
@@ -1433,6 +1568,11 @@ export default function AdminDashboard() {
                           </option>
                         ))}
                       </select>
+                      {nuevoErrors.municipioId && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.municipioId}
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-section">
@@ -1440,17 +1580,24 @@ export default function AdminDashboard() {
                       <select
                         className="form-input"
                         value={formNuevo.categoria}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setFormNuevo({
                             ...formNuevo,
                             categoria: e.target.value,
-                          })
-                        }
+                          });
+                          limpiarErrorNuevo("categoria");
+                          limpiarErrorNuevo("general");
+                        }}
                       >
                         <option>Material</option>
                         <option>Inmaterial</option>
                         <option>Natural</option>
                       </select>
+                      {nuevoErrors.categoria && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.categoria}
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-section">
@@ -1702,6 +1849,11 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                    {nuevoErrors.ubicacion && (
+                      <div className="validation-error" role="alert">
+                        {nuevoErrors.ubicacion}
                       </div>
                     )}
                   </div>
@@ -2681,6 +2833,7 @@ export default function AdminDashboard() {
           onClick={() => {
             setModalNuevo(true);
             setStepNuevo(0);
+            setNuevoErrors({});
           }}
         >
           + Nuevo Patrimonio
