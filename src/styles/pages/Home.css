@@ -562,7 +562,9 @@
   border-radius: var(--radius-full);
   font-weight: 700;
   font-size: 0.6rem;
-  color: #fff;
+  color: var(--primary-dark);
+  background: rgba(61, 125, 104, 0.12);
+  border: 1px solid rgba(61, 125, 104, 0.28);
   text-transform: capitalize;
   letter-spacing: 0.3px;
   white-space: nowrap;
@@ -570,10 +572,6 @@
   text-overflow: ellipsis;
   flex: 0 1 auto;
 }
-
-.popular-municipio-badge.material { background: var(--accent-terracota); }
-.popular-municipio-badge.inmaterial { background: var(--secondary-blue); }
-.popular-municipio-badge.natural { background: var(--primary-light); }
 
 /* ==================== CATALOGO BUTTON ==================== */
 .catalogo-button-container {

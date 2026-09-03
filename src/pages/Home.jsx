@@ -391,14 +391,14 @@ function Home() {
               <div className="popular-content">
                 <h3 className="popular-name">{item.nombre}</h3>
                 <div className="popular-badges-container">
-                  <span className={`popular-category-badge ${getCategoryClass(item.categoria)}`}>
-                    {getCategoryLabel(item.categoria)}
-                  </span>
                   {getMunicipioName(item, municipios) && (
-                    <span className={`popular-municipio-badge ${getCategoryClass(item.categoria)}`}>
+                    <span className="popular-municipio-badge">
                       {getMunicipioName(item, municipios)}
                     </span>
                   )}
+                  <span className={`popular-category-badge ${getCategoryClass(item.categoria)}`}>
+                    {getCategoryLabel(item.categoria)}
+                  </span>
                 </div>
               </div>
             </article>

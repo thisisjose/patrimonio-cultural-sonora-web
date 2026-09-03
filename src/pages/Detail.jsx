@@ -1287,7 +1287,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       second: "2-digit",
     });
 
-    const footerText = `Consulta: ${formattedDate}`;
+    const footerLabel = "Consulta:";
+    const footerText = `${footerLabel} ${formattedDate}`;
     const totalPages = doc.internal.pages.length - 1; // Restar 1 porque la primera entrada es undefined
     const footerY = doc.internal.pageSize.getHeight() - 10; // 10mm desde el borde inferior
 
@@ -1300,15 +1301,20 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
       
       // Dibujar texto del pie de página
-      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       
       // Centrar el texto horizontalmente
-      const textWidth = doc.getTextWidth(footerText);
-      const footerX = (pageWidth - textWidth) / 2;
-      
-      doc.text(footerText, footerX, footerY);
+      doc.setFont("helvetica", "italic");
+      const labelWidth = doc.getTextWidth(footerLabel);
+      doc.setFont("helvetica", "normal");
+      const dateWidth = doc.getTextWidth(` ${formattedDate}`);
+      const footerX = (pageWidth - labelWidth - dateWidth) / 2;
+
+      doc.setFont("helvetica", "italic");
+      doc.text(footerLabel, footerX, footerY);
+      doc.setFont("helvetica", "normal");
+      doc.text(` ${formattedDate}`, footerX + labelWidth, footerY);
     }
 
     doc.save(`${item.nombre}.pdf`);
