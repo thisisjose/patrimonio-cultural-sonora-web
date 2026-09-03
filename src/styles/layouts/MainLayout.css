@@ -43,11 +43,10 @@
 }
 
 .logo-mark {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent-sand) 0%, var(--accent-terracota) 100%);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  width: 80px;
+  height: 80px;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,10 +54,10 @@
 }
 
 .logo-mark img {
-  width: 28px;
-  height: 28px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
-  filter: brightness(2);
+  display: block;
 }
 
 .logo-mark span {
@@ -236,10 +235,10 @@
 }
 
 .footer-logo img {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
-  filter: brightness(2);
+  display: block;
 }
 
 .footer-logo-main {
@@ -461,13 +460,13 @@ footer {
   }
 
   .logo-mark {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
   }
 
   .logo-mark img {
-    width: 24px;
-    height: 24px;
+    width: 48px;
+    height: 48px;
   }
 
   .footer-section h4 {

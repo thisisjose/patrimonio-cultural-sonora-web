@@ -1,5 +1,6 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import logoPatrimonio from "../Icons/LogoPatrimonioSonorense-removebg-preview.png";
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ function MainLayout() {
         <div className="container">
           <Link to="/" className="logo">
             <div className="logo-mark">
-              <span>PS</span>
+              <img src={logoPatrimonio} alt="Logo Patrimonio Sonorense" />
             </div>
             <div className="logo-text">
               <div className="logo-main">Patrimonio</div>
@@ -99,9 +100,9 @@ function MainLayout() {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <div className="logo-mark">
-                  <span>PS</span>
-                </div>
+                <Link to="/" className="logo-mark" aria-label="Ir al inicio">
+                  <img src={logoPatrimonio} alt="" />
+                </Link>
                 <div>
                   <div className="footer-logo-main">Patrimonio</div>
                   <div className="footer-logo-sub">Sonorense</div>

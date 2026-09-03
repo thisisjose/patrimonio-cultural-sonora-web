@@ -1,6 +1,7 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../Hooks/useAuth";
+import logoPatrimonio from "../Icons/LogoPatrimonioSonorense-removebg-preview.png";
 import "../styles/layouts/AdminLayout.css";
 
 const AdminLayout = () => {
@@ -20,15 +21,15 @@ const AdminLayout = () => {
     <div className="app-container">
       <header className="site-header">
         <div className="container">
-          <div className="logo">
+          <Link to="/admin" className="logo" aria-label="Ir al inicio de administración">
             <div className="logo-mark">
-              <span>PS</span>
+              <img src={logoPatrimonio} alt="Logo Patrimonio Sonorense" />
             </div>
             <div className="logo-text">
               <div className="logo-main">Patrimonio</div>
               <div className="admin-badge">Sonorense · Panel de administración</div>
             </div>
-          </div>
+          </Link>
 
           <nav className="nav-links" role="navigation" aria-label="Admin">
             <NavLink
@@ -162,9 +163,9 @@ const AdminLayout = () => {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <div className="logo-mark">
-                  <span>PS</span>
-                </div>
+                <Link to="/admin" className="logo-mark" aria-label="Ir al inicio de administración">
+                  <img src={logoPatrimonio} alt="" />
+                </Link>
                 <div>
                   <div className="footer-logo-main">Patrimonio</div>
                   <div className="footer-logo-sub">Sonorense</div>
