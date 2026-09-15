@@ -315,7 +315,7 @@
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 700;
-  text-transform: capitalize;
+  text-transform: uppercase;
   color: #fff;
 }
 
@@ -543,7 +543,7 @@
   font-weight: 700;
   font-size: 0.6rem;
   color: #fff;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;

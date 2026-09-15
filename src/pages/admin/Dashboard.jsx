@@ -2212,8 +2212,8 @@ export default function AdminDashboard() {
             <div className="modal-body">
               <StepIndicator current={stepEditar} total={3} />
 
-              {/* PASO 0: IMÁGENES */}
-              {stepEditar === 0 && (
+              {/* PASO 2: IMÁGENES */}
+              {stepEditar === 2 && (
                 <div className="section-two-col">
                   <div className="section-left">
                     <h4 className="section-title-small">Portada actual</h4>
@@ -2349,8 +2349,8 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* PASO 1: DATOS (con el nuevo editor) */}
-              {stepEditar === 1 && (
+              {/* PASO 0: DATOS (con el nuevo editor) */}
+              {stepEditar === 0 && (
                 <div className="section-two-col">
                   <div className="section-left">
                     <div className="form-section">
@@ -2587,7 +2587,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {stepEditar === 2 && (
+              {stepEditar === 1 && (
                 <div className="section-two-col">
                   <div className="section-left">
                     <h4 className="section-title-small">Mapa</h4>
