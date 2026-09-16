@@ -4,6 +4,7 @@
   text-align: center;
   background: #FFFFFF;
   border-radius: var(--radius-xl);
+  margin-top: -1rem;
   margin-bottom: 2.5rem;
 }
 
