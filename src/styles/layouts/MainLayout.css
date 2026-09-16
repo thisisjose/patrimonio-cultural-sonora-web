@@ -2,7 +2,7 @@
 .site-header {
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   color: #fff;
-  padding: 1rem 0;
+  padding: clamp(0.45rem, 1vw, 0.75rem) 0;
   box-shadow: var(--shadow);
   position: fixed !important;
   top: 0;
@@ -20,21 +20,21 @@
 }
 
 .app-container {
-  padding-top: 65px;
+  padding-top: clamp(68px, calc(52px + 5.2vw), 96px);
 }
 
 .site-header .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: clamp(1rem, 2.5vw, 2rem);
 }
 
 /* Logo */
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: clamp(0.55rem, 1.2vw, 0.85rem);
   text-decoration: none;
   color: inherit;
   font-weight: 700;
@@ -43,8 +43,8 @@
 }
 
 .logo-mark {
-  width: 80px;
-  height: 80px;
+  width: clamp(52px, 5vw, 68px);
+  height: clamp(52px, 5vw, 68px);
   background: transparent;
   box-shadow: none;
   display: flex;
@@ -54,8 +54,8 @@
 }
 
 .logo-mark img {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   display: block;
 }
@@ -90,7 +90,7 @@
 /* Navegación Desktop */
 .nav-links {
   display: flex;
-  gap: 2.5rem;
+  gap: clamp(1.25rem, 2.5vw, 2rem);
   align-items: center;
   margin-left: auto;
   justify-content: flex-end;
@@ -207,7 +207,13 @@
   gap: 1rem;
 }
 
+.public-footer .footer-section:first-child {
+  align-items: center;
+  text-align: center;
+}
+
 .footer-section h4 {
+  font-family: var(--font-sans);
   color: var(--accent-sand);
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
@@ -227,11 +233,21 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.public-footer .footer-desc {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
 .footer-logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
+}
+
+.public-footer .footer-logo {
+  justify-content: center;
 }
 
 .footer-logo img {
@@ -460,13 +476,13 @@ footer {
   }
 
   .logo-mark {
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
   }
 
   .logo-mark img {
-    width: 48px;
-    height: 48px;
+    width: 100%;
+    height: 100%;
   }
 
   .footer-section h4 {

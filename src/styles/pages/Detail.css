@@ -91,6 +91,12 @@
   padding: 1.75rem;
 }
 
+.detail-location .section-title,
+.detail-location .section-subtitle,
+.detail-location-list h3 {
+  font-family: var(--font-sans);
+}
+
 .detail-location-list {
   margin-top: 1rem;
   padding-top: 1rem;

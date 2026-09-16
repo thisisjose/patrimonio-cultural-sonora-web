@@ -95,7 +95,7 @@ function MainLayout() {
         </div>
       </main>
 
-      <footer className="site-footer">
+      <footer className="site-footer public-footer">
         <div className="container">
           <div className="footer-content">
             <div className="footer-section">
