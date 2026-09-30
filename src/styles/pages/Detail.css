@@ -210,6 +210,212 @@
   box-shadow: 0 12px 30px rgba(26,95,62,0.18);
 }
 
+.detail-share {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.75rem;
+}
+
+.detail-share-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 42px;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(15, 61, 41, 0.18);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--primary-dark);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.detail-share-trigger:hover,
+.detail-share-trigger[aria-expanded="true"] {
+  background: rgba(61, 125, 104, 0.08);
+  border-color: var(--green-500);
+}
+
+.detail-share-trigger:focus-visible,
+.detail-share-options a:focus-visible,
+.detail-share-options button:focus-visible {
+  outline: 3px solid rgba(61, 125, 104, 0.35);
+  outline-offset: 2px;
+}
+
+.detail-share-trigger svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.detail-share-options {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.5rem);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 5px 16px rgba(15, 61, 41, 0.14);
+  transform: translateY(-50%);
+  animation: detail-share-in 0.16s ease-out both;
+}
+
+.detail-share-option {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(15, 61, 41, 0.14);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--primary-dark);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-base), background var(--transition-base), transform var(--transition-base);
+}
+
+.detail-share-option:hover {
+  background: rgba(61, 125, 104, 0.1);
+  transform: translateY(-1px);
+}
+
+.detail-share-option:first-child:hover {
+  color: #1877f2;
+}
+
+.detail-share-option:nth-child(4):hover {
+  color: #128c7e;
+}
+
+.detail-share-option:focus-visible {
+  outline: 3px solid rgba(61, 125, 104, 0.35);
+  outline-offset: 2px;
+}
+
+.detail-share-option svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.detail-share-option:first-child svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.detail-share-option[data-tooltip]::after {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 30;
+  padding: 0.35rem 0.55rem;
+  border-radius: 5px;
+  background: var(--primary-dark);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 3px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  white-space: nowrap;
+}
+
+.detail-share-option:hover::after,
+.detail-share-option:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.detail-share-status {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 30;
+  padding: 0.35rem 0.55rem;
+  border-radius: 5px;
+  background: var(--primary-dark);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@keyframes detail-share-in {
+  from {
+    opacity: 0;
+    transform: translate(4px, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+@media (max-width: 1280px) {
+  .detail-share-options {
+    top: calc(100% + 0.5rem);
+    left: 0;
+    flex-wrap: wrap;
+    width: min(250px, calc(100vw - 5rem));
+    border-radius: 12px;
+    transform: none;
+  }
+
+  .detail-share-option {
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
+  }
+
+  @keyframes detail-share-in {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-share-options,
+  .detail-share-option,
+  .detail-share-option[data-tooltip]::after {
+    animation: none;
+    transition: none;
+  }
+}
+
 .detail-map-actions {
   margin-top: 1.25rem;
   display: flex;

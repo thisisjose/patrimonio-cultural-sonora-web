@@ -1329,6 +1329,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
 function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail }) {
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = useMemo(() => buildImageList(item), [item]);
 
@@ -1371,6 +1373,30 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
     mainLocation.lat != null && mainLocation.lng != null
       ? `https://maps.apple.com/?ll=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}&q=${encodeURIComponent(`${mainLocation.lat},${mainLocation.lng}`)}`
       : null;
+  const shareUrl = window.location.href;
+  const shareTitle = `${item.nombre} - Patrimonio Cultural de Sonora`;
+
+  const handleCopyLink = async () => {
+    let copied = false;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      copied = true;
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = shareUrl;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      copied = document.execCommand("copy");
+      input.remove();
+    }
+
+    if (!copied) return;
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const prevImage = () => {
     setCurrentImageIndex(
@@ -1651,6 +1677,106 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
           >
             Descargar PDF
           </button>
+          <div className="detail-share">
+            <button
+              className="detail-share-trigger"
+              type="button"
+              aria-expanded={isShareMenuOpen}
+              aria-controls={`share-options-${item.id}`}
+              onClick={() => setIsShareMenuOpen((open) => !open)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="m8.7 10.6 6.6-4.2M8.7 13.4l6.6 4.2" />
+              </svg>
+              Compartir
+            </button>
+            {isShareMenuOpen && (
+              <div
+                className="detail-share-options"
+                id={`share-options-${item.id}`}
+                aria-label="Opciones para compartir"
+              >
+                <a
+                  className="detail-share-option"
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir en Facebook"
+                  data-tooltip="Compartir en Facebook"
+                  title="Compartir en Facebook"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V3.9c-.3 0-1.4-.1-2.6-.1-2.6 0-4.4 1.6-4.4 4.5V10H7v3h2.8v8h3.7Z" />
+                  </svg>
+                </a>
+                <a
+                  className="detail-share-option"
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir en X"
+                  data-tooltip="Compartir en X"
+                  title="Compartir en X"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 4l14 16M19 4 5 20" />
+                  </svg>
+                </a>
+                <a
+                  className="detail-share-option"
+                  href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareUrl)}`}
+                  aria-label="Enviar por correo"
+                  data-tooltip="Enviar por correo"
+                  title="Enviar por correo"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m4 7 8 6 8-6" />
+                  </svg>
+                </a>
+                <a
+                  className="detail-share-option"
+                  href={`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir por WhatsApp"
+                  data-tooltip="Compartir por WhatsApp"
+                  title="Compartir por WhatsApp"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" />
+                    <path d="M8.4 8.2c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.7c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4 0 .6.7 1 1.5 1.8 2.5 2.4.3.2.5.2.7 0l.7-.7c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5v.5c0 .3-.1.5-.4.7-.5.4-1.3.5-2 .3-1.2-.4-2.5-1.1-3.8-2.4-1.3-1.3-2-2.6-2.4-3.8-.2-.7-.1-1.5.3-2Z" />
+                  </svg>
+                </a>
+                <button
+                  className="detail-share-option"
+                  type="button"
+                  onClick={handleCopyLink}
+                  aria-label="Copiar enlace"
+                  data-tooltip="Copiar enlace"
+                  title="Copiar enlace"
+                >
+                  {linkCopied ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m5 12 4 4L19 6" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M10 13a5 5 0 0 0 7.1 0l2-2A5 5 0 0 0 12 3.9l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+                    </svg>
+                  )}
+                </button>
+                {linkCopied && (
+                  <span className="detail-share-status" role="status" aria-live="polite">
+                    Enlace copiado
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </aside>
       </div>
 
