@@ -194,6 +194,9 @@ const cleanWebDescriptionHtml = (html) => {
 
 const displayCategoryLabel = (categoria) => getCategoryLabel(categoria);
 
+const getLocalidadName = (localidad) =>
+  typeof localidad === "string" ? localidad.trim() : localidad?.nombre?.trim() || "";
+
 const normalizeImage = (image) => {
   if (!image) return null;
   if (typeof image === "string") return buildImageUrl(image);
@@ -1324,7 +1327,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
   }
 };
 
-function PatrimonioDetailEntry({ item, municipioNombre }) {
+function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail }) {
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = useMemo(() => buildImageList(item), [item]);
@@ -1387,7 +1390,19 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
     <article className="detail-entry">
       <div className="detail-header">
         <div className="detail-header-content">
-          <h2 className="detail-title">{item.nombre}</h2>
+          <h2 className="detail-title">
+            {detailPath ? (
+              <Link
+                className="detail-entry-title-link"
+                to={detailPath}
+                onClick={onOpenDetail}
+              >
+                {item.nombre}
+              </Link>
+            ) : (
+              item.nombre
+            )}
+          </h2>
           <p className="detail-subtitle">Municipio: {municipioNombre}</p>
         </div>
       </div>
@@ -1560,7 +1575,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
               interactive={false}
             />
           </div>
-          {ubicaciones.length > 0 && (
+          {ubicaciones.length > 1 && (
             <div className="detail-location-list">
               <h3 className="section-subtitle">
                 {ubicaciones.length === 1 ? "Ubicación" : "Ubicaciones"}
@@ -1682,7 +1697,7 @@ function PatrimonioDetailEntry({ item, municipioNombre }) {
 
 function Detail() {
   // 1. TODOS LOS HOOKS DECLARADOS AL PRINCIPIO
-  const { id, slug, municipio } = useParams();
+  const { id, slug, municipio, localidad: localidadSlug } = useParams();
   const location = useLocation(); // <-- Mover aquí para evitar violar la regla de Hooks
   const [patrimonio, setPatrimonio] = useState();
   const [municipios, setMunicipios] = useState([]);
@@ -1692,6 +1707,12 @@ function Detail() {
   const [busquedaMunicipio, setBusquedaMunicipio] = useState("");
   const [categoriaMunicipio, setCategoriaMunicipio] = useState("");
   const [paginaMunicipio, setPaginaMunicipio] = useState(1);
+  const [selectedLocalidad, setSelectedLocalidad] = useState(null);
+  const [localidadPatrimonios, setLocalidadPatrimonios] = useState([]);
+  const [localidadLoading, setLocalidadLoading] = useState(false);
+  const [busquedaLocalidad, setBusquedaLocalidad] = useState("");
+  const [categoriaLocalidad, setCategoriaLocalidad] = useState("");
+  const [paginaLocalidad, setPaginaLocalidad] = useState(1);
   const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
@@ -1730,6 +1751,31 @@ function Detail() {
             item = items.find((it) => {
               const nameMatch = slugify(it.nombre) === String(slug);
               if (!nameMatch) return false;
+              if (localidadSlug) {
+                const mi =
+                  it.municipio && typeof it.municipio === "string"
+                    ? it.municipio
+                    : it.municipio && typeof it.municipio === "object"
+                      ? it.municipio.nombre || it.municipio.nombre_corto
+                      : it.municipioNombre || it.municipio_nombre || null;
+
+                const matchesMunicipio = mi
+                  ? slugify(mi) === String(municipio)
+                  : Boolean(
+                      it.municipioId &&
+                        municipiosData?.some(
+                          (municipioData) =>
+                            String(municipioData.id) === String(it.municipioId) &&
+                            slugify(municipioData.nombre) === String(municipio),
+                        ),
+                    );
+
+                return (
+                  matchesMunicipio &&
+                  slugify(String(it.localidad || "")) === String(localidadSlug)
+                );
+              }
+
               if (municipio) {
                 const mi =
                   it.municipio && typeof it.municipio === "string"
@@ -1768,10 +1814,11 @@ function Detail() {
     };
 
     cargarDatos();
-  }, [id, slug, municipio]);
+  }, [id, slug, municipio, localidadSlug]);
 
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;
+    setSelectedLocalidad(null);
     setSelectedMunicipioId(municipioId);
     setPaginaMunicipio(1);
     setMunicipioLoading(true);
@@ -1794,17 +1841,59 @@ function Detail() {
     }
   };
 
+  const cargarPatrimoniosLocalidad = async (localidad, municipioId) => {
+    const nombreLocalidad = typeof localidad === "string" ? localidad.trim() : "";
+    if (!nombreLocalidad || !municipioId) return;
+
+    setSelectedMunicipioId(null);
+    setSelectedLocalidad({ nombre: nombreLocalidad, municipioId });
+    setPaginaLocalidad(1);
+    setBusquedaLocalidad("");
+    setCategoriaLocalidad("");
+    setLocalidadLoading(true);
+    setLocalidadPatrimonios([]);
+    window.scrollTo({ top: 0, behavior: "auto" });
+
+    try {
+      const items = await getPatrimonios();
+      const filtered = Array.isArray(items)
+        ? items
+            .filter(
+              (item) =>
+                String(item.municipioId) === String(municipioId) &&
+                slugify(String(item.localidad || "")) === slugify(nombreLocalidad),
+            )
+            .map((item) => normalizePatrimonioData(item))
+        : [];
+      setLocalidadPatrimonios(filtered);
+    } catch (error) {
+      console.error("Error loading patrimonios de localidad:", error);
+      setLocalidadPatrimonios([]);
+    } finally {
+      setLocalidadLoading(false);
+    }
+  };
+
   useEffect(() => {
     setMunicipioPatrimonios([]);
     setSelectedMunicipioId(null);
     setBusquedaMunicipio("");
     setCategoriaMunicipio("");
     setPaginaMunicipio(1);
+    setLocalidadPatrimonios([]);
+    setSelectedLocalidad(null);
+    setBusquedaLocalidad("");
+    setCategoriaLocalidad("");
+    setPaginaLocalidad(1);
   }, [patrimonio]);
 
   useEffect(() => {
     setPaginaMunicipio(1);
   }, [busquedaMunicipio, categoriaMunicipio]);
+
+  useEffect(() => {
+    setPaginaLocalidad(1);
+  }, [busquedaLocalidad, categoriaLocalidad]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1852,6 +1941,31 @@ function Detail() {
     selectedMunicipioId,
   ]);
 
+  const filteredLocalidadPatrimonios = useMemo(() => {
+    if (!selectedLocalidad) return [];
+
+    return localidadPatrimonios.filter((item) => {
+      const matchesSearch =
+        busquedaLocalidad.trim() === ""
+          ? true
+          : String(item.nombre || "")
+              .toLowerCase()
+              .includes(busquedaLocalidad.trim().toLowerCase());
+
+      const matchesCategory = !categoriaLocalidad
+        ? true
+        : normalizeCategoryKey(item.categoria) ===
+          normalizeCategoryKey(categoriaLocalidad);
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [
+    localidadPatrimonios,
+    busquedaLocalidad,
+    categoriaLocalidad,
+    selectedLocalidad,
+  ]);
+
   // 2. RETORNOS CONDICIONALES / EARLY RETURNS SÓLO DESPUÉS DE LOS HOOKS
   if (patrimonio === undefined) {
     return null;
@@ -1878,22 +1992,49 @@ function Detail() {
     indicieInicio,
     indicieInicio + itemsPorPagina,
   );
+  const totalPaginasLocalidad = Math.ceil(
+    filteredLocalidadPatrimonios.length / itemsPorPagina,
+  );
+  const inicioLocalidad = (paginaLocalidad - 1) * itemsPorPagina;
+  const patrimoniosLocalidadPaginados = filteredLocalidadPatrimonios.slice(
+    inicioLocalidad,
+    inicioLocalidad + itemsPorPagina,
+  );
 
   const nombreMunicipio =
     patrimonio && patrimonio.municipioId
       ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))
           ?.nombre || "Municipio"
       : "Municipio";
+  const localidadNombre = getLocalidadName(patrimonio.localidad);
+  const tieneLocalidad =
+    localidadNombre && !["null", "undefined"].includes(localidadNombre.toLowerCase());
 
   const adminBase = location.pathname.startsWith("/admin") ? "/admin" : "/";
   const showMunicipioDetails = Boolean(selectedMunicipioId);
+  const showLocalidadDetails = Boolean(selectedLocalidad);
+  const routeBase = location.pathname.startsWith("/admin") ? "/admin" : "";
 
   return (
     <div className="page-inner detail-page">
       <nav className="breadcrumbs">
         <Link to={adminBase}>Inicio</Link>
         <span className="crumb-sep">›</span>
-        {showMunicipioDetails ? (
+        {showLocalidadDetails ? (
+          <>
+            <button
+              type="button"
+              className="breadcrumb-link"
+              onClick={() =>
+                cargarPatrimoniosMunicipio(selectedLocalidad.municipioId)
+              }
+            >
+              {nombreMunicipio}
+            </button>
+            <span className="crumb-sep">›</span>
+            <span className="crumb-current">{selectedLocalidad.nombre}</span>
+          </>
+        ) : showMunicipioDetails ? (
           <span className="crumb-current">{nombreMunicipio}</span>
         ) : patrimonio && patrimonio.municipioId ? (
           <>
@@ -1904,6 +2045,23 @@ function Detail() {
             >
               {nombreMunicipio}
             </button>
+            {tieneLocalidad && (
+              <>
+                <span className="crumb-sep">›</span>
+                <button
+                  type="button"
+                  className="breadcrumb-link"
+                  onClick={() =>
+                    cargarPatrimoniosLocalidad(
+                      localidadNombre,
+                      patrimonio.municipioId,
+                    )
+                  }
+                >
+                  {localidadNombre}
+                </button>
+              </>
+            )}
             <span className="crumb-sep">›</span>
             <span className="crumb-current">{patrimonio.nombre}</span>
           </>
@@ -1912,7 +2070,128 @@ function Detail() {
         )}
       </nav>
 
-      {showMunicipioDetails ? (
+      {showLocalidadDetails ? (
+        <section className="municipio-details localidad-details">
+          <div className="catalogo-filters-section localidad-filters-section">
+            <div className="catalogo-search-box">
+              <div className="filter-header">
+                <span className="filter-label">Buscar patrimonio</span>
+              </div>
+              <div className="catalogo-search-input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Escribe el nombre..."
+                  value={busquedaLocalidad}
+                  onChange={(event) => setBusquedaLocalidad(event.target.value)}
+                  className="catalogo-search-input"
+                />
+                {busquedaLocalidad && (
+                  <button
+                    className="catalogo-search-clear-btn"
+                    onClick={() => setBusquedaLocalidad("")}
+                    aria-label="Limpiar búsqueda"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="catalogo-category-filter">
+              <div className="filter-header">
+                <span className="filter-label">Filtrar por categoría</span>
+              </div>
+              <select
+                value={categoriaLocalidad}
+                onChange={(event) => setCategoriaLocalidad(event.target.value)}
+                className="catalogo-select"
+              >
+                <option value="">Todas</option>
+                <option value="material">Material</option>
+                <option value="inmaterial">Inmaterial</option>
+                <option value="natural">Natural</option>
+              </select>
+            </div>
+          </div>
+
+          <h2 className="section-title">
+            Localidad: {selectedLocalidad.nombre}
+          </h2>
+          {localidadLoading ? (
+            <p className="lead">
+              Cargando detalles de {selectedLocalidad.nombre}...
+            </p>
+          ) : filteredLocalidadPatrimonios.length === 0 ? (
+            <p className="lead">
+              No se encontraron patrimonios en {selectedLocalidad.nombre}.
+            </p>
+          ) : (
+            <>
+              <div className="municipio-results">
+                {patrimoniosLocalidadPaginados.map((item) => (
+                  <PatrimonioDetailEntry
+                    key={item.id}
+                    item={item}
+                    municipioNombre={nombreMunicipio}
+                    detailPath={`${routeBase}/${slugify(nombreMunicipio)}/${slugify(selectedLocalidad.nombre)}/${slugify(item.nombre)}`}
+                    onOpenDetail={() => setSelectedLocalidad(null)}
+                  />
+                ))}
+              </div>
+
+              {totalPaginasLocalidad > 1 && (
+                <div className="catalogo-municipio-pagination">
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => setPaginaLocalidad(paginaLocalidad - 1)}
+                    disabled={paginaLocalidad === 1}
+                    aria-label="Página anterior"
+                  >
+                    ← Anterior
+                  </button>
+
+                  <div className="catalogo-page-numbers">
+                    {paginaLocalidad > 2 && totalPaginasLocalidad > 3 && (
+                      <>
+                        <button
+                          className="catalogo-page-num"
+                          onClick={() => setPaginaLocalidad(1)}
+                        >
+                          1
+                        </button>
+                        {paginaLocalidad > 3 && (
+                          <span className="pagination-dots">...</span>
+                        )}
+                      </>
+                    )}
+
+                    {getPageNumbers(paginaLocalidad, totalPaginasLocalidad).map(
+                      (number) => (
+                        <button
+                          key={number}
+                          className={`catalogo-page-num ${number === paginaLocalidad ? "active" : ""}`}
+                          onClick={() => setPaginaLocalidad(number)}
+                        >
+                          {number}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  <button
+                    className="catalogo-page-btn"
+                    onClick={() => setPaginaLocalidad(paginaLocalidad + 1)}
+                    disabled={paginaLocalidad === totalPaginasLocalidad}
+                    aria-label="Página siguiente"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      ) : showMunicipioDetails ? (
         <section className="municipio-details">
           <div className="catalogo-filters-section">
             <div className="catalogo-search-box">

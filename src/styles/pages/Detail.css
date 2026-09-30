@@ -3,6 +3,16 @@
   padding: 2rem 0;
 }
 
+.detail-page .localidad-filters-section {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .detail-page .localidad-filters-section {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Header */
 .detail-header {
   margin-bottom: 2.5rem;
@@ -27,6 +37,15 @@
   color: var(--primary-dark);
   line-height: 1.1;
   margin-bottom: 1rem;
+}
+
+.detail-entry-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.detail-entry-title-link:hover {
+  text-decoration: underline;
 }
 
 .breadcrumbs {

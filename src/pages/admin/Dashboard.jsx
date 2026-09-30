@@ -549,6 +549,7 @@ export default function AdminDashboard() {
   const isSupremo = user?.rol === "admin_supremo";
 
   const [patrimonios, setPatrimonios] = useState([]);
+  const [localidadesGuardadas, setLocalidadesGuardadas] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [tagsList, setTagsList] = useState([]);
 
@@ -568,6 +569,7 @@ export default function AdminDashboard() {
   const [formEditar, setFormEditar] = useState({
     id: null,
     nombre: "",
+    localidad: "",
     municipioId: "",
     categoria: "Material",
     descripcion: "",
@@ -588,6 +590,7 @@ export default function AdminDashboard() {
 
   const INITIAL_FORM_NUEVO_STATE = {
     nombre: "",
+    localidad: "",
     municipioId: "",
     categoria: "Material",
     descripcion: "",
@@ -607,6 +610,7 @@ export default function AdminDashboard() {
   const [nuevoErrors, setNuevoErrors] = useState({});
   const [formNuevo, setFormNuevo] = useState({
     nombre: "",
+    localidad: "",
     municipioId: "",
     categoria: "Material",
     descripcion: "",
@@ -657,6 +661,17 @@ export default function AdminDashboard() {
     return map;
   }, [municipios]);
 
+  const localidadOptions = [...new Set(localidadesGuardadas
+    .map((localidad) => typeof localidad === "string" ? localidad.trim() : "")
+    .filter((localidad) => localidad && !["null", "undefined"].includes(localidad.toLowerCase())))
+  ].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  const localidadesSugeridas = (value) => {
+    const query = value.trim().toLocaleLowerCase();
+    return query
+      ? localidadOptions.filter((localidad) => localidad.toLocaleLowerCase().includes(query))
+      : [];
+  };
+
   // ---------- CARGA DE DATOS ----------
   const cargarDatos = async (page = 1) => {
     try {
@@ -673,6 +688,7 @@ export default function AdminDashboard() {
       setTagsList(Array.isArray(respTags) ? respTags : []);
       const data = respPatrimonios || {};
       setPatrimonios(data.patrimonios || []);
+      setLocalidadesGuardadas(Array.isArray(data.localidades) ? data.localidades : []);
       setTotalPages(data.totalPages || 1);
       setCurrentPage(data.currentPage || page);
       setTotales(respMetricas || { total: 0, pendientes: 0, registrados: 0 });
@@ -849,6 +865,7 @@ export default function AdminDashboard() {
     setFormEditar({
       id: item.id,
       nombre: item.nombre,
+      localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
       municipioId: item.municipioId,
       categoria: item.categoria,
       descripcion: item.descripcion,
@@ -876,6 +893,7 @@ export default function AdminDashboard() {
     setFormEditar({
       id: null,
       nombre: "",
+      localidad: "",
       municipioId: "",
       categoria: "Material",
       descripcion: "",
@@ -1069,6 +1087,7 @@ export default function AdminDashboard() {
       setError("");
       const formData = new FormData();
       formData.append("nombre", formNuevo.nombre);
+      formData.append("localidad", formNuevo.localidad);
       formData.append("categoria", formNuevo.categoria);
       formData.append("descripcion", formNuevo.descripcion);
       formData.append("municipioId", formNuevo.municipioId);
@@ -1087,6 +1106,7 @@ export default function AdminDashboard() {
       setStepNuevo(0);
       setFormNuevo({
         nombre: "",
+        localidad: "",
         municipioId: "",
         categoria: "Material",
         descripcion: "",
@@ -1163,6 +1183,7 @@ export default function AdminDashboard() {
       if (hayArchivos) {
         const fd = new FormData();
         fd.append("nombre", formEditar.nombre);
+        fd.append("localidad", formEditar.localidad || "");
         fd.append("categoria", formEditar.categoria);
         fd.append("descripcion", formEditar.descripcion);
         fd.append("municipioId", formEditar.municipioId);
@@ -1191,6 +1212,7 @@ export default function AdminDashboard() {
       } else {
         dataToSend = {
           nombre: formEditar.nombre,
+          localidad: formEditar.localidad || "",
           categoria: formEditar.categoria,
           descripcion: formEditar.descripcion,
           municipioId: formEditar.municipioId,
@@ -1236,6 +1258,7 @@ export default function AdminDashboard() {
       return {
         id: item.id,
         nombre: item.nombre ?? "",
+        localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
         categoria: item.categoria ?? "Material",
         descripcion: item.descripcion ?? "",
         ubicaciones: ubicaciones,
@@ -1547,6 +1570,28 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="section-right">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Localidad</h4>
+                      <input
+                        type="text"
+                        className="form-input"
+                        list="localidades-sugeridas-nuevo"
+                        value={formNuevo.localidad}
+                        onChange={(e) =>
+                          setFormNuevo((prev) => ({
+                            ...prev,
+                            localidad: e.target.value,
+                          }))
+                        }
+                        placeholder="Escribe la localidad (opcional)"
+                      />
+                      <datalist id="localidades-sugeridas-nuevo">
+                        {localidadesSugeridas(formNuevo.localidad).map((localidad) => (
+                          <option key={localidad} value={localidad} />
+                        ))}
+                      </datalist>
+                    </div>
+
                     <div className="form-section">
                       <h4 className="section-title-small">Municipio</h4>
                       <select
@@ -2057,6 +2102,13 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
+                    {modalVer.localidad && (
+                      <div className="form-section">
+                        <h4 className="section-title-small">Localidad</h4>
+                        <div className="form-value">{modalVer.localidad}</div>
+                      </div>
+                    )}
+
                     <div className="form-section">
                       <h4 className="section-title-small">Tags</h4>
                       <div className="tags-list">
@@ -2389,6 +2441,27 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="section-right">
+                    <div className="form-section">
+                      <h4 className="section-title-small">Localidad</h4>
+                      <input
+                        type="text"
+                        className="form-input"
+                        list="localidades-sugeridas-editar"
+                        value={formEditar.localidad || ""}
+                        onChange={(e) =>
+                          setFormEditar((prev) => ({
+                            ...prev,
+                            localidad: e.target.value,
+                          }))
+                        }
+                        placeholder="Escribe la localidad (opcional)"
+                      />
+                      <datalist id="localidades-sugeridas-editar">
+                        {localidadesSugeridas(formEditar.localidad || "").map((localidad) => (
+                          <option key={localidad} value={localidad} />
+                        ))}
+                      </datalist>
+                    </div>
                     <div className="form-section">
                       <h4 className="section-title-small">Municipio</h4>
                       <select

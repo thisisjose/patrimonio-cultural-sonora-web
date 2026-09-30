@@ -23,9 +23,22 @@ function Home() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [todosPatrimonios, setTodosPatrimonios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaLocalidad, setBusquedaLocalidad] = useState("");
   const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [statsData, setStatsData] = useState({ material: 0, inmaterial: 0, natural: 0 });
+  const localidadesDisponibles = useMemo(() => {
+    const localidades = new Map();
+    todosPatrimonios.forEach((item) => {
+      const localidad = typeof item.localidad === "string" ? item.localidad.trim() : "";
+      if (localidad && !["null", "undefined"].includes(localidad.toLowerCase())) {
+        localidades.set(localidad.toLocaleLowerCase("es"), localidad);
+      }
+    });
+    return [...localidades.values()].sort((a, b) =>
+      a.localeCompare(b, "es", { sensitivity: "base" }),
+    );
+  }, [todosPatrimonios]);
 
   const parseUbicaciones = (ubicaciones) => {
     if (!ubicaciones) return [];
@@ -130,11 +143,16 @@ function Home() {
       const matchCategoria = categoriaSeleccionada
         ? normalizeCategoryKey(item.categoria) === categoriaSeleccionada
         : true;
-      return matchMunicipio && matchCategoria;
+      const matchLocalidad = busquedaLocalidad.trim()
+        ? String(item.localidad || "")
+            .toLowerCase()
+            .includes(busquedaLocalidad.trim().toLowerCase())
+        : true;
+      return matchMunicipio && matchCategoria && matchLocalidad;
     });
 
     setPatrimonios(filtered);
-  }, [categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
+  }, [busquedaLocalidad, categoriaSeleccionada, municipioSeleccionado, todosPatrimonios]);
 
   useEffect(() => {
     const materialCount = todosPatrimonios.filter(
@@ -312,6 +330,25 @@ function Home() {
             )}
           </div>
 
+          <div className="search-box-container">
+            <div className="filter-header">
+              <span className="filter-label">Buscar por localidad</span>
+            </div>
+            <input
+              type="text"
+              placeholder="Escribe la localidad..."
+              value={busquedaLocalidad}
+              onChange={(e) => setBusquedaLocalidad(e.target.value)}
+              className="patrimonio-search-input"
+              list="localidades-home"
+            />
+            <datalist id="localidades-home">
+              {localidadesDisponibles.map((localidad) => (
+                <option key={localidad} value={localidad} />
+              ))}
+            </datalist>
+          </div>
+
           <div>
             <div className="filter-header">
               <span className="filter-label">Filtrar por municipio</span>
@@ -365,44 +402,57 @@ function Home() {
           </button>
         </div>
         <div className="popular-row">
-          {patrimoniosAleatorios.map((item) => (
-            <article
-              key={item.id}
-              className="popular-card"
-              role="button"
-              tabIndex={0}
-              onClick={() => handleNavigateToDetalle(item.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleNavigateToDetalle(item.id);
-                }
-              }}
-            >
-              <div className="popular-thumb">
-                <img 
-                  src={item.imagen} 
-                  alt={item.nombre}
-                  onError={(e) => {
-                    e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
-                  }}
-                />
-              </div>
-              <div className="popular-content">
-                <h3 className="popular-name">{item.nombre}</h3>
-                <div className="popular-badges-container">
-                  {getMunicipioName(item, municipios) && (
-                    <span className="popular-municipio-badge">
-                      {getMunicipioName(item, municipios)}
-                    </span>
-                  )}
-                  <span className={`popular-category-badge ${getCategoryClass(item.categoria)}`}>
+          {patrimoniosAleatorios.map((item) => {
+            const municipio = getMunicipioName(item, municipios);
+            const tieneMunicipio = municipio && !["null", "undefined"].includes(municipio.toLowerCase());
+            const localidad = typeof item.localidad === "string" ? item.localidad.trim() : "";
+            const tieneLocalidad = localidad && !["null", "undefined"].includes(localidad.toLowerCase());
+
+            return (
+              <article
+                key={item.id}
+                className="popular-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleNavigateToDetalle(item.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleNavigateToDetalle(item.id);
+                  }
+                }}
+              >
+                <div className="popular-thumb">
+                  <img
+                    src={item.imagen}
+                    alt={item.nombre}
+                    onError={(e) => {
+                      e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
+                    }}
+                  />
+                  <span className={`popular-badge ${getCategoryClass(item.categoria)}`}>
                     {getCategoryLabel(item.categoria)}
                   </span>
                 </div>
-              </div>
-            </article>
-          ))}
+                <div className="popular-content">
+                  <h3 className="popular-name">{item.nombre}</h3>
+                  {(tieneMunicipio || tieneLocalidad) && (
+                    <div className={`popular-location-container ${tieneMunicipio && tieneLocalidad ? "has-both-locations" : ""}`}>
+                      {tieneMunicipio && (
+                        <span className="popular-location-value">{municipio}</span>
+                      )}
+                      {tieneMunicipio && tieneLocalidad && (
+                        <span className="popular-location-separator" aria-hidden="true">·</span>
+                      )}
+                      {tieneLocalidad && (
+                        <span className="popular-location-value">{localidad}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
         <div className="catalogo-button-container">
           <button

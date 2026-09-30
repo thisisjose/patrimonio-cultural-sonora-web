@@ -74,6 +74,7 @@ function Catalogo() {
   const [todosPatrimonios, setTodosPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaLocalidad, setBusquedaLocalidad] = useState("");
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [paginasPorMunicipio, setPaginasPorMunicipio] = useState({});
@@ -81,6 +82,18 @@ function Catalogo() {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
   const botonVolverRef = useRef(null);
+  const localidadesDisponibles = useMemo(() => {
+    const localidades = new Map();
+    todosPatrimonios.forEach((item) => {
+      const localidad = typeof item.localidad === "string" ? item.localidad.trim() : "";
+      if (localidad && !["null", "undefined"].includes(localidad.toLowerCase())) {
+        localidades.set(localidad.toLocaleLowerCase("es"), localidad);
+      }
+    });
+    return [...localidades.values()].sort((a, b) =>
+      a.localeCompare(b, "es", { sensitivity: "base" }),
+    );
+  }, [todosPatrimonios]);
 
   // Cargar datos
   useEffect(() => {
@@ -117,6 +130,13 @@ function Catalogo() {
       );
     }
 
+    if (busquedaLocalidad.trim() !== "") {
+      const localidadBuscada = busquedaLocalidad.trim().toLowerCase();
+      resultado = resultado.filter((item) =>
+        String(item.localidad || "").toLowerCase().includes(localidadBuscada)
+      );
+    }
+
     if (municipioSeleccionado) {
       resultado = resultado.filter(
         (item) => getMunicipioName(item, municipios) === municipioSeleccionado
@@ -130,7 +150,7 @@ function Catalogo() {
     }
 
     return resultado;
-  }, [todosPatrimonios, busqueda, municipioSeleccionado, categoriaSeleccionada, municipios]);
+  }, [todosPatrimonios, busqueda, busquedaLocalidad, municipioSeleccionado, categoriaSeleccionada, municipios]);
 
   // Agrupar por municipio (ordenado alfabéticamente)
   const gruposPorMunicipio = useMemo(() => {
@@ -148,7 +168,7 @@ function Catalogo() {
   // Resetear paginación cuando cambian los filtros
  useEffect(() => {
   setPaginasPorMunicipio({});
-}, [busqueda, categoriaSeleccionada, municipioSeleccionado]);
+}, [busqueda, busquedaLocalidad, categoriaSeleccionada, municipioSeleccionado]);
 
 // Manejar scroll para mostrar/ocultar botón volver arriba (Versión Estable)
 useEffect(() => {
@@ -293,6 +313,36 @@ useEffect(() => {
           </div>
         </div>
 
+        <div className="catalogo-search-box">
+          <div className="filter-header">
+            <span className="filter-label">Buscar por localidad</span>
+          </div>
+          <div className="catalogo-search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Escribe la localidad..."
+              value={busquedaLocalidad}
+              onChange={(e) => setBusquedaLocalidad(e.target.value)}
+              className="catalogo-search-input"
+              list="localidades-catalogo"
+            />
+            <datalist id="localidades-catalogo">
+              {localidadesDisponibles.map((localidad) => (
+                <option key={localidad} value={localidad} />
+              ))}
+            </datalist>
+            {busquedaLocalidad && (
+              <button
+                className="catalogo-search-clear-btn"
+                onClick={() => setBusquedaLocalidad("")}
+                aria-label="Limpiar búsqueda por localidad"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="catalogo-municipio-filter">
           <div className="filter-header">
             <span className="filter-label">Filtrar por municipio</span>
@@ -358,6 +408,8 @@ useEffect(() => {
                 <div className="explore-card-list catalogo-explore-card-list">
                   {itemsPaginados.map((item) => {
                     const nombreMunicipio = getMunicipioName(item, municipios);
+                    const localidad = typeof item.localidad === "string" ? item.localidad.trim() : "";
+                    const tieneLocalidad = localidad && !["null", "undefined"].includes(localidad.toLowerCase());
                     return (
                       <Link
                         key={item.id}
@@ -380,14 +432,17 @@ useEffect(() => {
                         </div>
                         <div className="patrimonio-meta">
                           <h3 className="patrimonio-name">{item.nombre}</h3>
+                          <p className="patrimonio-desc">Municipio: {nombreMunicipio}</p>
+                          {tieneLocalidad && (
+                            <p className="patrimonio-desc">Localidad: {localidad}</p>
+                          )}
                           <div className="detail-tags-below">
                             <span
                               className={`category-badge ${getCategoryClass(item.categoria)}`}
                             >
-                              {displayCategoryLabel(item.categoria)}
+                              Categoría: {displayCategoryLabel(item.categoria)}
                             </span>
                           </div>
-                          <p className="patrimonio-desc">{nombreMunicipio}</p>
                         </div>
                       </Link>
                     );

@@ -6,7 +6,7 @@
 /* ==================== FILTERS SECTION ==================== */
 .catalogo-filters-section {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2.5rem;
   background: #f9fafb;
@@ -42,6 +42,17 @@
   border-radius: 8px;
   padding: 5px 12px;
   font-size: 0.9rem;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.catalogo-explore-card-list .patrimonio-meta {
+  min-width: 0;
+}
+
+.catalogo-explore-card-list .patrimonio-desc {
+  overflow-wrap: anywhere;
 }
 
 .catalogo-search-box,
