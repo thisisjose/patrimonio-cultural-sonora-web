@@ -19,6 +19,7 @@ import {
 import DOMPurify from "dompurify";
 import androidLogo from "../Icons/logotipo-de-android.png";
 import appleLogo from "../Icons/logotipo-de-apple.png";
+import licenseLogo from "../Icons/licencia.png";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -192,10 +193,107 @@ const cleanWebDescriptionHtml = (html) => {
   return cleanedHtml.trim();
 };
 
+const createDescriptionPreview = (html) => {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+
+  const blockTags = new Set([
+    "BLOCKQUOTE",
+    "FIGURE",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
+    "HR",
+    "IMG",
+    "OL",
+    "P",
+    "PRE",
+    "TABLE",
+    "UL",
+  ]);
+
+  const containsBlock = (element) =>
+    Array.from(element.children).some(
+      (child) =>
+        blockTags.has(child.tagName) ||
+        (child.tagName === "DIV" && containsBlock(child)),
+    );
+
+  const blocks = [];
+  const collectBlocks = (parent) => {
+    Array.from(parent.childNodes).forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (node.textContent.trim()) blocks.push(node);
+        return;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      if (node.tagName === "DIV" && containsBlock(node)) {
+        collectBlocks(node);
+      } else {
+        blocks.push(node);
+      }
+    });
+  };
+
+  collectBlocks(template.content);
+
+  let hasMore = false;
+  blocks.forEach((block, index) => {
+    let displayBlock = block;
+    if (block.nodeType === Node.TEXT_NODE) {
+      displayBlock = document.createElement("span");
+      displayBlock.textContent = block.textContent;
+      block.replaceWith(displayBlock);
+    }
+
+    if (index >= 3) {
+      displayBlock.style.setProperty("display", "none", "important");
+      hasMore = true;
+      return;
+    }
+
+    const hasComplexContent =
+      displayBlock.nodeType === Node.ELEMENT_NODE &&
+      displayBlock.querySelector("img, table, ul, ol, figure");
+    if (index === 0 && !hasComplexContent && displayBlock.textContent.trim().length > 420) {
+      displayBlock.style.setProperty("display", "-webkit-box", "important");
+      displayBlock.style.setProperty("-webkit-box-orient", "vertical");
+      displayBlock.style.setProperty("-webkit-line-clamp", "4");
+      displayBlock.style.setProperty("overflow", "hidden", "important");
+      hasMore = true;
+    }
+  });
+
+  return { html: template.innerHTML, hasMore };
+};
+
 const displayCategoryLabel = (categoria) => getCategoryLabel(categoria);
 
-const getLocalidadName = (localidad) =>
-  typeof localidad === "string" ? localidad.trim() : localidad?.nombre?.trim() || "";
+const getLocalidadName = (localidad) => {
+  const name =
+    typeof localidad === "string" ? localidad.trim() : localidad?.nombre?.trim() || "";
+  return ["null", "undefined"].includes(name.toLowerCase()) ? "" : name;
+};
+
+const getMunicipioName = (item, municipios = []) => {
+  const relation = item?.municipio;
+  const relationName =
+    typeof relation === "string"
+      ? relation
+      : relation?.nombre || relation?.nombre_corto;
+  const name = relationName || item?.municipioNombre || item?.municipio_nombre;
+  if (typeof name === "string" && name.trim()) return name.trim();
+
+  const municipioId = item?.municipioId ?? relation?.id;
+  return (
+    municipios.find((municipio) => String(municipio.id) === String(municipioId))
+      ?.nombre?.trim() || ""
+  );
+};
 
 const normalizeImage = (image) => {
   if (!image) return null;
@@ -1107,9 +1205,17 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    const infoText = `Municipio: ${municipioNombre} | Categoría: ${item.categoria || "No especificada"}`;
-    doc.text(infoText, margin, currentY);
-    currentY += 10;
+    const localidadNombre = getLocalidadName(item.localidad);
+    const infoText = [
+      `Municipio: ${municipioNombre}`,
+      localidadNombre && `Localidad: ${localidadNombre}`,
+      `Categoría: ${item.categoria || "No especificada"}`,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    const infoLines = doc.splitTextToSize(infoText, pageWidth - margin * 2);
+    doc.text(infoLines, margin, currentY);
+    currentY += infoLines.length * 5 + 5;
 
     drawLine(currentY - 5);
 
@@ -1290,7 +1396,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       second: "2-digit",
     });
 
-    const footerLabel = "Consulta:";
+    const footerLabel = "Última consulta:";
     const footerText = `${footerLabel} ${formattedDate}`;
     const totalPages = doc.internal.pages.length - 1; // Restar 1 porque la primera entrada es undefined
     const footerY = doc.internal.pageSize.getHeight() - 10; // 10mm desde el borde inferior
@@ -1332,10 +1438,60 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [descriptionDisclosure, setDescriptionDisclosure] = useState({
+    item,
+    expanded: false,
+  });
+  const [isLicenseExpanded, setIsLicenseExpanded] = useState(false);
+  const isDescriptionExpanded =
+    descriptionDisclosure.item === item && descriptionDisclosure.expanded;
   const images = useMemo(() => buildImageList(item), [item]);
+  const descriptionHtml = useMemo(
+    () =>
+      cleanWebDescriptionHtml(
+        DOMPurify.sanitize(item.descripcion || "", {
+          ADD_TAGS: [
+            "blockquote",
+            "cite",
+            "font",
+            "figure",
+            "figcaption",
+            "table",
+            "thead",
+            "tbody",
+            "tr",
+            "td",
+            "th",
+            "caption",
+          ],
+          ADD_ATTR: [
+            "style",
+            "class",
+            "color",
+            "width",
+            "height",
+            "align",
+            "border",
+            "cellpadding",
+            "cellspacing",
+            "colspan",
+            "rowspan",
+            "src",
+            "alt",
+          ],
+          FORBID_TAGS: ["script", "style", "iframe"],
+        }),
+      ),
+    [item.descripcion],
+  );
+  const descriptionPreview = useMemo(
+    () => createDescriptionPreview(descriptionHtml),
+    [descriptionHtml],
+  );
 
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
+  const localidadNombre = getLocalidadName(item.localidad);
   const links = Array.isArray(item.links) ? item.links : [];
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
@@ -1429,7 +1585,10 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
               item.nombre
             )}
           </h2>
-          <p className="detail-subtitle">Municipio: {municipioNombre}</p>
+          <p className="detail-subtitle">
+            Municipio: {municipioNombre}
+            {localidadNombre && ` | Localidad: ${localidadNombre}`}
+          </p>
         </div>
       </div>
 
@@ -1496,43 +1655,81 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
           )}
 
           <div className="detail-info">
-            <div
-              className="detail-description"
-              dangerouslySetInnerHTML={{
-                __html: cleanWebDescriptionHtml(DOMPurify.sanitize(item.descripcion || "", {
-                  ADD_TAGS: [
-                    "blockquote",
-                    "cite",
-                    "font",
-                    "figure",
-                    "figcaption",
-                    "table",
-                    "thead",
-                    "tbody",
-                    "tr",
-                    "td",
-                    "th",
-                    "caption",
-                  ],
-                  ADD_ATTR: [
-                    "style",
-                    "class",
-                    "color",
-                    "width",
-                    "height",
-                    "align",
-                    "border",
-                    "cellpadding",
-                    "cellspacing",
-                    "colspan",
-                    "rowspan",
-                    "src",
-                    "alt",
-                  ],
-                  FORBID_TAGS: ["script", "style", "iframe"],
-                })),
-              }}
-            />
+            <div className="detail-description-section">
+              <div
+                className={`detail-description ${isDescriptionExpanded ? "expanded" : ""}`}
+                id={`detail-description-${item.id}`}
+                dangerouslySetInnerHTML={{
+                  __html: isDescriptionExpanded
+                    ? descriptionHtml
+                    : descriptionPreview.html,
+                }}
+              />
+              {descriptionPreview.hasMore && (
+                <button
+                  className="detail-description-toggle"
+                  type="button"
+                  aria-label={
+                    isDescriptionExpanded
+                      ? "Contraer descripción"
+                      : "Expandir descripción"
+                  }
+                  aria-expanded={isDescriptionExpanded}
+                  aria-controls={`detail-description-${item.id}`}
+                  onClick={() =>
+                    setDescriptionDisclosure((current) => ({
+                      item,
+                      expanded:
+                        current.item === item ? !current.expanded : true,
+                    }))
+                  }
+                >
+                  <span
+                    className="detail-description-toggle-icon"
+                    aria-hidden="true"
+                  >
+                    ▼
+                  </span>
+                  {!isDescriptionExpanded && (
+                    <span className="detail-description-toggle-label">Más</span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <section className="detail-license">
+              <button
+                className="detail-license-toggle"
+                type="button"
+                aria-expanded={isLicenseExpanded}
+                aria-controls={`detail-license-content-${item.id}`}
+                onClick={() => setIsLicenseExpanded((expanded) => !expanded)}
+              >
+                <span
+                  className="detail-license-toggle-icon"
+                  aria-hidden="true"
+                >
+                  ▶
+                </span>
+                <span>Licencia</span>
+              </button>
+              <div
+                className="detail-license-content"
+                id={`detail-license-content-${item.id}`}
+                hidden={!isLicenseExpanded}
+              >
+                <img
+                  src={licenseLogo}
+                  alt="Licencia Creative Commons BY-NC-SA"
+                  width="88"
+                  height="31"
+                />
+                <p>
+                  Esta obra está bajo una licencia de Creative Commons
+                  Reconocimiento-NoComercial-CompartirIgual 4.0 Internacional.
+                </p>
+              </div>
+            </section>
 
             {links.length > 0 && (
               <div className="detail-links">
@@ -1601,6 +1798,12 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
               interactive={false}
             />
           </div>
+          {ubicaciones.length > 0 &&
+            (municipioNombre || localidadNombre) && (
+              <p className="detail-location-summary">
+                {[municipioNombre, localidadNombre].filter(Boolean).join(" | ")}
+              </p>
+            )}
           {ubicaciones.length > 1 && (
             <div className="detail-location-list">
               <h3 className="section-subtitle">
@@ -1714,6 +1917,20 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                 </a>
                 <a
                   className="detail-share-option"
+                  href={`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir por WhatsApp"
+                  data-tooltip="Compartir por WhatsApp"
+                  title="Compartir por WhatsApp"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" />
+                    <path d="M8.4 8.2c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.7c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4 0 .6.7 1 1.5 1.8 2.5 2.4.3.2.5.2.7 0l.7-.7c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5v.5c0 .3-.1.5-.4.7-.5.4-1.3.5-2 .3-1.2-.4-2.5-1.1-3.8-2.4-1.3-1.3-2-2.6-2.4-3.8-.2-.7-.1-1.5.3-2Z" />
+                  </svg>
+                </a>
+                <a
+                  className="detail-share-option"
                   href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1735,20 +1952,6 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="5" width="18" height="14" rx="2" />
                     <path d="m4 7 8 6 8-6" />
-                  </svg>
-                </a>
-                <a
-                  className="detail-share-option"
-                  href={`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Compartir por WhatsApp"
-                  data-tooltip="Compartir por WhatsApp"
-                  title="Compartir por WhatsApp"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" />
-                    <path d="M8.4 8.2c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.7c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4 0 .6.7 1 1.5 1.8 2.5 2.4.3.2.5.2.7 0l.7-.7c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5v.5c0 .3-.1.5-.4.7-.5.4-1.3.5-2 .3-1.2-.4-2.5-1.1-3.8-2.4-1.3-1.3-2-2.6-2.4-3.8-.2-.7-.1-1.5.3-2Z" />
                   </svg>
                 </a>
                 <button
@@ -1825,6 +2028,7 @@ function Detail() {
   // 1. TODOS LOS HOOKS DECLARADOS AL PRINCIPIO
   const { id, slug, municipio, localidad: localidadSlug } = useParams();
   const location = useLocation(); // <-- Mover aquí para evitar violar la regla de Hooks
+  const navigate = useNavigate();
   const [patrimonio, setPatrimonio] = useState();
   const [municipios, setMunicipios] = useState([]);
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
@@ -1875,51 +2079,17 @@ function Detail() {
           const items = await getPatrimonios();
           if (Array.isArray(items)) {
             item = items.find((it) => {
-              const nameMatch = slugify(it.nombre) === String(slug);
+              const nameMatch = slugify(it.nombre) === slugify(slug);
               if (!nameMatch) return false;
               if (localidadSlug) {
-                const mi =
-                  it.municipio && typeof it.municipio === "string"
-                    ? it.municipio
-                    : it.municipio && typeof it.municipio === "object"
-                      ? it.municipio.nombre || it.municipio.nombre_corto
-                      : it.municipioNombre || it.municipio_nombre || null;
-
-                const matchesMunicipio = mi
-                  ? slugify(mi) === String(municipio)
-                  : Boolean(
-                      it.municipioId &&
-                        municipiosData?.some(
-                          (municipioData) =>
-                            String(municipioData.id) === String(it.municipioId) &&
-                            slugify(municipioData.nombre) === String(municipio),
-                        ),
-                    );
-
                 return (
-                  matchesMunicipio &&
-                  slugify(String(it.localidad || "")) === String(localidadSlug)
+                  slugify(getMunicipioName(it, municipiosData)) === slugify(municipio) &&
+                  slugify(getLocalidadName(it.localidad)) === slugify(localidadSlug)
                 );
               }
 
               if (municipio) {
-                const mi =
-                  it.municipio && typeof it.municipio === "string"
-                    ? it.municipio
-                    : it.municipio && typeof it.municipio === "object"
-                      ? it.municipio.nombre || it.municipio.nombre_corto
-                      : it.municipioNombre || it.municipio_nombre || null;
-
-                if (mi) return slugify(mi) === String(municipio);
-
-                if (it.municipioId && Array.isArray(municipiosData)) {
-                  const m = municipiosData.find(
-                    (m) => String(m.id) === String(it.municipioId),
-                  );
-                  if (m) return slugify(m.nombre) === String(municipio);
-                }
-
-                return false;
+                return slugify(getMunicipioName(it, municipiosData)) === slugify(municipio);
               }
 
               return true;
@@ -1941,6 +2111,32 @@ function Detail() {
 
     cargarDatos();
   }, [id, slug, municipio, localidadSlug]);
+
+  useEffect(() => {
+    if (!patrimonio?.nombre) return;
+
+    const municipioNombre = getMunicipioName(patrimonio, municipios);
+    if (!municipioNombre) return;
+
+    const localidadNombre = getLocalidadName(patrimonio.localidad);
+    const encodeSegment = (value) =>
+      encodeURIComponent(slugify(value) || value.trim());
+    const routeBase = location.pathname.startsWith("/admin") ? "admin" : "";
+    const canonicalPath = `/${[
+      routeBase,
+      encodeSegment(municipioNombre),
+      localidadNombre && encodeSegment(localidadNombre),
+      encodeSegment(patrimonio.nombre),
+    ]
+      .filter(Boolean)
+      .join("/")}`;
+
+    if (location.pathname !== canonicalPath) {
+      navigate(`${canonicalPath}${location.search}${location.hash}`, {
+        replace: true,
+      });
+    }
+  }, [patrimonio, municipios, location.pathname, location.search, location.hash, navigate]);
 
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;
@@ -2127,11 +2323,7 @@ function Detail() {
     inicioLocalidad + itemsPorPagina,
   );
 
-  const nombreMunicipio =
-    patrimonio && patrimonio.municipioId
-      ? municipios.find((m) => String(m.id) === String(patrimonio.municipioId))
-          ?.nombre || "Municipio"
-      : "Municipio";
+  const nombreMunicipio = getMunicipioName(patrimonio, municipios) || "Municipio";
   const localidadNombre = getLocalidadName(patrimonio.localidad);
   const tieneLocalidad =
     localidadNombre && !["null", "undefined"].includes(localidadNombre.toLowerCase());
@@ -2198,7 +2390,10 @@ function Detail() {
 
       {showLocalidadDetails ? (
         <section className="municipio-details localidad-details">
-          <div className="catalogo-filters-section localidad-filters-section">
+          <h2 className="section-title">
+            Localidad: {selectedLocalidad.nombre}
+          </h2>
+          <div className="catalogo-filters-section detail-location-filters-section">
             <div className="catalogo-search-box">
               <div className="filter-header">
                 <span className="filter-label">Buscar patrimonio</span>
@@ -2240,9 +2435,6 @@ function Detail() {
             </div>
           </div>
 
-          <h2 className="section-title">
-            Localidad: {selectedLocalidad.nombre}
-          </h2>
           {localidadLoading ? (
             <p className="lead">
               Cargando detalles de {selectedLocalidad.nombre}...
@@ -2319,7 +2511,8 @@ function Detail() {
         </section>
       ) : showMunicipioDetails ? (
         <section className="municipio-details">
-          <div className="catalogo-filters-section">
+          <h2 className="section-title">{nombreMunicipio}</h2>
+          <div className="catalogo-filters-section detail-location-filters-section">
             <div className="catalogo-search-box">
               <div className="filter-header">
                 <span className="filter-label">Buscar patrimonio</span>
@@ -2361,7 +2554,6 @@ function Detail() {
             </div>
           </div>
 
-          <h2 className="section-title">{nombreMunicipio}</h2>
           {municipioLoading ? (
             <p className="lead">Cargando detalles de {nombreMunicipio}...</p>
           ) : filteredMunicipioPatrimonios.length === 0 ? (
