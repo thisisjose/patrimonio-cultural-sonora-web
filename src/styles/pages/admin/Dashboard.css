@@ -606,6 +606,40 @@ tr:hover td {
   box-shadow: 0 0 0 3px rgba(39, 160, 96, 0.2);
 }
 
+.reference-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reference-editor-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  overflow-wrap: anywhere;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+}
+
+.reference-editor-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--gray-700);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.reference-editor-item a {
+  color: var(--green-700);
+  overflow-wrap: anywhere;
+}
+
 .form-value {
   background: var(--gray-50);
   border-radius: 16px;

@@ -20,6 +20,10 @@ import {
   getCategoryLabel,
   normalizeCategoryKey,
 } from "../../utils/categoryUtils";
+import {
+  isAllowedReferenceUrl,
+  normalizeReferencias,
+} from "../../utils/referencias";
 
 // Mapa
 import {
@@ -581,6 +585,7 @@ export default function AdminDashboard() {
     galeriaActual: [],
     imagenesAEliminar: [],
     estado: "pendiente",
+    referencias: [],
     links: [],
     newLinkTitulo: "",
     newLinkUrl: "",
@@ -599,6 +604,7 @@ export default function AdminDashboard() {
     newTagInput: "",
     portadaFile: null,
     imagenesFiles: [],
+    referencias: [],
     links: [],
     newLinkTitulo: "",
     newLinkUrl: "",
@@ -608,6 +614,7 @@ export default function AdminDashboard() {
 
   const [modalNuevo, setModalNuevo] = useState(false);
   const [nuevoErrors, setNuevoErrors] = useState({});
+  const [referenciasEditarError, setReferenciasEditarError] = useState("");
   const [formNuevo, setFormNuevo] = useState({
     nombre: "",
     localidad: "",
@@ -619,6 +626,7 @@ export default function AdminDashboard() {
     newTagInput: "",
     portadaFile: null,
     imagenesFiles: [],
+    referencias: [],
     links: [],
     newLinkTitulo: "",
     newLinkUrl: "",
@@ -859,6 +867,11 @@ export default function AdminDashboard() {
   };
 
   const abrirEditar = (item) => {
+    if (!item || typeof item !== "object") {
+      setError("No se pudo cargar el patrimonio seleccionado para editar.");
+      return;
+    }
+    setReferenciasEditarError("");
     const tagsActuales = (item.tags || []).map((t) =>
       typeof t === "object" ? t.nombre : t,
     );
@@ -877,6 +890,7 @@ export default function AdminDashboard() {
       galeriaActual: item.galeria || [],
       imagenesAEliminar: [],
       estado: item.estado || "pendiente",
+      referencias: normalizeReferencias(item.referencias),
       links: item.links || [],
       newLinkTitulo: "",
       newLinkUrl: "",
@@ -890,6 +904,7 @@ export default function AdminDashboard() {
   const cerrarEditar = () => {
     setModalEditar(null);
     setStepEditar(0);
+    setReferenciasEditarError("");
     setFormEditar({
       id: null,
       nombre: "",
@@ -905,6 +920,7 @@ export default function AdminDashboard() {
       galeriaActual: [],
       imagenesAEliminar: [],
       estado: "pendiente",
+      referencias: [],
       links: [],
       newLinkTitulo: "",
       newLinkUrl: "",
@@ -950,6 +966,51 @@ export default function AdminDashboard() {
       ...prev,
       links: prev.links.filter((_, i) => i !== index),
     }));
+  };
+
+  const clearReferenceError = (setForm) => {
+    if (setForm === setFormNuevo) {
+      setNuevoErrors((prev) => {
+        const { referencias: _referenciasError, ...errors } = prev;
+        return errors;
+      });
+    } else {
+      setReferenciasEditarError("");
+      setError("");
+    }
+  };
+
+  const addReferenciaToForm = (setForm) => {
+    setForm((prev) => ({
+      ...prev,
+      referencias: [
+        ...prev.referencias,
+        { titulo: "", autorInstitucion: "", url: "" },
+      ],
+    }));
+    clearReferenceError(setForm);
+  };
+
+  const updateReferenciaInForm = (setForm, index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      referencias: prev.referencias.map((reference, referenceIndex) =>
+        referenceIndex === index
+          ? { ...reference, _legacy: false, [field]: value }
+          : reference,
+      ),
+    }));
+    clearReferenceError(setForm);
+  };
+
+  const removeReferenciaFromForm = (setForm, index) => {
+    setForm((prev) => ({
+      ...prev,
+      referencias: prev.referencias.filter(
+        (_, referenceIndex) => referenceIndex !== index,
+      ),
+    }));
+    clearReferenceError(setForm);
   };
 
   const agregarUbicacion = (form, setForm, coords, nombrePunto = "") => {
@@ -1066,6 +1127,27 @@ export default function AdminDashboard() {
 
   // ---------- GUARDAR NUEVO ----------
   const guardarNuevo = async () => {
+    if (
+      formNuevo.referencias.some(
+        (reference) =>
+          !reference.titulo.trim() ||
+          !isAllowedReferenceUrl(reference.url),
+      )
+    ) {
+      setNuevoErrors((prev) => ({
+        ...prev,
+        referencias:
+          "Cada referencia debe tener título y una URL válida (http o https).",
+      }));
+      setStepNuevo(1);
+      return;
+    }
+    const referenciasNuevas = formNuevo.referencias.filter(
+      (reference) =>
+        reference.titulo.trim() ||
+        reference.autorInstitucion.trim() ||
+        reference.url.trim(),
+    );
     const errors = validarNuevo(2);
     if (Object.keys(errors).length > 0) {
       if (errors.portada || errors.galeria) setStepNuevo(0);
@@ -1090,6 +1172,16 @@ export default function AdminDashboard() {
       formData.append("localidad", formNuevo.localidad);
       formData.append("categoria", formNuevo.categoria);
       formData.append("descripcion", formNuevo.descripcion);
+      formData.append(
+        "referencias",
+        JSON.stringify(
+          referenciasNuevas.map(({ titulo, autorInstitucion, url }) => ({
+            titulo,
+            autorInstitucion,
+            url,
+          })),
+        ),
+      );
       formData.append("municipioId", formNuevo.municipioId);
       formData.append("ubicaciones", JSON.stringify(formNuevo.ubicaciones));
       if (formNuevo.portadaFile)
@@ -1115,6 +1207,7 @@ export default function AdminDashboard() {
         newTagInput: "",
         portadaFile: null,
         imagenesFiles: [],
+        referencias: [],
         links: [],
         newLinkTitulo: "",
         newLinkUrl: "",
@@ -1168,6 +1261,34 @@ export default function AdminDashboard() {
 
   // ---------- GUARDAR EDICIÓN ----------
   const guardarEdicion = async () => {
+    if (
+      formEditar.referencias.some(
+        (reference) =>
+          !reference._legacy &&
+          (!reference.titulo.trim() ||
+            !isAllowedReferenceUrl(reference.url)),
+      )
+    ) {
+      setReferenciasEditarError(
+        "Cada referencia debe tener título y una URL válida (http o https).",
+      );
+      setStepEditar(0);
+      return;
+    }
+    setReferenciasEditarError("");
+    const referenciasEditadas = formEditar.referencias.filter(
+      (reference) =>
+        reference.titulo.trim() ||
+        reference.autorInstitucion.trim() ||
+        reference.url.trim(),
+    );
+    const referenciasParaGuardar = referenciasEditadas.map(
+      ({ titulo, autorInstitucion, url }) => ({
+        titulo,
+        autorInstitucion,
+        url,
+      }),
+    );
     try {
       setSaving(true);
       setError("");
@@ -1186,6 +1307,7 @@ export default function AdminDashboard() {
         fd.append("localidad", formEditar.localidad || "");
         fd.append("categoria", formEditar.categoria);
         fd.append("descripcion", formEditar.descripcion);
+        fd.append("referencias", JSON.stringify(referenciasParaGuardar));
         fd.append("municipioId", formEditar.municipioId);
         fd.append("ubicaciones", JSON.stringify(formEditar.ubicaciones));
         if (formEditar.tags && formEditar.tags.length > 0) {
@@ -1215,6 +1337,7 @@ export default function AdminDashboard() {
           localidad: formEditar.localidad || "",
           categoria: formEditar.categoria,
           descripcion: formEditar.descripcion,
+          referencias: referenciasParaGuardar,
           municipioId: formEditar.municipioId,
           ubicaciones: formEditar.ubicaciones,
           tags: formEditar.tags || [],
@@ -1261,6 +1384,7 @@ export default function AdminDashboard() {
         localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
         categoria: item.categoria ?? "Material",
         descripcion: item.descripcion ?? "",
+        referencias: normalizeReferencias(item.referencias),
         ubicaciones: ubicaciones,
         latitud: principal?.latitud || "",
         longitud: principal?.longitud || "",
@@ -1704,8 +1828,89 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="form-section">
+                      <h4 className="section-title-small">Referencias</h4>
+                      <div className="reference-editor-list">
+                        {formNuevo.referencias.map((reference, index) => (
+                          <div className="reference-editor-item" key={index}>
+                            <label>
+                              Título de la referencia *
+                              <input
+                                className="form-input"
+                                type="text"
+                                aria-required="true"
+                                value={reference.titulo}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormNuevo,
+                                    index,
+                                    "titulo",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              Autor o institución (opcional)
+                              <input
+                                className="form-input"
+                                type="text"
+                                value={reference.autorInstitucion}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormNuevo,
+                                    index,
+                                    "autorInstitucion",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              URL *
+                              <input
+                                className="form-input"
+                                type="url"
+                                aria-required="true"
+                                value={reference.url}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormNuevo,
+                                    index,
+                                    "url",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="btn-secondary small"
+                              onClick={() =>
+                                removeReferenciaFromForm(setFormNuevo, index)
+                              }
+                            >
+                              Eliminar referencia
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary small"
+                        onClick={() => addReferenciaToForm(setFormNuevo)}
+                      >
+                        + Agregar referencia
+                      </button>
+                      {nuevoErrors.referencias && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.referencias}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-section">
                       <h4 className="section-title-small">
-                        Enlaces relacionados
+                        Recursos relacionados
                       </h4>
                       <div className="links-list">
                         {formNuevo.links.map((link, idx) => (
@@ -2125,8 +2330,44 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="form-section">
+                      <h4 className="section-title-small">Referencias</h4>
+                      {normalizeReferencias(modalVer.referencias).length > 0 ? (
+                        <div className="reference-editor-list">
+                          {normalizeReferencias(modalVer.referencias).map(
+                            (reference, index) => (
+                              <div
+                                className="reference-editor-item"
+                                key={index}
+                              >
+                                <strong>
+                                  {reference.titulo || "Consultar referencia"}
+                                </strong>
+                                {reference.autorInstitucion && (
+                                  <span>{reference.autorInstitucion}</span>
+                                )}
+                                {isAllowedReferenceUrl(reference.url) && (
+                                  <a
+                                    href={reference.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Abrir referencia
+                                  </a>
+                                )}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      ) : (
+                        <div className="no-tags">
+                          Sin referencias registradas
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-section">
                       <h4 className="section-title-small">
-                        Enlaces relacionados
+                        Recursos relacionados
                       </h4>
                       {modalVer.links && modalVer.links.length > 0 ? (
                         <div className="links-list-view">
@@ -2143,7 +2384,7 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                       ) : (
-                        <div className="no-tags">Sin enlaces registrados</div>
+                        <div className="no-tags">Sin recursos registrados</div>
                       )}
                     </div>
 
@@ -2583,8 +2824,89 @@ export default function AdminDashboard() {
                     )}
 
                     <div className="form-section">
+                      <h4 className="section-title-small">Referencias</h4>
+                      <div className="reference-editor-list">
+                        {formEditar.referencias.map((reference, index) => (
+                          <div className="reference-editor-item" key={index}>
+                            <label>
+                              Título de la referencia *
+                              <input
+                                className="form-input"
+                                type="text"
+                                aria-required={!reference._legacy}
+                                value={reference.titulo}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormEditar,
+                                    index,
+                                    "titulo",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              Autor o institución (opcional)
+                              <input
+                                className="form-input"
+                                type="text"
+                                value={reference.autorInstitucion}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormEditar,
+                                    index,
+                                    "autorInstitucion",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              URL *
+                              <input
+                                className="form-input"
+                                type="url"
+                                aria-required={!reference._legacy}
+                                value={reference.url}
+                                onChange={(e) =>
+                                  updateReferenciaInForm(
+                                    setFormEditar,
+                                    index,
+                                    "url",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              className="btn-secondary small"
+                              onClick={() =>
+                                removeReferenciaFromForm(setFormEditar, index)
+                              }
+                            >
+                              Eliminar referencia
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary small"
+                        onClick={() => addReferenciaToForm(setFormEditar)}
+                      >
+                        + Agregar referencia
+                      </button>
+                      {referenciasEditarError && (
+                        <div className="validation-error" role="alert">
+                          {referenciasEditarError}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-section">
                       <h4 className="section-title-small">
-                        Enlaces relacionados
+                        Recursos relacionados
                       </h4>
                       <div className="links-list">
                         {formEditar.links.map((link, idx) => (

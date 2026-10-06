@@ -20,6 +20,10 @@ import DOMPurify from "dompurify";
 import androidLogo from "../Icons/logotipo-de-android.png";
 import appleLogo from "../Icons/logotipo-de-apple.png";
 import licenseLogo from "../Icons/licencia.png";
+import {
+  isAllowedReferenceUrl,
+  normalizeReferencias,
+} from "../utils/referencias";
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -1261,13 +1265,13 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     );
     currentY += 8;
 
-    // ===== ENLACES RELACIONADOS =====
+    // ===== RECURSOS RELACIONADOS =====
     if (item.links && item.links.length > 0) {
       ensurePageSpace(24);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text("Enlaces relacionados", margin, currentY);
+      doc.text("Recursos relacionados", margin, currentY);
       currentY += 7;
 
       doc.setFont("helvetica", "normal");
@@ -1350,40 +1354,40 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     }
 
     // ===== FUENTES DE CONSULTA =====
-    if (item.links && item.links.length > 0) {
-      ensurePageSpace(24);
+    // if (item.links && item.links.length > 0) {
+    //   ensurePageSpace(24);
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Fuentes de consulta", margin, currentY);
-      currentY += 7;
+    //   doc.setFont("helvetica", "bold");
+    //   doc.setFontSize(12);
+    //   doc.setTextColor(0, 0, 0);
+    //   doc.text("Fuentes de consulta", margin, currentY);
+    //   currentY += 7;
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      for (let i = 0; i < item.links.length; i++) {
-        const link = item.links[i];
-        const url = link?.url || link?.href || String(link || "");
-        const title = link?.titulo || link?.title || url;
-        if (!url) continue;
-        const sourceText = `${title}: ${url}`;
-        const sourceLines = doc.splitTextToSize(
-          sourceText,
-          pageWidth - margin * 2,
-        );
-        sourceLines.forEach((line) => {
-          if (currentY > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage();
-            currentY = margin;
-          }
-          doc.textWithLink(line, margin, currentY, { url });
-          currentY += 5;
-        });
-        currentY += 2;
-      }
-      currentY += 10;
-    }
+    //   doc.setFont("helvetica", "normal");
+    //   doc.setFontSize(10);
+    //   doc.setTextColor(0, 0, 0);
+    //   for (let i = 0; i < item.links.length; i++) {
+    //     const link = item.links[i];
+    //     const url = link?.url || link?.href || String(link || "");
+    //     const title = link?.titulo || link?.title || url;
+    //     if (!url) continue;
+    //     const sourceText = `${title}: ${url}`;
+    //     const sourceLines = doc.splitTextToSize(
+    //       sourceText,
+    //       pageWidth - margin * 2,
+    //     );
+    //     sourceLines.forEach((line) => {
+    //       if (currentY > doc.internal.pageSize.getHeight() - margin) {
+    //         doc.addPage();
+    //         currentY = margin;
+    //       }
+    //       doc.textWithLink(line, margin, currentY, { url });
+    //       currentY += 5;
+    //     });
+    //     currentY += 2;
+    //   }
+    //   currentY += 10;
+    // }
 
     // ===== AGREGAR PIE DE PÁGINA EN TODAS LAS PÁGINAS =====
     const generatedAt = new Date();
@@ -1443,6 +1447,9 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
     expanded: false,
   });
   const [isLicenseExpanded, setIsLicenseExpanded] = useState(false);
+  const [areReferencesExpanded, setAreReferencesExpanded] = useState(false);
+  const [areRelatedResourcesExpanded, setAreRelatedResourcesExpanded] =
+    useState(false);
   const isDescriptionExpanded =
     descriptionDisclosure.item === item && descriptionDisclosure.expanded;
   const images = useMemo(() => buildImageList(item), [item]);
@@ -1492,6 +1499,9 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
   const localidadNombre = getLocalidadName(item.localidad);
+  const referencias = normalizeReferencias(item.referencias).filter(
+    (reference) => isAllowedReferenceUrl(reference.url),
+  );
   const links = Array.isArray(item.links) ? item.links : [];
   const mainLocation = ubicaciones[0] || { lat: item.lat, lng: item.lng };
 
@@ -1691,7 +1701,7 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                     ▼
                   </span>
                   {!isDescriptionExpanded && (
-                    <span className="detail-description-toggle-label">Más</span>
+                    <span className="detail-description-toggle-label">Leer más</span>
                   )}
                 </button>
               )}
@@ -1731,23 +1741,89 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
               </div>
             </section>
 
+            {referencias.length > 0 && (
+              <section className="detail-references">
+                <button
+                  className="detail-references-toggle"
+                  type="button"
+                  aria-expanded={areReferencesExpanded}
+                  aria-controls={`detail-references-content-${item.id}`}
+                  onClick={() =>
+                    setAreReferencesExpanded((expanded) => !expanded)
+                  }
+                >
+                  <span
+                    className="detail-references-toggle-icon"
+                    aria-hidden="true"
+                  >
+                    ▶
+                  </span>
+                  <span>Referencias</span>
+                </button>
+                <div
+                  className="detail-references-content"
+                  id={`detail-references-content-${item.id}`}
+                  hidden={!areReferencesExpanded}
+                >
+                  <ul className="detail-references-list">
+                    {referencias.map((reference, index) => (
+                      <li className="detail-reference-item" key={index}>
+                        <a
+                          className="detail-reference-title"
+                          href={reference.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {reference.titulo || "Consultar referencia"}
+                        </a>
+                        {reference.autorInstitucion && (
+                          <span className="detail-reference-author">
+                            {reference.autorInstitucion}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
+
             {links.length > 0 && (
-              <div className="detail-links">
-                <h3 className="section-title-small">Enlaces relacionados</h3>
-                <ul className="links-list">
-                  {links.map((link, idx) => (
-                    <li key={idx}>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {link.titulo}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <section className="detail-links">
+                <button
+                  className="detail-links-toggle"
+                  type="button"
+                  aria-expanded={areRelatedResourcesExpanded}
+                  aria-controls={`detail-links-content-${item.id}`}
+                  onClick={() =>
+                    setAreRelatedResourcesExpanded((expanded) => !expanded)
+                  }
+                >
+                  <span className="detail-links-toggle-icon" aria-hidden="true">
+                    ▶
+                  </span>
+                  <span>Recursos relacionados</span>
+                </button>
+                <div
+                  className="detail-links-content"
+                  id={`detail-links-content-${item.id}`}
+                  hidden={!areRelatedResourcesExpanded}
+                >
+                  <ul className="links-list">
+                    {links.map((link, idx) => (
+                      <li key={idx}>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {link.titulo}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
             )}
 
             <div className="detail-category-below">
