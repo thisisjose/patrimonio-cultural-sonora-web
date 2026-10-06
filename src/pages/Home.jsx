@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import MapView from "../components/MapView";
 import PatrimonioStatsCard from "../components/PatrimonioStatsCard";
+import PopularCard from "../components/PopularCard";
 import "../styles/pages/Home.css";
 import mapaIcon from "../Icons/mapa.png";
 import historiaIcon from "../Icons/historia.png";
@@ -404,53 +405,13 @@ function Home() {
         <div className="popular-row">
           {patrimoniosAleatorios.map((item) => {
             const municipio = getMunicipioName(item, municipios);
-            const tieneMunicipio = municipio && !["null", "undefined"].includes(municipio.toLowerCase());
-            const localidad = typeof item.localidad === "string" ? item.localidad.trim() : "";
-            const tieneLocalidad = localidad && !["null", "undefined"].includes(localidad.toLowerCase());
-
             return (
-              <article
+              <PopularCard
                 key={item.id}
-                className="popular-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => handleNavigateToDetalle(item.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleNavigateToDetalle(item.id);
-                  }
-                }}
-              >
-                <div className="popular-thumb">
-                  <img
-                    src={item.imagen}
-                    alt={item.nombre}
-                    onError={(e) => {
-                      e.target.src = "https://placehold.co/600x400?text=Sin+imagen";
-                    }}
-                  />
-                  <span className={`popular-badge ${getCategoryClass(item.categoria)}`}>
-                    {getCategoryLabel(item.categoria)}
-                  </span>
-                </div>
-                <div className="popular-content">
-                  <h3 className="popular-name">{item.nombre}</h3>
-                  {(tieneMunicipio || tieneLocalidad) && (
-                    <div className={`popular-location-container ${tieneMunicipio && tieneLocalidad ? "has-both-locations" : ""}`}>
-                      {tieneMunicipio && (
-                        <span className="popular-location-value">{municipio}</span>
-                      )}
-                      {tieneMunicipio && tieneLocalidad && (
-                        <span className="popular-location-separator" aria-hidden="true">·</span>
-                      )}
-                      {tieneLocalidad && (
-                        <span className="popular-location-value">{localidad}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </article>
+                item={item}
+                municipio={municipio}
+                onSelect={handleNavigateToDetalle}
+              />
             );
           })}
         </div>

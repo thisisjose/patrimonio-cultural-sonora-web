@@ -4,6 +4,7 @@ import slugify from "../utils/slugify";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import MapView from "../components/MapView";
+import PopularCard from "../components/PopularCard";
 import "../styles/pages/Detail.css";
 import {
   getPatrimonioById,
@@ -24,6 +25,8 @@ import {
   isAllowedReferenceUrl,
   normalizeReferencias,
 } from "../utils/referencias";
+
+const RESULTADOS_POR_CARGA = 20;
 
 const buildImageUrl = (value) => {
   if (!value) return null;
@@ -314,6 +317,13 @@ const normalizeImage = (image) => {
 
   return null;
 };
+
+const toPopularCardItem = (item) => ({
+  ...item,
+  imagen:
+    normalizeImage(item.imagen_url || item.imagen || item.portada) ||
+    "https://placehold.co/600x400?text=Sin+imagen",
+});
 
 const buildImageList = (item) => {
   const list = [];
@@ -2177,34 +2187,59 @@ function Detail() {
   const { id, slug, municipio, localidad: localidadSlug } = useParams();
   const location = useLocation(); // <-- Mover aquí para evitar violar la regla de Hooks
   const navigate = useNavigate();
-  const [patrimonio, setPatrimonio] = useState();
+  const navigationPatrimonioId = location.state?.patrimonioId;
+  const patrimonioLookupKey = id
+    ? `id:${id}`
+    : navigationPatrimonioId
+      ? `id:${navigationPatrimonioId}`
+      : `slug:${JSON.stringify([municipio || "", localidadSlug || "", slug || ""])}`;
+  const [patrimonioResult, setPatrimonioResult] = useState({
+    key: null,
+    value: undefined,
+  });
+  const pathSegments = location.pathname
+    .split("/")
+    .filter(Boolean);
+  const isPatrimonioIdPath = pathSegments.at(-2) === "patrimonio";
+  const pathDetailIdentifier = pathSegments.at(-1);
+  const patrimonioMatchesPath = patrimonioResult.value
+    ? isPatrimonioIdPath
+      ? String(patrimonioResult.value.id) === pathDetailIdentifier
+      : slugify(patrimonioResult.value.nombre) === slugify(pathDetailIdentifier)
+    : true;
+  const patrimonio =
+    patrimonioResult.key === patrimonioLookupKey && patrimonioMatchesPath
+      ? patrimonioResult.value
+      : undefined;
   const [municipios, setMunicipios] = useState([]);
   const [municipioPatrimonios, setMunicipioPatrimonios] = useState([]);
   const [selectedMunicipioId, setSelectedMunicipioId] = useState(null);
   const [municipioLoading, setMunicipioLoading] = useState(false);
   const [busquedaMunicipio, setBusquedaMunicipio] = useState("");
   const [categoriaMunicipio, setCategoriaMunicipio] = useState("");
-  const [paginaMunicipio, setPaginaMunicipio] = useState(1);
+  const [municipioVisibleCount, setMunicipioVisibleCount] = useState(
+    RESULTADOS_POR_CARGA,
+  );
   const [selectedLocalidad, setSelectedLocalidad] = useState(null);
   const [localidadPatrimonios, setLocalidadPatrimonios] = useState([]);
   const [localidadLoading, setLocalidadLoading] = useState(false);
   const [busquedaLocalidad, setBusquedaLocalidad] = useState("");
   const [categoriaLocalidad, setCategoriaLocalidad] = useState("");
-  const [paginaLocalidad, setPaginaLocalidad] = useState(1);
+  const [localidadVisibleCount, setLocalidadVisibleCount] = useState(
+    RESULTADOS_POR_CARGA,
+  );
   const [mostrarBotonVolver, setMostrarBotonVolver] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
   const botonVolverRef = useRef(null);
 
-  const handleCambiarPaginaMunicipio = (nuevaPagina) => {
-    setPaginaMunicipio(nuevaPagina);
+  const toggleVisibleResults = (setVisibleCount, totalResults) => {
+    setVisibleCount((currentCount) =>
+      currentCount < totalResults
+        ? Math.min(currentCount + RESULTADOS_POR_CARGA, totalResults)
+        : RESULTADOS_POR_CARGA,
+    );
   };
-
-  useEffect(() => {
-    if (paginaMunicipio > 1) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [paginaMunicipio]);
 
   useEffect(() => {
     if (selectedMunicipioId) {
@@ -2213,52 +2248,73 @@ function Detail() {
   }, [selectedMunicipioId]);
 
   useEffect(() => {
+    let isCurrentRequest = true;
+    const separatorIndex = patrimonioLookupKey.indexOf(":");
+    const lookupType = patrimonioLookupKey.slice(0, separatorIndex);
+    const lookupValue = patrimonioLookupKey.slice(separatorIndex + 1);
+
     const cargarDatos = async () => {
+      setPatrimonioResult({ key: patrimonioLookupKey, value: undefined });
+
       try {
         const municipiosData = await getMunicipios();
+        if (!isCurrentRequest) return;
+
         if (Array.isArray(municipiosData)) {
           setMunicipios(municipiosData);
         }
 
         let item = null;
-        if (id) {
-          item = await getPatrimonioById(id);
-        } else if (slug) {
+        if (lookupType === "id") {
+          item = await getPatrimonioById(lookupValue);
+        } else {
+          const [requestedMunicipio, requestedLocalidad, requestedSlug] =
+            JSON.parse(lookupValue);
           const items = await getPatrimonios();
+          if (!isCurrentRequest) return;
           if (Array.isArray(items)) {
             item = items.find((it) => {
-              const nameMatch = slugify(it.nombre) === slugify(slug);
+              const nameMatch = slugify(it.nombre) === slugify(requestedSlug);
               if (!nameMatch) return false;
-              if (localidadSlug) {
+              if (requestedLocalidad) {
                 return (
-                  slugify(getMunicipioName(it, municipiosData)) === slugify(municipio) &&
-                  slugify(getLocalidadName(it.localidad)) === slugify(localidadSlug)
+                  slugify(getMunicipioName(it, municipiosData)) === slugify(requestedMunicipio) &&
+                  slugify(getLocalidadName(it.localidad)) === slugify(requestedLocalidad)
                 );
               }
 
-              if (municipio) {
-                return slugify(getMunicipioName(it, municipiosData)) === slugify(municipio);
+              if (requestedMunicipio) {
+                return slugify(getMunicipioName(it, municipiosData)) === slugify(requestedMunicipio);
               }
 
               return true;
             });
           }
         }
+        if (!isCurrentRequest) return;
 
         if (!item) {
-          setPatrimonio(null);
+          setPatrimonioResult({ key: patrimonioLookupKey, value: null });
           return;
         }
 
-        setPatrimonio(normalizePatrimonioData(item));
+        setPatrimonioResult({
+          key: patrimonioLookupKey,
+          value: normalizePatrimonioData(item),
+        });
       } catch (error) {
+        if (!isCurrentRequest) return;
         console.error("Error fetching patrimonio:", error);
-        setPatrimonio(null);
+        setPatrimonioResult({ key: patrimonioLookupKey, value: null });
       }
     };
 
     cargarDatos();
-  }, [id, slug, municipio, localidadSlug]);
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [patrimonioLookupKey]);
 
   useEffect(() => {
     if (!patrimonio?.nombre) return;
@@ -2282,15 +2338,19 @@ function Detail() {
     if (location.pathname !== canonicalPath) {
       navigate(`${canonicalPath}${location.search}${location.hash}`, {
         replace: true,
+        state: {
+          ...location.state,
+          patrimonioId: patrimonio.id,
+        },
       });
     }
-  }, [patrimonio, municipios, location.pathname, location.search, location.hash, navigate]);
+  }, [patrimonio, municipios, location.pathname, location.search, location.hash, location.state, navigate]);
 
   const cargarPatrimoniosMunicipio = async (municipioId) => {
     if (!municipioId) return;
     setSelectedLocalidad(null);
     setSelectedMunicipioId(municipioId);
-    setPaginaMunicipio(1);
+    setMunicipioVisibleCount(RESULTADOS_POR_CARGA);
     setMunicipioLoading(true);
     setMunicipioPatrimonios([]);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -2317,7 +2377,7 @@ function Detail() {
 
     setSelectedMunicipioId(null);
     setSelectedLocalidad({ nombre: nombreLocalidad, municipioId });
-    setPaginaLocalidad(1);
+    setLocalidadVisibleCount(RESULTADOS_POR_CARGA);
     setBusquedaLocalidad("");
     setCategoriaLocalidad("");
     setLocalidadLoading(true);
@@ -2349,21 +2409,13 @@ function Detail() {
     setSelectedMunicipioId(null);
     setBusquedaMunicipio("");
     setCategoriaMunicipio("");
-    setPaginaMunicipio(1);
+    setMunicipioVisibleCount(RESULTADOS_POR_CARGA);
     setLocalidadPatrimonios([]);
     setSelectedLocalidad(null);
     setBusquedaLocalidad("");
     setCategoriaLocalidad("");
-    setPaginaLocalidad(1);
+    setLocalidadVisibleCount(RESULTADOS_POR_CARGA);
   }, [patrimonio]);
-
-  useEffect(() => {
-    setPaginaMunicipio(1);
-  }, [busquedaMunicipio, categoriaMunicipio]);
-
-  useEffect(() => {
-    setPaginaLocalidad(1);
-  }, [busquedaLocalidad, categoriaLocalidad]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -2445,30 +2497,13 @@ function Detail() {
     return <h2 className="heading-2">Patrimonio no encontrado</h2>;
   }
 
-  const getPageNumbers = (paginaActual, totalPaginas) => {
-    const inicio = Math.max(1, paginaActual - 1);
-    const longitud = Math.min(3, totalPaginas - (inicio - 1));
-    return Array.from({ length: longitud }, (_, i) => inicio + i).filter(
-      (numero) => numero >= 1 && numero <= totalPaginas,
-    );
-  };
-
-  const itemsPorPagina = 4;
-  const totalPaginasMunicipio = Math.ceil(
-    filteredMunicipioPatrimonios.length / itemsPorPagina,
+  const patrimoniosMunicipioVisibles = filteredMunicipioPatrimonios.slice(
+    0,
+    municipioVisibleCount,
   );
-  const indicieInicio = (paginaMunicipio - 1) * itemsPorPagina;
-  const patrimoniosPaginados = filteredMunicipioPatrimonios.slice(
-    indicieInicio,
-    indicieInicio + itemsPorPagina,
-  );
-  const totalPaginasLocalidad = Math.ceil(
-    filteredLocalidadPatrimonios.length / itemsPorPagina,
-  );
-  const inicioLocalidad = (paginaLocalidad - 1) * itemsPorPagina;
-  const patrimoniosLocalidadPaginados = filteredLocalidadPatrimonios.slice(
-    inicioLocalidad,
-    inicioLocalidad + itemsPorPagina,
+  const patrimoniosLocalidadVisibles = filteredLocalidadPatrimonios.slice(
+    0,
+    localidadVisibleCount,
   );
 
   const nombreMunicipio = getMunicipioName(patrimonio, municipios) || "Municipio";
@@ -2480,6 +2515,18 @@ function Detail() {
   const showMunicipioDetails = Boolean(selectedMunicipioId);
   const showLocalidadDetails = Boolean(selectedLocalidad);
   const routeBase = location.pathname.startsWith("/admin") ? "/admin" : "";
+  const openPatrimonioFromResults = (item, localidadContexto) => {
+    const localidad = getLocalidadName(localidadContexto ?? item.localidad);
+    const municipalityPath = `${routeBase}/${slugify(nombreMunicipio)}`;
+    const detailPath = localidad
+      ? `${municipalityPath}/${slugify(localidad)}/${slugify(item.nombre)}`
+      : `${municipalityPath}/${slugify(item.nombre)}`;
+
+    setSelectedLocalidad(null);
+    setSelectedMunicipioId(null);
+    setPatrimonioResult({ key: null, value: undefined });
+    navigate(detailPath, { state: { patrimonioId: item.id } });
+  };
 
   return (
     <div className="page-inner detail-page">
@@ -2551,13 +2598,19 @@ function Detail() {
                   type="text"
                   placeholder="Escribe el nombre..."
                   value={busquedaLocalidad}
-                  onChange={(event) => setBusquedaLocalidad(event.target.value)}
+                  onChange={(event) => {
+                    setBusquedaLocalidad(event.target.value);
+                    setLocalidadVisibleCount(RESULTADOS_POR_CARGA);
+                  }}
                   className="catalogo-search-input"
                 />
                 {busquedaLocalidad && (
                   <button
                     className="catalogo-search-clear-btn"
-                    onClick={() => setBusquedaLocalidad("")}
+                    onClick={() => {
+                      setBusquedaLocalidad("");
+                      setLocalidadVisibleCount(RESULTADOS_POR_CARGA);
+                    }}
                     aria-label="Limpiar búsqueda"
                   >
                     ✕
@@ -2572,7 +2625,10 @@ function Detail() {
               </div>
               <select
                 value={categoriaLocalidad}
-                onChange={(event) => setCategoriaLocalidad(event.target.value)}
+                onChange={(event) => {
+                  setCategoriaLocalidad(event.target.value);
+                  setLocalidadVisibleCount(RESULTADOS_POR_CARGA);
+                }}
                 className="catalogo-select"
               >
                 <option value="">Todas</option>
@@ -2593,64 +2649,36 @@ function Detail() {
             </p>
           ) : (
             <>
-              <div className="municipio-results">
-                {patrimoniosLocalidadPaginados.map((item) => (
-                  <PatrimonioDetailEntry
+              <div className="popular-row">
+                {patrimoniosLocalidadVisibles.map((item) => (
+                  <PopularCard
                     key={item.id}
-                    item={item}
-                    municipioNombre={nombreMunicipio}
-                    detailPath={`${routeBase}/${slugify(nombreMunicipio)}/${slugify(selectedLocalidad.nombre)}/${slugify(item.nombre)}`}
-                    onOpenDetail={() => setSelectedLocalidad(null)}
+                    item={toPopularCardItem(item)}
+                    municipio={
+                      getMunicipioName(item, municipios) || nombreMunicipio
+                    }
+                    onSelect={() =>
+                      openPatrimonioFromResults(item, selectedLocalidad.nombre)
+                    }
                   />
                 ))}
               </div>
 
-              {totalPaginasLocalidad > 1 && (
-                <div className="catalogo-municipio-pagination">
+              {filteredLocalidadPatrimonios.length > RESULTADOS_POR_CARGA && (
+                <div className="detail-results-toggle-container">
                   <button
-                    className="catalogo-page-btn"
-                    onClick={() => setPaginaLocalidad(paginaLocalidad - 1)}
-                    disabled={paginaLocalidad === 1}
-                    aria-label="Página anterior"
+                    type="button"
+                    className="detail-results-toggle"
+                    onClick={() =>
+                      toggleVisibleResults(
+                        setLocalidadVisibleCount,
+                        filteredLocalidadPatrimonios.length,
+                      )
+                    }
                   >
-                    ← Anterior
-                  </button>
-
-                  <div className="catalogo-page-numbers">
-                    {paginaLocalidad > 2 && totalPaginasLocalidad > 3 && (
-                      <>
-                        <button
-                          className="catalogo-page-num"
-                          onClick={() => setPaginaLocalidad(1)}
-                        >
-                          1
-                        </button>
-                        {paginaLocalidad > 3 && (
-                          <span className="pagination-dots">...</span>
-                        )}
-                      </>
-                    )}
-
-                    {getPageNumbers(paginaLocalidad, totalPaginasLocalidad).map(
-                      (number) => (
-                        <button
-                          key={number}
-                          className={`catalogo-page-num ${number === paginaLocalidad ? "active" : ""}`}
-                          onClick={() => setPaginaLocalidad(number)}
-                        >
-                          {number}
-                        </button>
-                      ),
-                    )}
-                  </div>
-
-                  <button
-                    className="catalogo-page-btn"
-                    onClick={() => setPaginaLocalidad(paginaLocalidad + 1)}
-                    disabled={paginaLocalidad === totalPaginasLocalidad}
-                    aria-label="Página siguiente"
-                  >
-                    Siguiente →
+                    {localidadVisibleCount < filteredLocalidadPatrimonios.length
+                      ? "▼ Ver más"
+                      : "▲ Ver menos"}
                   </button>
                 </div>
               )}
@@ -2670,13 +2698,19 @@ function Detail() {
                   type="text"
                   placeholder="Escribe el nombre..."
                   value={busquedaMunicipio}
-                  onChange={(e) => setBusquedaMunicipio(e.target.value)}
+                  onChange={(e) => {
+                    setBusquedaMunicipio(e.target.value);
+                    setMunicipioVisibleCount(RESULTADOS_POR_CARGA);
+                  }}
                   className="catalogo-search-input"
                 />
                 {busquedaMunicipio && (
                   <button
                     className="catalogo-search-clear-btn"
-                    onClick={() => setBusquedaMunicipio("")}
+                    onClick={() => {
+                      setBusquedaMunicipio("");
+                      setMunicipioVisibleCount(RESULTADOS_POR_CARGA);
+                    }}
                     aria-label="Limpiar búsqueda"
                   >
                     ✕
@@ -2691,7 +2725,10 @@ function Detail() {
               </div>
               <select
                 value={categoriaMunicipio}
-                onChange={(e) => setCategoriaMunicipio(e.target.value)}
+                onChange={(e) => {
+                  setCategoriaMunicipio(e.target.value);
+                  setMunicipioVisibleCount(RESULTADOS_POR_CARGA);
+                }}
                 className="catalogo-select"
               >
                 <option value="">Todas</option>
@@ -2710,66 +2747,34 @@ function Detail() {
             </p>
           ) : (
             <>
-              <div className="municipio-results">
-                {patrimoniosPaginados.map((item) => (
-                  <PatrimonioDetailEntry
+              <div className="popular-row">
+                {patrimoniosMunicipioVisibles.map((item) => (
+                  <PopularCard
                     key={item.id}
-                    item={item}
-                    municipioNombre={nombreMunicipio}
+                    item={toPopularCardItem(item)}
+                    municipio={
+                      getMunicipioName(item, municipios) || nombreMunicipio
+                    }
+                    onSelect={() => openPatrimonioFromResults(item)}
                   />
                 ))}
               </div>
 
-              {totalPaginasMunicipio > 1 && (
-                <div className="catalogo-municipio-pagination">
+              {filteredMunicipioPatrimonios.length > RESULTADOS_POR_CARGA && (
+                <div className="detail-results-toggle-container">
                   <button
-                    className="catalogo-page-btn"
+                    type="button"
+                    className="detail-results-toggle"
                     onClick={() =>
-                      handleCambiarPaginaMunicipio(paginaMunicipio - 1)
+                      toggleVisibleResults(
+                        setMunicipioVisibleCount,
+                        filteredMunicipioPatrimonios.length,
+                      )
                     }
-                    disabled={paginaMunicipio === 1}
-                    aria-label="Página anterior"
                   >
-                    ← Anterior
-                  </button>
-
-                  <div className="catalogo-page-numbers">
-                    {paginaMunicipio > 2 && totalPaginasMunicipio > 3 && (
-                      <>
-                        <button
-                          className="catalogo-page-num"
-                          onClick={() => handleCambiarPaginaMunicipio(1)}
-                        >
-                          1
-                        </button>
-                        {paginaMunicipio > 3 && (
-                          <span className="pagination-dots">...</span>
-                        )}
-                      </>
-                    )}
-
-                    {getPageNumbers(paginaMunicipio, totalPaginasMunicipio).map(
-                      (num) => (
-                        <button
-                          key={num}
-                          className={`catalogo-page-num ${num === paginaMunicipio ? "active" : ""}`}
-                          onClick={() => handleCambiarPaginaMunicipio(num)}
-                        >
-                          {num}
-                        </button>
-                      ),
-                    )}
-                  </div>
-
-                  <button
-                    className="catalogo-page-btn"
-                    onClick={() =>
-                      handleCambiarPaginaMunicipio(paginaMunicipio + 1)
-                    }
-                    disabled={paginaMunicipio === totalPaginasMunicipio}
-                    aria-label="Página siguiente"
-                  >
-                    Siguiente →
+                    {municipioVisibleCount < filteredMunicipioPatrimonios.length
+                      ? "▼ Ver más"
+                      : "▲ Ver menos"}
                   </button>
                 </div>
               )}
