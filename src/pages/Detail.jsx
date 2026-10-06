@@ -1265,6 +1265,66 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     );
     currentY += 8;
 
+    // ===== REFERENCIAS =====
+    const referencias = normalizeReferencias(item.referencias);
+    if (referencias.length > 0) {
+      ensurePageSpace(24);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Referencias", margin, currentY);
+      currentY += 7;
+
+      referencias.forEach((referencia, index) => {
+        const titulo = referencia.titulo.trim() || `Referencia ${index + 1}`;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        const tituloLines = doc.splitTextToSize(
+          `${index + 1}. ${titulo}`,
+          pageWidth - margin * 2,
+        );
+        const autor = referencia.autorInstitucion.trim();
+        const url = referencia.url.trim();
+        doc.setFont("helvetica", "normal");
+        const autorLines = autor
+          ? doc.splitTextToSize(`${autor}.`, pageWidth - margin * 2)
+          : [];
+        const urlLines = url
+          ? doc.splitTextToSize(url, pageWidth - margin * 2)
+          : [];
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        tituloLines.forEach((line) => {
+          ensurePageSpace(6);
+          doc.text(line, margin, currentY);
+          currentY += 5;
+        });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        for (const line of autorLines) {
+          ensurePageSpace(6);
+          doc.text(line, margin, currentY);
+          currentY += 5;
+        }
+
+        for (const line of urlLines) {
+          ensurePageSpace(6);
+          if (isAllowedReferenceUrl(url)) {
+            doc.textWithLink(line, margin, currentY, { url });
+          } else {
+            doc.text(line, margin, currentY);
+          }
+          currentY += 5;
+        }
+
+        currentY += 2;
+      });
+      currentY += 5;
+    }
+
     // ===== RECURSOS RELACIONADOS =====
     if (item.links && item.links.length > 0) {
       ensurePageSpace(24);
@@ -1707,40 +1767,6 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
               )}
             </div>
 
-            <section className="detail-license">
-              <button
-                className="detail-license-toggle"
-                type="button"
-                aria-expanded={isLicenseExpanded}
-                aria-controls={`detail-license-content-${item.id}`}
-                onClick={() => setIsLicenseExpanded((expanded) => !expanded)}
-              >
-                <span
-                  className="detail-license-toggle-icon"
-                  aria-hidden="true"
-                >
-                  ▶
-                </span>
-                <span>Licencia</span>
-              </button>
-              <div
-                className="detail-license-content"
-                id={`detail-license-content-${item.id}`}
-                hidden={!isLicenseExpanded}
-              >
-                <img
-                  src={licenseLogo}
-                  alt="Licencia Creative Commons BY-NC-SA"
-                  width="88"
-                  height="31"
-                />
-                <p>
-                  Esta obra está bajo una licencia de Creative Commons
-                  Reconocimiento-NoComercial-CompartirIgual 4.0 Internacional.
-                </p>
-              </div>
-            </section>
-
             {referencias.length > 0 && (
               <section className="detail-references">
                 <button
@@ -1825,6 +1851,52 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                 </div>
               </section>
             )}
+
+            <section className="detail-license">
+              <button
+                className="detail-license-toggle"
+                type="button"
+                aria-expanded={isLicenseExpanded}
+                aria-controls={`detail-license-content-${item.id}`}
+                onClick={() => setIsLicenseExpanded((expanded) => !expanded)}
+              >
+                <span
+                  className="detail-license-toggle-icon"
+                  aria-hidden="true"
+                >
+                  ▶
+                </span>
+                <span>Licencia</span>
+              </button>
+              <div
+                className="detail-license-content"
+                id={`detail-license-content-${item.id}`}
+                hidden={!isLicenseExpanded}
+              >
+                <a
+                  href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={licenseLogo}
+                    alt="Licencia Creative Commons BY-NC-SA"
+                    width="88"
+                    height="31"
+                  />
+                </a>
+                <p>
+                  <a
+                    href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Esta obra está bajo una licencia de Creative Commons
+                    Reconocimiento-NoComercial-CompartirIgual 4.0 Internacional.
+                  </a>
+                </p>
+              </div>
+            </section>
 
             <div className="detail-category-below">
               Categoría:{" "}
