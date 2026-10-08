@@ -606,6 +606,25 @@ tr:hover td {
   box-shadow: 0 0 0 3px rgba(39, 160, 96, 0.2);
 }
 
+.authors-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.author-editor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.author-editor-item .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .reference-editor-list {
   display: flex;
   flex-direction: column;

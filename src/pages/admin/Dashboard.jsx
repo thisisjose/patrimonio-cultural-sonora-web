@@ -46,6 +46,24 @@ import ReactQuill, { Quill } from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import Table from "quill/modules/table.js";
 
+const normalizeAutores = (value) => {
+  let autores = value;
+  if (typeof autores === "string") {
+    try {
+      autores = JSON.parse(autores);
+    } catch {
+      return [];
+    }
+  }
+
+  return Array.isArray(autores)
+    ? autores
+        .filter((autor) => typeof autor === "string")
+        .map((autor) => autor.trim())
+        .filter(Boolean)
+    : [];
+};
+
 const ImageFormat = Quill.import("formats/image");
 class ResizableImageBlot extends ImageFormat {
   static blotName = "image";
@@ -585,6 +603,7 @@ export default function AdminDashboard() {
     galeriaActual: [],
     imagenesAEliminar: [],
     estado: "pendiente",
+    autores: [],
     referencias: [],
     links: [],
     newLinkTitulo: "",
@@ -604,6 +623,7 @@ export default function AdminDashboard() {
     newTagInput: "",
     portadaFile: null,
     imagenesFiles: [],
+    autores: [],
     referencias: [],
     links: [],
     newLinkTitulo: "",
@@ -626,6 +646,7 @@ export default function AdminDashboard() {
     newTagInput: "",
     portadaFile: null,
     imagenesFiles: [],
+    autores: [],
     referencias: [],
     links: [],
     newLinkTitulo: "",
@@ -890,6 +911,7 @@ export default function AdminDashboard() {
       galeriaActual: item.galeria || [],
       imagenesAEliminar: [],
       estado: item.estado || "pendiente",
+      autores: normalizeAutores(item.autores),
       referencias: normalizeReferencias(item.referencias),
       links: item.links || [],
       newLinkTitulo: "",
@@ -920,6 +942,7 @@ export default function AdminDashboard() {
       galeriaActual: [],
       imagenesAEliminar: [],
       estado: "pendiente",
+      autores: [],
       referencias: [],
       links: [],
       newLinkTitulo: "",
@@ -1011,6 +1034,26 @@ export default function AdminDashboard() {
       ),
     }));
     clearReferenceError(setForm);
+  };
+
+  const addAutorToForm = (setForm) => {
+    setForm((prev) => ({ ...prev, autores: [...prev.autores, ""] }));
+  };
+
+  const updateAutorInForm = (setForm, index, value) => {
+    setForm((prev) => ({
+      ...prev,
+      autores: prev.autores.map((autor, autorIndex) =>
+        autorIndex === index ? value : autor,
+      ),
+    }));
+  };
+
+  const removeAutorFromForm = (setForm, index) => {
+    setForm((prev) => ({
+      ...prev,
+      autores: prev.autores.filter((_, autorIndex) => autorIndex !== index),
+    }));
   };
 
   const agregarUbicacion = (form, setForm, coords, nombrePunto = "") => {
@@ -1182,6 +1225,7 @@ export default function AdminDashboard() {
           })),
         ),
       );
+      formData.append("autores", JSON.stringify(normalizeAutores(formNuevo.autores)));
       formData.append("municipioId", formNuevo.municipioId);
       formData.append("ubicaciones", JSON.stringify(formNuevo.ubicaciones));
       if (formNuevo.portadaFile)
@@ -1207,6 +1251,7 @@ export default function AdminDashboard() {
         newTagInput: "",
         portadaFile: null,
         imagenesFiles: [],
+        autores: [],
         referencias: [],
         links: [],
         newLinkTitulo: "",
@@ -1289,6 +1334,7 @@ export default function AdminDashboard() {
         url,
       }),
     );
+    const autoresParaGuardar = normalizeAutores(formEditar.autores);
     try {
       setSaving(true);
       setError("");
@@ -1308,6 +1354,7 @@ export default function AdminDashboard() {
         fd.append("categoria", formEditar.categoria);
         fd.append("descripcion", formEditar.descripcion);
         fd.append("referencias", JSON.stringify(referenciasParaGuardar));
+        fd.append("autores", JSON.stringify(autoresParaGuardar));
         fd.append("municipioId", formEditar.municipioId);
         fd.append("ubicaciones", JSON.stringify(formEditar.ubicaciones));
         if (formEditar.tags && formEditar.tags.length > 0) {
@@ -1338,6 +1385,7 @@ export default function AdminDashboard() {
           categoria: formEditar.categoria,
           descripcion: formEditar.descripcion,
           referencias: referenciasParaGuardar,
+          autores: autoresParaGuardar,
           municipioId: formEditar.municipioId,
           ubicaciones: formEditar.ubicaciones,
           tags: formEditar.tags || [],
@@ -1384,6 +1432,7 @@ export default function AdminDashboard() {
         localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
         categoria: item.categoria ?? "Material",
         descripcion: item.descripcion ?? "",
+        autores: normalizeAutores(item.autores),
         referencias: normalizeReferencias(item.referencias),
         ubicaciones: ubicaciones,
         latitud: principal?.latitud || "",
@@ -1825,6 +1874,46 @@ export default function AdminDashboard() {
                           Agregar
                         </button>
                       </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Autores</h4>
+                      <div className="authors-editor-list">
+                        {formNuevo.autores.map((autor, index) => (
+                          <div className="author-editor-item" key={index}>
+                            <input
+                              className="form-input"
+                              type="text"
+                              aria-label={`Nombre del autor ${index + 1}`}
+                              placeholder="Nombre del autor"
+                              value={autor}
+                              onChange={(e) =>
+                                updateAutorInForm(
+                                  setFormNuevo,
+                                  index,
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn-secondary small"
+                              onClick={() =>
+                                removeAutorFromForm(setFormNuevo, index)
+                              }
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary small"
+                        onClick={() => addAutorToForm(setFormNuevo)}
+                      >
+                        + Agregar autor
+                      </button>
                     </div>
 
                     <div className="form-section">
@@ -2822,6 +2911,46 @@ export default function AdminDashboard() {
                         </select>
                       </div>
                     )}
+
+                    <div className="form-section">
+                      <h4 className="section-title-small">Autores</h4>
+                      <div className="authors-editor-list">
+                        {formEditar.autores.map((autor, index) => (
+                          <div className="author-editor-item" key={index}>
+                            <input
+                              className="form-input"
+                              type="text"
+                              aria-label={`Nombre del autor ${index + 1}`}
+                              placeholder="Nombre del autor"
+                              value={autor}
+                              onChange={(e) =>
+                                updateAutorInForm(
+                                  setFormEditar,
+                                  index,
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn-secondary small"
+                              onClick={() =>
+                                removeAutorFromForm(setFormEditar, index)
+                              }
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-secondary small"
+                        onClick={() => addAutorToForm(setFormEditar)}
+                      >
+                        + Agregar autor
+                      </button>
+                    </div>
 
                     <div className="form-section">
                       <h4 className="section-title-small">Referencias</h4>

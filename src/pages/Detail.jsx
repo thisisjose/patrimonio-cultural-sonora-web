@@ -302,6 +302,21 @@ const getMunicipioName = (item, municipios = []) => {
   );
 };
 
+const buildCanonicalPatrimonioPath = (item, municipioNombre, routeBase = "") => {
+  const encodeSegment = (value) =>
+    encodeURIComponent(slugify(value) || value.trim());
+  const localidadNombre = getLocalidadName(item.localidad);
+
+  return `/${[
+    routeBase,
+    encodeSegment(municipioNombre),
+    localidadNombre && encodeSegment(localidadNombre),
+    encodeSegment(item.nombre),
+  ]
+    .filter(Boolean)
+    .join("/")}`;
+};
+
 const normalizeImage = (image) => {
   if (!image) return null;
   if (typeof image === "string") return buildImageUrl(image);
@@ -444,6 +459,22 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const sourceURL = `${window.location.origin}${buildCanonicalPatrimonioPath(
+      item,
+      municipioNombre,
+    )}`;
+    const footerY = pageHeight - 10;
+    const sourceLineHeight = 3.5;
+    doc.setFontSize(7);
+    const sourceURLLines = doc.splitTextToSize(
+      sourceURL,
+      pageWidth - margin * 2,
+    );
+    const sourceStartY =
+      footerY - 4 - (sourceURLLines.length - 1) * sourceLineHeight;
+    const footerDividerY = sourceStartY - 4;
+    const contentBottom = footerDividerY - 2;
     let currentY = 20;
 
     const drawLine = (y) => {
@@ -451,10 +482,8 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       doc.line(margin, y, pageWidth - margin, y);
     };
 
-    const pageHeight = doc.internal.pageSize.getHeight();
-
     const ensurePageSpace = (height) => {
-      if (currentY + height > pageHeight - margin) {
+      if (currentY + height > contentBottom) {
         doc.addPage();
         currentY = margin;
       }
@@ -999,7 +1028,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       lineHeight,
     ) => {
       const ensureLocalPageSpace = (height, currentY) => {
-        if (currentY + height > pageHeight - margin) {
+        if (currentY + height > contentBottom) {
           doc.addPage();
           currentY = margin;
         }
@@ -1275,6 +1304,44 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     );
     currentY += 8;
 
+    // ===== AUTORES =====
+    let autores = item.autores;
+    if (typeof autores === "string") {
+      try {
+        autores = JSON.parse(autores);
+      } catch {
+        autores = [];
+      }
+    }
+    autores = Array.isArray(autores)
+      ? autores
+          .filter((autor) => typeof autor === "string")
+          .map((autor) => autor.trim())
+          .filter(Boolean)
+      : [];
+
+    if (autores.length > 0) {
+      ensurePageSpace(18);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Autores", margin, currentY);
+      currentY += 7;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      autores.forEach((autor) => {
+        const autorLines = doc.splitTextToSize(autor, pageWidth - margin * 2);
+        autorLines.forEach((line) => {
+          ensurePageSpace(6);
+          doc.text(line, margin, currentY);
+          currentY += 5;
+        });
+      });
+      currentY += 5;
+    }
+
     // ===== REFERENCIAS =====
     const referencias = normalizeReferencias(item.referencias);
     if (referencias.length > 0) {
@@ -1355,7 +1422,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
         const linkText = `${title}: ${url}`;
         const lineItems = doc.splitTextToSize(linkText, pageWidth - margin * 2);
         lineItems.forEach((line) => {
-          if (currentY > doc.internal.pageSize.getHeight() - margin) {
+          if (currentY > contentBottom) {
             doc.addPage();
             currentY = margin;
           }
@@ -1397,7 +1464,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
 
             if (
               rowY + imageHeight >
-              doc.internal.pageSize.getHeight() - margin
+              contentBottom
             ) {
               doc.addPage();
               rowY = margin;
@@ -1417,7 +1484,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
         }
       }
       currentY = rowY + imageHeight + gap + 15;
-      if (currentY > doc.internal.pageSize.getHeight() - margin - 40) {
+      if (currentY > contentBottom - 40) {
         doc.addPage();
         currentY = margin;
       }
@@ -1471,9 +1538,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     });
 
     const footerLabel = "Última consulta:";
-    const footerText = `${footerLabel} ${formattedDate}`;
     const totalPages = doc.internal.pages.length - 1; // Restar 1 porque la primera entrada es undefined
-    const footerY = doc.internal.pageSize.getHeight() - 10; // 10mm desde el borde inferior
 
     // Iterar sobre todas las páginas para agregar el pie de página
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
@@ -1481,7 +1546,20 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
       
       // Dibujar línea separadora discreta
       doc.setDrawColor(200, 200, 200);
-      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+      doc.line(margin, footerDividerY, pageWidth - margin, footerDividerY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(36, 93, 145);
+      sourceURLLines.forEach((line, index) => {
+        const lineY = sourceStartY + index * sourceLineHeight;
+        const lineWidth = doc.getTextWidth(line);
+        const lineX = (pageWidth - lineWidth) / 2;
+        doc.textWithLink(line, lineX, lineY, { url: sourceURL });
+        doc.setDrawColor(36, 93, 145);
+        doc.setLineWidth(0.15);
+        doc.line(lineX, lineY + 0.6, lineX + lineWidth, lineY + 0.6);
+      });
       
       // Dibujar texto del pie de página
       doc.setFontSize(9);
@@ -1516,6 +1594,7 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
     item,
     expanded: false,
   });
+  const [areAuthorsExpanded, setAreAuthorsExpanded] = useState(false);
   const [isLicenseExpanded, setIsLicenseExpanded] = useState(false);
   const [areReferencesExpanded, setAreReferencesExpanded] = useState(false);
   const [areRelatedResourcesExpanded, setAreRelatedResourcesExpanded] =
@@ -1569,6 +1648,12 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
   const tags = Array.isArray(item.tags) ? item.tags : [];
   const ubicaciones = Array.isArray(item.ubicaciones) ? item.ubicaciones : [];
   const localidadNombre = getLocalidadName(item.localidad);
+  const autores = Array.isArray(item.autores)
+    ? item.autores
+        .filter((autor) => typeof autor === "string")
+        .map((autor) => autor.trim())
+        .filter(Boolean)
+    : [];
   const referencias = normalizeReferencias(item.referencias).filter(
     (reference) => isAllowedReferenceUrl(reference.url),
   );
@@ -1776,6 +1861,41 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                 </button>
               )}
             </div>
+
+            {autores.length > 0 && (
+              <section className="detail-references">
+                <button
+                  className="detail-references-toggle"
+                  type="button"
+                  aria-expanded={areAuthorsExpanded}
+                  aria-controls={`detail-authors-content-${item.id}`}
+                  onClick={() =>
+                    setAreAuthorsExpanded((expanded) => !expanded)
+                  }
+                >
+                  <span
+                    className="detail-references-toggle-icon"
+                    aria-hidden="true"
+                  >
+                    ▶
+                  </span>
+                  <span>Autores</span>
+                </button>
+                <div
+                  className="detail-references-content"
+                  id={`detail-authors-content-${item.id}`}
+                  hidden={!areAuthorsExpanded}
+                >
+                  <ul className="detail-references-list">
+                    {autores.map((autor, index) => (
+                      <li className="detail-reference-item" key={`${autor}-${index}`}>
+                        {autor}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
 
             {referencias.length > 0 && (
               <section className="detail-references">
@@ -2322,18 +2442,12 @@ function Detail() {
     const municipioNombre = getMunicipioName(patrimonio, municipios);
     if (!municipioNombre) return;
 
-    const localidadNombre = getLocalidadName(patrimonio.localidad);
-    const encodeSegment = (value) =>
-      encodeURIComponent(slugify(value) || value.trim());
     const routeBase = location.pathname.startsWith("/admin") ? "admin" : "";
-    const canonicalPath = `/${[
+    const canonicalPath = buildCanonicalPatrimonioPath(
+      patrimonio,
+      municipioNombre,
       routeBase,
-      encodeSegment(municipioNombre),
-      localidadNombre && encodeSegment(localidadNombre),
-      encodeSegment(patrimonio.nombre),
-    ]
-      .filter(Boolean)
-      .join("/")}`;
+    );
 
     if (location.pathname !== canonicalPath) {
       navigate(`${canonicalPath}${location.search}${location.hash}`, {

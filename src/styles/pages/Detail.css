@@ -776,6 +776,28 @@
   display: none;
 }
 
+.detail-authors {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.detail-authors-title {
+  margin: 0;
+  color: var(--primary-dark);
+  font: inherit;
+  font-weight: 700;
+}
+
+.detail-authors-list {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.25rem 0 0.5rem 1.25rem;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .detail-references {
   display: flex;
   flex-direction: column;
