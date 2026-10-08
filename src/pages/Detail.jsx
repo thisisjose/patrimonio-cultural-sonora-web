@@ -2635,10 +2635,8 @@ function Detail() {
     const detailPath = localidad
       ? `${municipalityPath}/${slugify(localidad)}/${slugify(item.nombre)}`
       : `${municipalityPath}/${slugify(item.nombre)}`;
-
     setSelectedLocalidad(null);
     setSelectedMunicipioId(null);
-    setPatrimonioResult({ key: null, value: undefined });
     navigate(detailPath, { state: { patrimonioId: item.id } });
   };
 
