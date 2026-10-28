@@ -11,6 +11,50 @@
 .efemerides-title {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.efemerides-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.35rem;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.efemerides-breadcrumbs a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-base);
+  color: var(--primary-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.efemerides-breadcrumbs a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.efemerides-breadcrumbs a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.efemerides-breadcrumbs [aria-current="page"] {
+  overflow-wrap: anywhere;
+}
+
+.efemerides-breadcrumb-separator {
+  color: var(--text-secondary);
 }
 
 .efemerides-frame {
