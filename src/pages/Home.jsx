@@ -4,9 +4,6 @@ import MapView from "../components/MapView";
 import PatrimonioStatsCard from "../components/PatrimonioStatsCard";
 import PopularCard from "../components/PopularCard";
 import "../styles/pages/Home.css";
-import mapaIcon from "../Icons/mapa.png";
-import historiaIcon from "../Icons/historia.png";
-import infoIcon from "../Icons/info.png";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
 import slugify from "../utils/slugify";
@@ -425,31 +422,16 @@ function Home() {
         </div>
       </section>
 
-      <div className="features-grid">
-        <div className="feature-card">
-          <div className="feature-icon"><img src={mapaIcon} alt="Explorar mapa" /></div>
-          <div>
-            <div className="feature-title">Explora el mapa</div>
-            <div className="feature-desc">Navega fácilmente por sitios históricos y festividades locales con información práctica y fotos.</div>
-          </div>
+      <section className="efemerides-section" aria-labelledby="efemerides-title">
+        <h2 id="efemerides-title" className="section-title">Efemérides de Sonora</h2>
+        <div className="efemerides-frame">
+          <iframe
+            src="https://efemerides.redescubramossonora.mx/views/Calendario.html"
+            title="Calendario interactivo de efemérides de Sonora"
+            loading="lazy"
+          />
         </div>
-
-        <div className="feature-card">
-          <div className="feature-icon"><img src={historiaIcon} alt="Aprender historia" /></div>
-          <div>
-            <div className="feature-title">Aprende sobre la historia</div>
-            <div className="feature-desc">Cada punto incluye contexto histórico breve y referencias para profundizar en el patrimonio.</div>
-          </div>
-        </div>
-
-        <div className="feature-card">
-          <div className="feature-icon"><img src={infoIcon} alt="Información accesible" /></div>
-          <div>
-            <div className="feature-title">Información accesible</div>
-            <div className="feature-desc">Datos completos y verificados de cada sitio: Nombre, ubicación y descripción.</div>
-          </div>
-        </div>
-      </div>
+      </section>
     </section>
   );
 }

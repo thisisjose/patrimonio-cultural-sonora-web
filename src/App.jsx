@@ -12,6 +12,7 @@ import Contacto from './pages/Contacto';
 import Detail from './pages/Detail';
 import Explore from './pages/Explore';
 import Catalogo from './pages/Catalogo';
+import Efemerides from './pages/Efemerides';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
@@ -45,6 +46,7 @@ function App() {
             <Route path="patrimonio/:id" element={<Detail />} />
             <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="catalogo" element={<Catalogo />} />
+            <Route path="efemerides" element={<Efemerides />} />
           </Route>
 
           <Route path="/admin" element={
