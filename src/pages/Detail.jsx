@@ -200,6 +200,56 @@ const cleanWebDescriptionHtml = (html) => {
   return cleanedHtml.trim();
 };
 
+const sanitizeWebDescription = (html) =>
+  cleanWebDescriptionHtml(
+    DOMPurify.sanitize(html || "", {
+      ADD_TAGS: [
+        "blockquote",
+        "cite",
+        "font",
+        "figure",
+        "figcaption",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "td",
+        "th",
+        "caption",
+      ],
+      ADD_ATTR: [
+        "style",
+        "class",
+        "color",
+        "width",
+        "height",
+        "align",
+        "border",
+        "cellpadding",
+        "cellspacing",
+        "colspan",
+        "rowspan",
+        "src",
+        "alt",
+      ],
+      FORBID_TAGS: ["script", "style", "iframe"],
+    }),
+  );
+
+const descriptionHasContent = (html) => {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+
+  const hasText = template.content.textContent
+    .replace(/\u00a0/g, " ")
+    .trim().length > 0;
+  const hasImage = Array.from(template.content.querySelectorAll("img")).some(
+    (image) => image.getAttribute("src")?.trim(),
+  );
+
+  return hasText || hasImage;
+};
+
 const createDescriptionPreview = (html) => {
   const template = document.createElement("template");
   template.innerHTML = html;
@@ -1594,6 +1644,10 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
     item,
     expanded: false,
   });
+  const [descriptionTab, setDescriptionTab] = useState({
+    item,
+    language: "es",
+  });
   const [areAuthorsExpanded, setAreAuthorsExpanded] = useState(false);
   const [isLicenseExpanded, setIsLicenseExpanded] = useState(false);
   const [areReferencesExpanded, setAreReferencesExpanded] = useState(false);
@@ -1602,44 +1656,32 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
   const isDescriptionExpanded =
     descriptionDisclosure.item === item && descriptionDisclosure.expanded;
   const images = useMemo(() => buildImageList(item), [item]);
-  const descriptionHtml = useMemo(
-    () =>
-      cleanWebDescriptionHtml(
-        DOMPurify.sanitize(item.descripcion || "", {
-          ADD_TAGS: [
-            "blockquote",
-            "cite",
-            "font",
-            "figure",
-            "figcaption",
-            "table",
-            "thead",
-            "tbody",
-            "tr",
-            "td",
-            "th",
-            "caption",
-          ],
-          ADD_ATTR: [
-            "style",
-            "class",
-            "color",
-            "width",
-            "height",
-            "align",
-            "border",
-            "cellpadding",
-            "cellspacing",
-            "colspan",
-            "rowspan",
-            "src",
-            "alt",
-          ],
-          FORBID_TAGS: ["script", "style", "iframe"],
-        }),
-      ),
-    [item.descripcion],
-  );
+  const descriptions = useMemo(() => {
+    const availableDescriptions = [
+      { language: "es", label: "Español", html: sanitizeWebDescription(item.descripcion) },
+      { language: "en", label: "English", html: sanitizeWebDescription(item.descripcion_en) },
+      {
+        language: "indigena",
+        label: item.idioma_indigena || "Lengua originaria",
+        html: sanitizeWebDescription(item.descripcion_indigena),
+      },
+    ];
+    return availableDescriptions.filter(
+      (description) =>
+        description.language === "es" || descriptionHasContent(description.html),
+    );
+  }, [
+    item.descripcion,
+    item.descripcion_en,
+    item.descripcion_indigena,
+    item.idioma_indigena,
+  ]);
+  const selectedDescriptionLanguage =
+    descriptionTab.item === item ? descriptionTab.language : "es";
+  const descriptionHtml =
+    descriptions.find(
+      (description) => description.language === selectedDescriptionLanguage,
+    )?.html || descriptions[0].html;
   const descriptionPreview = useMemo(
     () => createDescriptionPreview(descriptionHtml),
     [descriptionHtml],
@@ -1821,9 +1863,29 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
 
           <div className="detail-info">
             <div className="detail-description-section">
+              <div className="detail-description-tabs" role="tablist" aria-label="Idioma de la descripción">
+                {descriptions.map((description) => (
+                  <button
+                    key={description.language}
+                    id={`description-tab-${item.id}-${description.language}`}
+                    className={`detail-description-tab${selectedDescriptionLanguage === description.language ? " active" : ""}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedDescriptionLanguage === description.language}
+                    aria-controls={`detail-description-${item.id}`}
+                    onClick={() =>
+                      setDescriptionTab({ item, language: description.language })
+                    }
+                  >
+                    {description.label}
+                  </button>
+                ))}
+              </div>
               <div
                 className={`detail-description ${isDescriptionExpanded ? "expanded" : ""}`}
                 id={`detail-description-${item.id}`}
+                role="tabpanel"
+                aria-labelledby={`description-tab-${item.id}-${selectedDescriptionLanguage}`}
                 dangerouslySetInnerHTML={{
                   __html: isDescriptionExpanded
                     ? descriptionHtml

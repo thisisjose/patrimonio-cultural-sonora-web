@@ -46,6 +46,17 @@ import ReactQuill, { Quill } from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import Table from "quill/modules/table.js";
 
+const IDIOMAS_INDIGENAS = [
+  "Yaqui",
+  "Mayo",
+  "Seri",
+  "Guarijío",
+  "Pima",
+  "Pápago",
+  "Cucapá",
+  "Kikapú",
+];
+
 const normalizeAutores = (value) => {
   let autores = value;
   if (typeof autores === "string") {
@@ -588,6 +599,8 @@ export default function AdminDashboard() {
 
   const [modalVer, setModalVer] = useState(null);
   const [modalEditar, setModalEditar] = useState(null);
+  const [descripcionesEdicionCargadas, setDescripcionesEdicionCargadas] =
+    useState(false);
   const [formEditar, setFormEditar] = useState({
     id: null,
     nombre: "",
@@ -595,6 +608,9 @@ export default function AdminDashboard() {
     municipioId: "",
     categoria: "Material",
     descripcion: "",
+    descripcion_en: "",
+    descripcion_indigena: "",
+    idioma_indigena: "",
     ubicaciones: [],
     tags: [],
     newTagInput: "",
@@ -618,6 +634,9 @@ export default function AdminDashboard() {
     municipioId: "",
     categoria: "Material",
     descripcion: "",
+    descripcion_en: "",
+    descripcion_indigena: "",
+    idioma_indigena: "",
     ubicaciones: [],
     tags: [],
     newTagInput: "",
@@ -641,6 +660,9 @@ export default function AdminDashboard() {
     municipioId: "",
     categoria: "Material",
     descripcion: "",
+    descripcion_en: "",
+    descripcion_indigena: "",
+    idioma_indigena: "",
     ubicaciones: [],
     tags: [],
     newTagInput: "",
@@ -766,6 +788,11 @@ export default function AdminDashboard() {
     typeof descripcion === "string" &&
     descripcion.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim() !== "";
 
+  const richTextTieneContenido = (descripcion) =>
+    typeof descripcion === "string" &&
+    (/<(img|table|figure)\b/i.test(descripcion) ||
+      descripcionTieneContenido(descripcion));
+
   const validarDatosNuevo = () => {
     const errors = {};
     if (!formNuevo.nombre.trim()) errors.nombre = "Este campo es obligatorio";
@@ -777,6 +804,15 @@ export default function AdminDashboard() {
     }
     if (!String(formNuevo.categoria).trim()) {
       errors.categoria = "Este campo es obligatorio";
+    }
+    const tieneDescripcionIndigena = richTextTieneContenido(
+      formNuevo.descripcion_indigena,
+    );
+    if (tieneDescripcionIndigena && !formNuevo.idioma_indigena) {
+      errors.idioma_indigena = "Selecciona la lengua de esta descripción";
+    } else if (formNuevo.idioma_indigena && !tieneDescripcionIndigena) {
+      errors.descripcion_indigena =
+        "Agrega la descripción de la lengua seleccionada";
     }
     return errors;
   };
@@ -892,6 +928,12 @@ export default function AdminDashboard() {
       setError("No se pudo cargar el patrimonio seleccionado para editar.");
       return;
     }
+    setDescripcionesEdicionCargadas(
+      item.descripcionesEdicionCargadas ??
+        ["descripcion_en", "descripcion_indigena", "idioma_indigena"].every(
+          (field) => Object.prototype.hasOwnProperty.call(item, field),
+        ),
+    );
     setReferenciasEditarError("");
     const tagsActuales = (item.tags || []).map((t) =>
       typeof t === "object" ? t.nombre : t,
@@ -903,6 +945,9 @@ export default function AdminDashboard() {
       municipioId: item.municipioId,
       categoria: item.categoria,
       descripcion: item.descripcion,
+      descripcion_en: item.descripcion_en || "",
+      descripcion_indigena: item.descripcion_indigena || "",
+      idioma_indigena: item.idioma_indigena || "",
       ubicaciones: item.ubicaciones || [],
       tags: tagsActuales,
       newTagInput: "",
@@ -925,6 +970,7 @@ export default function AdminDashboard() {
 
   const cerrarEditar = () => {
     setModalEditar(null);
+    setDescripcionesEdicionCargadas(false);
     setStepEditar(0);
     setReferenciasEditarError("");
     setFormEditar({
@@ -934,6 +980,9 @@ export default function AdminDashboard() {
       municipioId: "",
       categoria: "Material",
       descripcion: "",
+      descripcion_en: "",
+      descripcion_indigena: "",
+      idioma_indigena: "",
       ubicaciones: [],
       tags: [],
       newTagInput: "",
@@ -1197,6 +1246,8 @@ export default function AdminDashboard() {
       else if (
         errors.nombre ||
         errors.descripcion ||
+        errors.idioma_indigena ||
+        errors.descripcion_indigena ||
         errors.municipioId ||
         errors.categoria
       ) {
@@ -1215,6 +1266,9 @@ export default function AdminDashboard() {
       formData.append("localidad", formNuevo.localidad);
       formData.append("categoria", formNuevo.categoria);
       formData.append("descripcion", formNuevo.descripcion);
+      formData.append("descripcion_en", formNuevo.descripcion_en);
+      formData.append("descripcion_indigena", formNuevo.descripcion_indigena);
+      formData.append("idioma_indigena", formNuevo.idioma_indigena);
       formData.append(
         "referencias",
         JSON.stringify(
@@ -1246,6 +1300,9 @@ export default function AdminDashboard() {
         municipioId: "",
         categoria: "Material",
         descripcion: "",
+        descripcion_en: "",
+        descripcion_indigena: "",
+        idioma_indigena: "",
         ubicaciones: [],
         tags: [],
         newTagInput: "",
@@ -1306,6 +1363,27 @@ export default function AdminDashboard() {
 
   // ---------- GUARDAR EDICIÓN ----------
   const guardarEdicion = async () => {
+    setError("");
+    if (!descripcionesEdicionCargadas) {
+      setError(
+        "No se cargaron las descripciones adicionales. Cierra y vuelve a abrir el patrimonio antes de guardar.",
+      );
+      setStepEditar(0);
+      return;
+    }
+    const tieneDescripcionIndigena = richTextTieneContenido(
+      formEditar.descripcion_indigena,
+    );
+    if (tieneDescripcionIndigena && !formEditar.idioma_indigena) {
+      setError("Selecciona la lengua originaria correspondiente a la descripción.");
+      setStepEditar(0);
+      return;
+    }
+    if (formEditar.idioma_indigena && !tieneDescripcionIndigena) {
+      setError("Agrega la descripción de la lengua originaria seleccionada.");
+      setStepEditar(0);
+      return;
+    }
     if (
       formEditar.referencias.some(
         (reference) =>
@@ -1340,8 +1418,8 @@ export default function AdminDashboard() {
       setError("");
       let dataToSend;
       const hasInlineImage =
-        typeof formEditar.descripcion === "string" &&
-        formEditar.descripcion.includes("<img");
+        [formEditar.descripcion, formEditar.descripcion_en, formEditar.descripcion_indigena]
+          .some((description) => description?.includes("<img"));
       const hayArchivos =
         formEditar.portadaFile ||
         formEditar.imagenesFiles.length > 0 ||
@@ -1353,6 +1431,9 @@ export default function AdminDashboard() {
         fd.append("localidad", formEditar.localidad || "");
         fd.append("categoria", formEditar.categoria);
         fd.append("descripcion", formEditar.descripcion);
+        fd.append("descripcion_en", formEditar.descripcion_en);
+        fd.append("descripcion_indigena", formEditar.descripcion_indigena);
+        fd.append("idioma_indigena", formEditar.idioma_indigena);
         fd.append("referencias", JSON.stringify(referenciasParaGuardar));
         fd.append("autores", JSON.stringify(autoresParaGuardar));
         fd.append("municipioId", formEditar.municipioId);
@@ -1384,6 +1465,9 @@ export default function AdminDashboard() {
           localidad: formEditar.localidad || "",
           categoria: formEditar.categoria,
           descripcion: formEditar.descripcion,
+          descripcion_en: formEditar.descripcion_en,
+          descripcion_indigena: formEditar.descripcion_indigena,
+          idioma_indigena: formEditar.idioma_indigena,
           referencias: referenciasParaGuardar,
           autores: autoresParaGuardar,
           municipioId: formEditar.municipioId,
@@ -1398,7 +1482,9 @@ export default function AdminDashboard() {
       await cargarDatos(currentPage);
     } catch (err) {
       console.error(err);
-      setError("No se pudo actualizar el patrimonio.");
+      setError(
+        err.response?.data?.error || "No se pudo actualizar el patrimonio.",
+      );
     } finally {
       setSaving(false);
     }
@@ -1432,6 +1518,14 @@ export default function AdminDashboard() {
         localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
         categoria: item.categoria ?? "Material",
         descripcion: item.descripcion ?? "",
+        descripcion_en: item.descripcion_en ?? "",
+        descripcion_indigena: item.descripcion_indigena ?? "",
+        idioma_indigena: item.idioma_indigena ?? "",
+        descripcionesEdicionCargadas: [
+          "descripcion_en",
+          "descripcion_indigena",
+          "idioma_indigena",
+        ].every((field) => Object.prototype.hasOwnProperty.call(item, field)),
         autores: normalizeAutores(item.autores),
         referencias: normalizeReferencias(item.referencias),
         ubicaciones: ubicaciones,
@@ -1738,6 +1832,68 @@ export default function AdminDashboard() {
                       {nuevoErrors.descripcion && (
                         <div className="validation-error" role="alert">
                           {nuevoErrors.descripcion}
+                        </div>
+                      )}
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción en inglés (opcional)</h4>
+                      <ReactQuill
+                        key="nuevo-descripcion-en"
+                        theme="snow"
+                        value={formNuevo.descripcion_en || ""}
+                        onChange={(content) =>
+                          setFormNuevo((prev) => ({
+                            ...prev,
+                            descripcion_en: content,
+                          }))
+                        }
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe la descripción del patrimonio en inglés..."
+                      />
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción en lengua originaria (opcional)</h4>
+                      <select
+                        className="form-input"
+                        aria-label="Lengua originaria"
+                        value={formNuevo.idioma_indigena}
+                        onChange={(e) => {
+                          setFormNuevo((prev) => ({
+                            ...prev,
+                            idioma_indigena: e.target.value,
+                          }));
+                          limpiarErrorNuevo("idioma_indigena");
+                        }}
+                      >
+                        <option value="">Selecciona una lengua</option>
+                        {IDIOMAS_INDIGENAS.map((idioma) => (
+                          <option key={idioma} value={idioma}>{idioma}</option>
+                        ))}
+                      </select>
+                      {nuevoErrors.idioma_indigena && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.idioma_indigena}
+                        </div>
+                      )}
+                      <ReactQuill
+                        key="nuevo-descripcion-indigena"
+                        theme="snow"
+                        value={formNuevo.descripcion_indigena || ""}
+                        onChange={(content) => {
+                          setFormNuevo((prev) => ({
+                            ...prev,
+                            descripcion_indigena: content,
+                          }));
+                          limpiarErrorNuevo("descripcion_indigena");
+                        }}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe la descripción en la lengua seleccionada..."
+                      />
+                      {nuevoErrors.descripcion_indigena && (
+                        <div className="validation-error" role="alert">
+                          {nuevoErrors.descripcion_indigena}
                         </div>
                       )}
                     </div>
@@ -2593,6 +2749,12 @@ export default function AdminDashboard() {
             </div>
             <div className="modal-body">
               <StepIndicator current={stepEditar} total={3} />
+              {!descripcionesEdicionCargadas && (
+                <div className="validation-error" role="alert">
+                  No se cargaron las descripciones adicionales. Cierra y vuelve
+                  a abrir el patrimonio antes de guardar.
+                </div>
+              )}
 
               {/* PASO 2: IMÁGENES */}
               {stepEditar === 2 && (
@@ -2767,6 +2929,56 @@ export default function AdminDashboard() {
                         modules={quillModules}
                         formats={quillFormats}
                         placeholder="Escribe la descripción del patrimonio..."
+                      />
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción en inglés (opcional)</h4>
+                      <ReactQuill
+                        key={`editar-${modalEditar?.id || "cerrado"}-descripcion-en`}
+                        theme="snow"
+                        value={formEditar.descripcion_en || ""}
+                        onChange={(content) =>
+                          setFormEditar((prev) => ({
+                            ...prev,
+                            descripcion_en: content,
+                          }))
+                        }
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe la descripción del patrimonio en inglés..."
+                      />
+                    </div>
+                    <div className="form-section">
+                      <h4 className="section-title-small">Descripción en lengua originaria (opcional)</h4>
+                      <select
+                        className="form-input"
+                        aria-label="Lengua originaria"
+                        value={formEditar.idioma_indigena || ""}
+                        onChange={(e) =>
+                          setFormEditar((prev) => ({
+                            ...prev,
+                            idioma_indigena: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Selecciona una lengua</option>
+                        {IDIOMAS_INDIGENAS.map((idioma) => (
+                          <option key={idioma} value={idioma}>{idioma}</option>
+                        ))}
+                      </select>
+                      <ReactQuill
+                        key={`editar-${modalEditar?.id || "cerrado"}-descripcion-indigena`}
+                        theme="snow"
+                        value={formEditar.descripcion_indigena || ""}
+                        onChange={(content) =>
+                          setFormEditar((prev) => ({
+                            ...prev,
+                            descripcion_indigena: content,
+                          }))
+                        }
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe la descripción en la lengua seleccionada..."
                       />
                     </div>
                   </div>
@@ -3248,7 +3460,7 @@ export default function AdminDashboard() {
                 <button
                   className="btn-primary"
                   onClick={guardarEdicion}
-                  disabled={saving}
+                  disabled={saving || !descripcionesEdicionCargadas}
                 >
                   {saving ? "Guardando..." : "Guardar cambios"}
                 </button>
