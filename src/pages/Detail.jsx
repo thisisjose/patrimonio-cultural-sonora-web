@@ -504,7 +504,20 @@ const urlToBase64 = async (url) => {
   }
 };
 
-const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
+const downloadPatrimonioPDF = async (
+  item,
+  municipioNombre,
+  images,
+  descriptionHtml,
+  descriptionLanguage,
+) => {
+  if (!descriptionHasContent(sanitizeWebDescription(descriptionHtml))) {
+    alert(
+      `No hay una descripción disponible en ${descriptionLanguage}. No se generó el PDF.`,
+    );
+    return;
+  }
+
   try {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1346,7 +1359,7 @@ const downloadPatrimonioPDF = async (item, municipioNombre, images) => {
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     currentY = await renderDescriptionBlocks(
-      item.descripcion || "Sin descripción",
+      descriptionHtml,
       margin,
       currentY,
       pageWidth - margin * 2,
@@ -1678,6 +1691,21 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
   ]);
   const selectedDescriptionLanguage =
     descriptionTab.item === item ? descriptionTab.language : "es";
+  const pdfDescriptionHtml =
+    selectedDescriptionLanguage === "en"
+      ? item.descripcion_en
+      : selectedDescriptionLanguage === "indigena"
+        ? item.descripcion_indigena
+        : item.descripcion;
+  const pdfDescriptionLanguage =
+    descriptions.find(
+      (description) => description.language === selectedDescriptionLanguage,
+    )?.label ||
+    (selectedDescriptionLanguage === "indigena"
+      ? item.idioma_indigena || "Lengua originaria"
+      : selectedDescriptionLanguage === "en"
+        ? "English"
+        : "Español");
   const descriptionHtml =
     descriptions.find(
       (description) => description.language === selectedDescriptionLanguage,
@@ -1941,7 +1969,7 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                   >
                     ▶
                   </span>
-                  <span>Autores</span>
+                  <span>Colaborador(es)</span>
                 </button>
                 <div
                   className="detail-references-content"
@@ -2122,6 +2150,125 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                 </>
               )}
             </div>
+            <div className="detail-actions">
+              <button
+                className="detail-map-link"
+                type="button"
+                onClick={() =>
+                  downloadPatrimonioPDF(
+                    item,
+                    municipioNombre,
+                    images,
+                    pdfDescriptionHtml,
+                    pdfDescriptionLanguage,
+                  )
+                }
+                aria-label="Descargar información en PDF"
+                title="Descargar información del patrimonio"
+              >
+                Descargar PDF
+              </button>
+              <div className="detail-share">
+                <button
+                  className="detail-share-trigger"
+                  type="button"
+                  aria-expanded={isShareMenuOpen}
+                  aria-controls={`share-options-${item.id}`}
+                  onClick={() => setIsShareMenuOpen((open) => !open)}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <path d="m8.7 10.6 6.6-4.2M8.7 13.4l6.6 4.2" />
+                  </svg>
+                  Compartir
+                </button>
+                {isShareMenuOpen && (
+                  <div
+                    className="detail-share-options"
+                    id={`share-options-${item.id}`}
+                    aria-label="Opciones para compartir"
+                  >
+                    <a
+                      className="detail-share-option"
+                      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Compartir en Facebook"
+                      data-tooltip="Compartir en Facebook"
+                      title="Compartir en Facebook"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V3.9c-.3 0-1.4-.1-2.6-.1-2.6 0-4.4 1.6-4.4 4.5V10H7v3h2.8v8h3.7Z" />
+                      </svg>
+                    </a>
+                    <a
+                      className="detail-share-option"
+                      href={`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Compartir por WhatsApp"
+                      data-tooltip="Compartir por WhatsApp"
+                      title="Compartir por WhatsApp"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" />
+                        <path d="M8.4 8.2c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.7c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4 0 .6.7 1 1.5 1.8 2.5 2.4.3.2.5.2.7 0l.7-.7c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5v.5c0 .3-.1.5-.4.7-.5.4-1.3.5-2 .3-1.2-.4-2.5-1.1-3.8-2.4-1.3-1.3-2-2.6-2.4-3.8-.2-.7-.1-1.5.3-2Z" />
+                      </svg>
+                    </a>
+                    <a
+                      className="detail-share-option"
+                      href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Compartir en X"
+                      data-tooltip="Compartir en X"
+                      title="Compartir en X"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 4l14 16M19 4 5 20" />
+                      </svg>
+                    </a>
+                    <a
+                      className="detail-share-option"
+                      href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareUrl)}`}
+                      aria-label="Enviar por correo"
+                      data-tooltip="Enviar por correo"
+                      title="Enviar por correo"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="m4 7 8 6 8-6" />
+                      </svg>
+                    </a>
+                    <button
+                      className="detail-share-option"
+                      type="button"
+                      onClick={handleCopyLink}
+                      aria-label="Copiar enlace"
+                      data-tooltip="Copiar enlace"
+                      title="Copiar enlace"
+                    >
+                      {linkCopied ? (
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="m5 12 4 4L19 6" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M10 13a5 5 0 0 0 7.1 0l2-2A5 5 0 0 0 12 3.9l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+                        </svg>
+                      )}
+                    </button>
+                    {linkCopied && (
+                      <span className="detail-share-status" role="status" aria-live="polite">
+                        Enlace copiado
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -2211,115 +2358,6 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
               </div>
             </div>
           )}
-          <button
-            className="detail-map-link"
-            type="button"
-            onClick={() => downloadPatrimonioPDF(item, municipioNombre, images)}
-            aria-label="Descargar información en PDF"
-            title="Descargar información del patrimonio"
-          >
-            Descargar PDF
-          </button>
-          <div className="detail-share">
-            <button
-              className="detail-share-trigger"
-              type="button"
-              aria-expanded={isShareMenuOpen}
-              aria-controls={`share-options-${item.id}`}
-              onClick={() => setIsShareMenuOpen((open) => !open)}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <path d="m8.7 10.6 6.6-4.2M8.7 13.4l6.6 4.2" />
-              </svg>
-              Compartir
-            </button>
-            {isShareMenuOpen && (
-              <div
-                className="detail-share-options"
-                id={`share-options-${item.id}`}
-                aria-label="Opciones para compartir"
-              >
-                <a
-                  className="detail-share-option"
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Compartir en Facebook"
-                  data-tooltip="Compartir en Facebook"
-                  title="Compartir en Facebook"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V3.9c-.3 0-1.4-.1-2.6-.1-2.6 0-4.4 1.6-4.4 4.5V10H7v3h2.8v8h3.7Z" />
-                  </svg>
-                </a>
-                <a
-                  className="detail-share-option"
-                  href={`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Compartir por WhatsApp"
-                  data-tooltip="Compartir por WhatsApp"
-                  title="Compartir por WhatsApp"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.3-4.1A8 8 0 1 1 20 11.5Z" />
-                    <path d="M8.4 8.2c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.7c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4 0 .6.7 1 1.5 1.8 2.5 2.4.3.2.5.2.7 0l.7-.7c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5v.5c0 .3-.1.5-.4.7-.5.4-1.3.5-2 .3-1.2-.4-2.5-1.1-3.8-2.4-1.3-1.3-2-2.6-2.4-3.8-.2-.7-.1-1.5.3-2Z" />
-                  </svg>
-                </a>
-                <a
-                  className="detail-share-option"
-                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Compartir en X"
-                  data-tooltip="Compartir en X"
-                  title="Compartir en X"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 4l14 16M19 4 5 20" />
-                  </svg>
-                </a>
-                <a
-                  className="detail-share-option"
-                  href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareUrl)}`}
-                  aria-label="Enviar por correo"
-                  data-tooltip="Enviar por correo"
-                  title="Enviar por correo"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="m4 7 8 6 8-6" />
-                  </svg>
-                </a>
-                <button
-                  className="detail-share-option"
-                  type="button"
-                  onClick={handleCopyLink}
-                  aria-label="Copiar enlace"
-                  data-tooltip="Copiar enlace"
-                  title="Copiar enlace"
-                >
-                  {linkCopied ? (
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m5 12 4 4L19 6" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M10 13a5 5 0 0 0 7.1 0l2-2A5 5 0 0 0 12 3.9l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
-                    </svg>
-                  )}
-                </button>
-                {linkCopied && (
-                  <span className="detail-share-status" role="status" aria-live="polite">
-                    Enlace copiado
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
         </aside>
       </div>
 

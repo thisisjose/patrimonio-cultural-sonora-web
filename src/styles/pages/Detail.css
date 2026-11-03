@@ -249,6 +249,19 @@
   box-shadow: 0 12px 30px rgba(26,95,62,0.18);
 }
 
+.detail-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.detail-actions .detail-map-link,
+.detail-actions .detail-share {
+  margin-top: 0;
+}
+
 .detail-share {
   position: relative;
   display: flex;

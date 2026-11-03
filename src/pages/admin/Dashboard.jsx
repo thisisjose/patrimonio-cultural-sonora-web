@@ -2033,7 +2033,7 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="form-section">
-                      <h4 className="section-title-small">Autores</h4>
+                      <h4 className="section-title-small">Colaborador(es)</h4>
                       <div className="authors-editor-list">
                         {formNuevo.autores.map((autor, index) => (
                           <div className="author-editor-item" key={index}>
@@ -3125,7 +3125,7 @@ export default function AdminDashboard() {
                     )}
 
                     <div className="form-section">
-                      <h4 className="section-title-small">Autores</h4>
+                      <h4 className="section-title-small">Colaborador(es)</h4>
                       <div className="authors-editor-list">
                         {formEditar.autores.map((autor, index) => (
                           <div className="author-editor-item" key={index}>
