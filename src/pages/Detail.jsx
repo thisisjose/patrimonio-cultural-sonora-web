@@ -28,6 +28,17 @@ import {
 
 const RESULTADOS_POR_CARGA = 20;
 
+const ETIQUETAS_IDIOMAS_INDIGENAS = {
+  Mayo: "Mayo (Yoreme)",
+  Yaqui: "Yaqui (Yoeme)",
+  Seri: "Seri (Comcáac)",
+  "Pápago": "Pápago (Tohono O'odham)",
+  "Guarijío": "Guarijío (Makurawe)",
+  Pima: "Pima (O'ob)",
+  "Cucapá": "Cucapá (Kuapak)",
+  "Kikapú": "Kikapú",
+};
+
 const buildImageUrl = (value) => {
   if (!value) return null;
   if (typeof value !== "string") return null;
@@ -1675,7 +1686,10 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
       { language: "en", label: "English", html: sanitizeWebDescription(item.descripcion_en) },
       {
         language: "indigena",
-        label: item.idioma_indigena || "Lengua originaria",
+        label:
+          ETIQUETAS_IDIOMAS_INDIGENAS[item.idioma_indigena] ||
+          item.idioma_indigena ||
+          "Lengua originaria",
         html: sanitizeWebDescription(item.descripcion_indigena),
       },
     ];

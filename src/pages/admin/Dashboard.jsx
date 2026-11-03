@@ -47,14 +47,14 @@ import "react-quill-new/dist/quill.snow.css";
 import Table from "quill/modules/table.js";
 
 const IDIOMAS_INDIGENAS = [
-  "Yaqui",
-  "Mayo",
-  "Seri",
-  "Guarijío",
-  "Pima",
-  "Pápago",
-  "Cucapá",
-  "Kikapú",
+  { value: "Yaqui", label: "Yaqui (Yoeme)" },
+  { value: "Mayo", label: "Mayo (Yoreme)" },
+  { value: "Seri", label: "Seri (Comcáac)" },
+  { value: "Guarijío", label: "Guarijío (Makurawe)" },
+  { value: "Pima", label: "Pima (O'ob)" },
+  { value: "Pápago", label: "Pápago (Tohono O'odham)" },
+  { value: "Cucapá", label: "Cucapá (Kuapak)" },
+  { value: "Kikapú", label: "Kikapú" },
 ];
 
 const normalizeAutores = (value) => {
@@ -1868,7 +1868,7 @@ export default function AdminDashboard() {
                       >
                         <option value="">Selecciona una lengua</option>
                         {IDIOMAS_INDIGENAS.map((idioma) => (
-                          <option key={idioma} value={idioma}>{idioma}</option>
+                          <option key={idioma.value} value={idioma.value}>{idioma.label}</option>
                         ))}
                       </select>
                       {nuevoErrors.idioma_indigena && (
@@ -2963,7 +2963,7 @@ export default function AdminDashboard() {
                       >
                         <option value="">Selecciona una lengua</option>
                         {IDIOMAS_INDIGENAS.map((idioma) => (
-                          <option key={idioma} value={idioma}>{idioma}</option>
+                          <option key={idioma.value} value={idioma.value}>{idioma.label}</option>
                         ))}
                       </select>
                       <ReactQuill
