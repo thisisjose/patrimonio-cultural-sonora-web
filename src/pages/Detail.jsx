@@ -29,13 +29,13 @@ import {
 const RESULTADOS_POR_CARGA = 20;
 
 const ETIQUETAS_IDIOMAS_INDIGENAS = {
-  Mayo: "Mayo (Yoreme)",
-  Yaqui: "Yaqui (Yoeme)",
-  Seri: "Seri (Comcáac)",
-  "Pápago": "Pápago (Tohono O'odham)",
-  "Guarijío": "Guarijío (Makurawe)",
-  Pima: "Pima (O'ob)",
-  "Cucapá": "Cucapá (Kuapak)",
+  Mayo: "Yoreme",
+  Yaqui: "Yoeme",
+  Seri: "Comcáac",
+  "Pápago": "Tohono O'odham",
+  "Guarijío": "Makurawe",
+  Pima: "O'ob",
+  "Cucapá": "Kuapak",
   "Kikapú": "Kikapú",
 };
 
