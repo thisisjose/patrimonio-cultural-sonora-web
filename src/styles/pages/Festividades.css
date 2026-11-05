@@ -1,0 +1,392 @@
+.festividades-page {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem 0 1rem;
+}
+
+.festividades-header {
+  margin-bottom: 1.5rem;
+}
+
+.festividades-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+.festividades-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.festividades-breadcrumbs a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-base);
+  color: var(--primary-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.festividades-breadcrumbs a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.festividades-breadcrumbs a:focus-visible,
+.festividades-page button:focus-visible {
+  outline: 3px solid var(--accent-warm);
+  outline-offset: 2px;
+}
+
+.festividades-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
+  align-items: stretch;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.festividades-calendar,
+.festividades-information {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-base);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+
+.festividades-calendar-header {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.festividades-month-title {
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-base);
+  background: transparent;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 700;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.festividades-month-title:hover {
+  background: var(--glass-dark);
+}
+
+.festividades-month-arrow {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 1.7rem;
+  line-height: 1;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.festividades-month-arrow:hover {
+  background: var(--primary-dark);
+  color: #fff;
+}
+
+.festividades-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(0.25rem, 1vw, 0.55rem);
+  padding: clamp(0.8rem, 2.5vw, 1.4rem);
+}
+
+.festividades-weekday {
+  padding: 0.4rem 0;
+  color: var(--text-secondary);
+  font-size: clamp(0.68rem, 1.4vw, 0.8rem);
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.festividades-day,
+.festividades-empty-day {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+}
+
+.festividades-day {
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: clamp(0.8rem, 1.8vw, 1rem);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.festividades-day:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.festividades-day:not(:disabled):hover {
+  border-color: var(--accent-sand);
+  background: var(--bg-light);
+}
+
+.festividades-day.has-festivity {
+  font-weight: 700;
+}
+
+.festividades-day.is-selected {
+  border-color: var(--primary-dark);
+  background: var(--primary-dark);
+  color: #fff;
+}
+
+.festividades-day.is-today:not(.is-selected) {
+  border-color: var(--secondary-blue);
+  box-shadow: inset 0 0 0 1px var(--secondary-blue);
+}
+
+.festividades-day-marker {
+  position: absolute;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--secondary-terracota);
+}
+
+.festividades-day.is-selected .festividades-day-marker {
+  background: #fff;
+}
+
+.festividades-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1.25rem;
+  padding: 0 1.25rem 1.2rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.festividades-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.festividades-legend-dot,
+.festividades-legend-today {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--secondary-terracota);
+  border-radius: 50%;
+}
+
+.festividades-legend-dot {
+  background: var(--secondary-terracota);
+}
+
+.festividades-legend-today {
+  border-color: var(--secondary-blue);
+}
+
+.festividades-information {
+  display: flex;
+  min-height: 390px;
+  flex-direction: column;
+}
+
+.festividades-information-header {
+  display: flex;
+  min-height: 78px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.25rem;
+  padding: 1rem clamp(1.25rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.festividades-kicker {
+  margin: 0;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.festividades-information-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.festividades-information-content {
+  flex: 1;
+  min-height: 0;
+  max-height: clamp(12rem, 55vh, 32rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem clamp(1.25rem, 3vw, 2rem);
+}
+
+.festividades-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.festividades-item {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  background: var(--bg-light);
+}
+
+.festividades-item h3 {
+  margin: 0 0 0.65rem;
+  color: var(--primary-dark);
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.festividades-item p {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.festividades-empty-message {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.festividades-back-button {
+  margin: 0 0 1rem;
+  padding: 0.35rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.festividades-back-button:hover {
+  text-decoration: underline;
+}
+
+.festividades-unspecified-button {
+  align-self: flex-start;
+  margin: 0 clamp(1.25rem, 3vw, 2rem) 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--primary-dark);
+  border-radius: var(--radius-base);
+  background: var(--primary-dark);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.festividades-unspecified-button:hover {
+  background: var(--card);
+  color: var(--primary-dark);
+}
+
+@media (max-width: 850px) {
+  .festividades-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .festividades-calendar {
+    width: min(100%, 620px);
+    justify-self: center;
+  }
+
+  .festividades-information {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .festividades-page {
+    padding-top: 0;
+  }
+
+  .festividades-header {
+    margin-bottom: 1rem;
+  }
+
+  .festividades-calendar-header {
+    min-height: 72px;
+    padding: 0.75rem 0.8rem;
+  }
+
+  .festividades-calendar-grid {
+    gap: 0.18rem;
+    padding: 0.75rem 0.6rem;
+  }
+
+  .festividades-day,
+  .festividades-empty-day {
+    min-height: 38px;
+    border-radius: 7px;
+  }
+
+  .festividades-day-marker {
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+  }
+
+  .festividades-legend {
+    padding-right: 0.9rem;
+    padding-left: 0.9rem;
+  }
+}

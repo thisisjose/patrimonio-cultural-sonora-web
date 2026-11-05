@@ -50,6 +50,9 @@ function MainLayout() {
             <NavLink to="/efemerides" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Efemérides
             </NavLink>
+            <NavLink to="/festividades" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+              Festividades
+            </NavLink>
             <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Acerca
             </NavLink>
@@ -83,6 +86,9 @@ function MainLayout() {
               </NavLink>
               <NavLink to="/efemerides" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
                 Efemérides
+              </NavLink>
+              <NavLink to="/festividades" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+                Festividades
               </NavLink>
               <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
                 Acerca
@@ -125,6 +131,7 @@ function MainLayout() {
                 <li><NavLink to="/">Inicio</NavLink></li>
                 <li><NavLink to="/catalogo">Catálogo</NavLink></li>
                 <li><NavLink to="/efemerides">Efemérides</NavLink></li>
+                <li><NavLink to="/festividades">Festividades</NavLink></li>
                 <li><NavLink to="/acerca">Acerca</NavLink></li>
                 <li><NavLink to="/contacto">Contacto</NavLink></li>
               </ul>

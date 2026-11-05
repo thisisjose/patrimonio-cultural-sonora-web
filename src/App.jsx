@@ -13,6 +13,7 @@ import Detail from './pages/Detail';
 import Explore from './pages/Explore';
 import Catalogo from './pages/Catalogo';
 import Efemerides from './pages/Efemerides';
+import Festividades from './pages/Festividades';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
@@ -47,6 +48,7 @@ function App() {
             <Route path="explorar/:mode/:value" element={<Explore />} />
             <Route path="catalogo" element={<Catalogo />} />
             <Route path="efemerides" element={<Efemerides />} />
+            <Route path="festividades" element={<Festividades />} />
           </Route>
 
           <Route path="/admin" element={
