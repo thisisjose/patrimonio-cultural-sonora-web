@@ -175,7 +175,8 @@
 
 .festividades-day.is-today:not(.is-selected) {
   border-color: var(--secondary-blue);
-  box-shadow: inset 0 0 0 1px var(--secondary-blue);
+  background: var(--secondary-blue);
+  color: #fff;
 }
 
 .festividades-day-marker {
@@ -221,6 +222,7 @@
 
 .festividades-legend-today {
   border-color: var(--secondary-blue);
+  background: var(--secondary-blue);
 }
 
 .festividades-information {
