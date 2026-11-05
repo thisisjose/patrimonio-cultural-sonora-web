@@ -844,7 +844,7 @@ export const festividades = [
   {
     id: 'guaymas-festival-camaron',
     municipio: 'Guaymas',
-    nombre: '6º Festival del Camarón',
+    nombre: 'Festival del Camarón',
     tipo: 'mes',
     mes: 11,
   },

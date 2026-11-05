@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import MapView from "../components/MapView";
 import PatrimonioStatsCard from "../components/PatrimonioStatsCard";
 import PopularCard from "../components/PopularCard";
+import FestividadesCalendario from "../components/FestividadesCalendario";
 import "../styles/pages/Home.css";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
@@ -431,6 +432,11 @@ function Home() {
             loading="lazy"
           />
         </div>
+      </section>
+
+      <section className="festividades-home-section" aria-labelledby="festividades-home-title">
+        <h2 id="festividades-home-title" className="section-title">Festividades de Sonora</h2>
+        <FestividadesCalendario idPrefix="festividades-home" />
       </section>
     </section>
   );

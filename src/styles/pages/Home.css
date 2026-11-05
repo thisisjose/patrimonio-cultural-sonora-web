@@ -47,6 +47,11 @@
   border: 0;
 }
 
+.festividades-home-section {
+  max-width: 1200px;
+  margin: 1.5rem auto;
+}
+
 /* ==================== FILTERS SECTION ==================== */
 .municipio-selector-wrapper {
   max-width: 1200px;

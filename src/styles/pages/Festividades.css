@@ -45,7 +45,7 @@
 }
 
 .festividades-breadcrumbs a:focus-visible,
-.festividades-page button:focus-visible {
+.festividades-layout button:focus-visible {
   outline: 3px solid var(--accent-warm);
   outline-offset: 2px;
 }
