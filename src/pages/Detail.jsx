@@ -5,6 +5,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import MapView from "../components/MapView";
 import PopularCard from "../components/PopularCard";
+import LoadingIndicator from "../components/LoadingIndicator";
 import "../styles/pages/Detail.css";
 import {
   getPatrimonioById,
@@ -2718,7 +2719,11 @@ function Detail() {
 
   // 2. RETORNOS CONDICIONALES / EARLY RETURNS SÓLO DESPUÉS DE LOS HOOKS
   if (patrimonio === undefined) {
-    return null;
+    return (
+      <div className="page-inner detail-page">
+        <LoadingIndicator label="Cargando información..." />
+      </div>
+    );
   }
 
   if (patrimonio === null) {

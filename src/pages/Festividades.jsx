@@ -37,6 +37,29 @@ function formatoFecha(festividad) {
   return `${mesNombre} ${festividad.dia}`;
 }
 
+function FichaFestividad({ festividad, etiquetaPeriodo, periodo }) {
+  return (
+    <li className="festividades-item" key={festividad.id}>
+      <div className="festividades-item-details">
+        <h3>{festividad.nombre}</h3>
+        <p><strong>Municipio:</strong> {festividad.municipio}</p>
+        <p><strong>{etiquetaPeriodo}:</strong> {periodo}</p>
+      </div>
+      {festividad.linkPatrimonio && (
+        <a
+          className="festividades-patrimonio-link"
+          href={festividad.linkPatrimonio}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Abrir ficha de patrimonio: ${festividad.nombre}`}
+        >
+          Abrir ficha
+        </a>
+      )}
+    </li>
+  );
+}
+
 function Festividades() {
   const hoy = new Date();
   const [mesActual, setMesActual] = useState(hoy.getMonth());
@@ -181,11 +204,12 @@ function Festividades() {
                 {festividadesMes.length ? (
                   <ul className="festividades-list">
                     {festividadesMes.map((festividad) => (
-                      <li className="festividades-item" key={festividad.id}>
-                        <h3>{festividad.nombre}</h3>
-                        <p><strong>Municipio:</strong> {festividad.municipio}</p>
-                        <p><strong>Periodo:</strong> {nombreMes(numeroMes)}</p>
-                      </li>
+                      <FichaFestividad
+                        key={festividad.id}
+                        festividad={festividad}
+                        etiquetaPeriodo="Periodo"
+                        periodo={nombreMes(numeroMes)}
+                      />
                     ))}
                   </ul>
                 ) : (
@@ -197,11 +221,12 @@ function Festividades() {
             ) : festividadesDia.length ? (
               <ul className="festividades-list">
                 {festividadesDia.map((festividad) => (
-                  <li className="festividades-item" key={festividad.id}>
-                    <h3>{festividad.nombre}</h3>
-                    <p><strong>Municipio:</strong> {festividad.municipio}</p>
-                    <p><strong>Fecha:</strong> {formatoFecha(festividad)}</p>
-                  </li>
+                  <FichaFestividad
+                    key={festividad.id}
+                    festividad={festividad}
+                    etiquetaPeriodo="Fecha"
+                    periodo={formatoFecha(festividad)}
+                  />
                 ))}
               </ul>
             ) : (

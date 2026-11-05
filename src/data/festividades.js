@@ -343,6 +343,7 @@ export const festividades = [
     mes: 7,
     dia: 1,
     diaFin: 2,
+    linkPatrimonio: 'https://patrimoniosonorense.mx/bacum/loma-de-bacum/celebracion-de-la-virgen-del-camino',
   },
   {
     id: 'bacum-santa-rosa-lima',

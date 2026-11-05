@@ -275,11 +275,19 @@
 }
 
 .festividades-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.1rem;
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
   border-radius: 8px;
   background: var(--bg-light);
+}
+
+.festividades-item-details {
+  min-width: 0;
 }
 
 .festividades-item h3 {
@@ -294,6 +302,32 @@
   margin: 0.3rem 0 0;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+.festividades-patrimonio-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--primary-dark);
+  border-radius: var(--radius-base);
+  background: var(--primary-dark);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.festividades-patrimonio-link:hover {
+  background: var(--card);
+  color: var(--primary-dark);
+}
+
+.festividades-patrimonio-link:focus-visible {
+  outline: 3px solid var(--accent-warm);
+  outline-offset: 2px;
 }
 
 .festividades-empty-message {

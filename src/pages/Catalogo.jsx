@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getPatrimonios } from "../services/patrimonioService";
 import { getMunicipios } from "../services/municipioService";
+import LoadingIndicator from "../components/LoadingIndicator";
 import slugify from "../utils/slugify";
 import "../styles/pages/Catalogo.css";
 import "../styles/pages/Explore.css";
@@ -73,6 +74,7 @@ function Catalogo() {
   
   const [todosPatrimonios, setTodosPatrimonios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [busquedaLocalidad, setBusquedaLocalidad] = useState("");
   const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
@@ -111,6 +113,8 @@ function Catalogo() {
         setMunicipios(Array.isArray(municipiosData) ? municipiosData : []);
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -276,11 +280,13 @@ useEffect(() => {
       <section className="explore-header catalogo-header-section">
         <div>
           <h1 className="section-title">Catálogo completo</h1>
-          <p className="lead explore-summary">
-            {gruposPorMunicipio.length > 0
-              ? `${patrimoniosFiltrados.length} patrimonios en ${gruposPorMunicipio.length} municipio${gruposPorMunicipio.length !== 1 ? "s" : ""}`
-              : "No hay patrimonios registrados"}
-          </p>
+          {!isLoading && (
+            <p className="lead explore-summary">
+              {gruposPorMunicipio.length > 0
+                ? `${patrimoniosFiltrados.length} patrimonios en ${gruposPorMunicipio.length} municipio${gruposPorMunicipio.length !== 1 ? "s" : ""}`
+                : "No hay patrimonios registrados"}
+            </p>
+          )}
         </div>
         <Link to={adminBase || "/"} className="btn-primary">
           Volver al inicio
@@ -379,7 +385,9 @@ useEffect(() => {
       </div>
 
       {/* Grupos por Municipio */}
-      {gruposPorMunicipio.length > 0 ? (
+      {isLoading ? (
+        <LoadingIndicator label="Cargando patrimonios..." />
+      ) : gruposPorMunicipio.length > 0 ? (
         <div className="explore-results">
           {gruposPorMunicipio.map(([municipioName, items]) => {
             const paginaActual = paginasPorMunicipio[municipioName] || 1;
