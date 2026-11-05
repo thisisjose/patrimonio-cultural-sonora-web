@@ -199,7 +199,7 @@ function FestividadesCalendario({ idPrefix = 'festividades' }) {
                       key={festividad.id}
                       festividad={festividad}
                       etiquetaPeriodo="Periodo"
-                      periodo={nombreMes(numeroMes)}
+                      periodo={festividad.periodo ?? nombreMes(numeroMes)}
                     />
                   ))}
                 </ul>
