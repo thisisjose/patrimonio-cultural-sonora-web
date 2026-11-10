@@ -274,11 +274,6 @@
   resize: vertical;
 }
 
-.contacto-patrimonio-fields {
-  display: grid;
-  gap: 1.5rem;
-}
-
 .contacto-form-input:disabled,
 .contacto-form select:disabled,
 .contacto-form-textarea:disabled {
