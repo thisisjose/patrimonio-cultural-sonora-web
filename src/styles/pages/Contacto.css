@@ -248,6 +248,7 @@
 }
 
 .contacto-form-input,
+.contacto-form select,
 .contacto-form-textarea {
   width: 100%;
   min-height: 3rem;
@@ -261,6 +262,7 @@
 }
 
 .contacto-form-input:focus,
+.contacto-form select:focus,
 .contacto-form-textarea:focus {
   outline: none;
   border-color: var(--accent-terracota);
@@ -270,6 +272,18 @@
 .contacto-form-textarea {
   min-height: 140px;
   resize: vertical;
+}
+
+.contacto-patrimonio-fields {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.contacto-form-input:disabled,
+.contacto-form select:disabled,
+.contacto-form-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .contacto-form-field-error {

@@ -9,7 +9,12 @@ function Contacto() {
     nombre: "",
     correo: "",
     telefono: "",
+    tipoMensaje: "comentario",
     mensaje: "",
+    nombrePatrimonio: "",
+    municipio: "",
+    localidad: "",
+    descripcionPatrimonio: "",
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState({ loading: false, success: "", error: "" });
@@ -25,20 +30,47 @@ function Contacto() {
 
     if (!formData.nombre.trim()) {
       validationErrors.nombre = "Por favor ingresa tu nombre completo.";
+    } else if (formData.nombre.trim().length > 100) {
+      validationErrors.nombre = "El nombre no puede exceder 100 caracteres.";
     }
 
     if (!formData.correo.trim()) {
       validationErrors.correo = "Por favor ingresa tu correo electrónico.";
     } else if (!validateEmail(formData.correo.trim())) {
       validationErrors.correo = "Ingresa un correo válido, por ejemplo usuario@mail.com.";
+    } else if (formData.correo.trim().length > 254) {
+      validationErrors.correo = "El correo no puede exceder 254 caracteres.";
     }
 
     if (formData.telefono.trim() && formData.telefono.trim().length > 20) {
       validationErrors.telefono = "El teléfono no puede exceder 20 caracteres.";
     }
 
+    if (!["comentario", "sugerencia", "agregar-patrimonio"].includes(formData.tipoMensaje)) {
+      validationErrors.tipoMensaje = "Selecciona un tipo de mensaje válido.";
+    }
+
     if (!formData.mensaje.trim()) {
-      validationErrors.mensaje = "Por favor escribe tu comentario o sugerencia.";
+      validationErrors.mensaje = "Por favor escribe tu mensaje.";
+    } else if (formData.mensaje.trim().length > 5000) {
+      validationErrors.mensaje = "El mensaje no puede exceder 5000 caracteres.";
+    }
+
+    if (formData.tipoMensaje === "agregar-patrimonio") {
+      const camposPatrimonio = [
+        ["nombrePatrimonio", "nombre del patrimonio", 150],
+        ["municipio", "municipio", 100],
+        ["localidad", "ubicación o localidad", 200],
+        ["descripcionPatrimonio", "descripción del patrimonio", 3000],
+      ];
+
+      camposPatrimonio.forEach(([campo, etiqueta, maximo]) => {
+        if (!formData[campo].trim()) {
+          validationErrors[campo] = `Ingresa ${etiqueta}.`;
+        } else if (formData[campo].trim().length > maximo) {
+          validationErrors[campo] = `Este campo no puede exceder ${maximo} caracteres.`;
+        }
+      });
     }
 
     return validationErrors;
@@ -77,11 +109,26 @@ function Contacto() {
         nombre: formData.nombre.trim(),
         correo: formData.correo.trim(),
         telefono: formData.telefono.trim(),
+        tipoMensaje: formData.tipoMensaje,
         mensaje: formData.mensaje.trim(),
+        nombrePatrimonio: formData.nombrePatrimonio.trim(),
+        municipio: formData.municipio.trim(),
+        localidad: formData.localidad.trim(),
+        descripcionPatrimonio: formData.descripcionPatrimonio.trim(),
       });
 
-      setStatus({ loading: false, success: "Mensaje enviado correctamente. Gracias por tu sugerencia.", error: "" });
-      setFormData({ nombre: "", correo: "", telefono: "", mensaje: "" });
+      setStatus({ loading: false, success: "Mensaje enviado correctamente. Gracias por contactarnos.", error: "" });
+      setFormData({
+        nombre: "",
+        correo: "",
+        telefono: "",
+        tipoMensaje: "comentario",
+        mensaje: "",
+        nombrePatrimonio: "",
+        municipio: "",
+        localidad: "",
+        descripcionPatrimonio: "",
+      });
       setErrors({});
 
       setTimeout(() => setShowFeedback(true), 50);
@@ -135,7 +182,7 @@ return (
       </div>
 
       <form className="contacto-form" onSubmit={handleSubmit} noValidate>
-        <h2>Envía tus comentarios o sugerencias</h2>
+        <h2>Envía tus comentarios, sugerencias o propuestas</h2>
         {status.error && (
           <div className={`contacto-form-feedback-wrapper ${showFeedback ? 'show' : ''}`}>
             <div className="contacto-form-feedback contacto-form-error" role="alert">
@@ -163,6 +210,7 @@ return (
               onChange={handleChange}
               className="contacto-form-input"
               placeholder="Tu nombre completo"
+              maxLength={100}
               disabled={status.loading}
             />
             {errors.nombre && <span className="contacto-form-field-error">{errors.nombre}</span>}
@@ -178,6 +226,7 @@ return (
               onChange={handleChange}
               className="contacto-form-input"
               placeholder="correo@ejemplo.com"
+              maxLength={254}
               disabled={status.loading}
             />
             {errors.correo && <span className="contacto-form-field-error">{errors.correo}</span>}
@@ -200,14 +249,97 @@ return (
         </div>
 
         <div className="contacto-form-group">
-          <label htmlFor="mensaje" className="contacto-form-label">Comentario o sugerencia *</label>
+          <label htmlFor="tipoMensaje" className="contacto-form-label">Tipo de mensaje *</label>
+          <select
+            id="tipoMensaje"
+            name="tipoMensaje"
+            value={formData.tipoMensaje}
+            onChange={handleChange}
+            className="contacto-form-input"
+            disabled={status.loading}
+          >
+            <option value="comentario">Comentario</option>
+            <option value="sugerencia">Sugerencia</option>
+            <option value="agregar-patrimonio">Agregar patrimonio</option>
+          </select>
+          {errors.tipoMensaje && <span className="contacto-form-field-error">{errors.tipoMensaje}</span>}
+        </div>
+
+        {formData.tipoMensaje === "agregar-patrimonio" && (
+          <div className="contacto-patrimonio-fields">
+            <div className="contacto-form-row">
+              <div className="contacto-form-group">
+                <label htmlFor="nombrePatrimonio" className="contacto-form-label">Nombre del patrimonio *</label>
+                <input
+                  id="nombrePatrimonio"
+                  name="nombrePatrimonio"
+                  type="text"
+                  value={formData.nombrePatrimonio}
+                  onChange={handleChange}
+                  className="contacto-form-input"
+                  maxLength={150}
+                  disabled={status.loading}
+                />
+                {errors.nombrePatrimonio && <span className="contacto-form-field-error">{errors.nombrePatrimonio}</span>}
+              </div>
+
+              <div className="contacto-form-group">
+                <label htmlFor="municipio" className="contacto-form-label">Municipio *</label>
+                <input
+                  id="municipio"
+                  name="municipio"
+                  type="text"
+                  value={formData.municipio}
+                  onChange={handleChange}
+                  className="contacto-form-input"
+                  maxLength={100}
+                  disabled={status.loading}
+                />
+                {errors.municipio && <span className="contacto-form-field-error">{errors.municipio}</span>}
+              </div>
+            </div>
+
+            <div className="contacto-form-group">
+              <label htmlFor="localidad" className="contacto-form-label">Ubicación o localidad *</label>
+              <input
+                id="localidad"
+                name="localidad"
+                type="text"
+                value={formData.localidad}
+                onChange={handleChange}
+                className="contacto-form-input"
+                maxLength={200}
+                disabled={status.loading}
+              />
+              {errors.localidad && <span className="contacto-form-field-error">{errors.localidad}</span>}
+            </div>
+
+            <div className="contacto-form-group">
+              <label htmlFor="descripcionPatrimonio" className="contacto-form-label">Descripción del patrimonio *</label>
+              <textarea
+                id="descripcionPatrimonio"
+                name="descripcionPatrimonio"
+                value={formData.descripcionPatrimonio}
+                onChange={handleChange}
+                className="contacto-form-textarea"
+                maxLength={3000}
+                disabled={status.loading}
+              />
+              {errors.descripcionPatrimonio && <span className="contacto-form-field-error">{errors.descripcionPatrimonio}</span>}
+            </div>
+          </div>
+        )}
+
+        <div className="contacto-form-group">
+          <label htmlFor="mensaje" className="contacto-form-label">Mensaje *</label>
           <textarea
             id="mensaje"
             name="mensaje"
             value={formData.mensaje}
             onChange={handleChange}
             className="contacto-form-textarea"
-            placeholder="Escribe tu comentario o sugerencia"
+            placeholder="Escribe tu mensaje"
+            maxLength={5000}
             disabled={status.loading}
           />
           {errors.mensaje && <span className="contacto-form-field-error">{errors.mensaje}</span>}
