@@ -364,7 +364,7 @@ footer {
   }
 
   .mobile-menu.open {
-    max-height: 260px !important;
+    max-height: 320px !important;
     opacity: 1;
     visibility: visible;
   }
