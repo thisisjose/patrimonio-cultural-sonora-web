@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../services/apiService";
 import ubicacionIcon from "../Icons/ubicaciontelefono.png";
 import emailIcon from "../Icons/gmailcirculo.png";
 import "../styles/pages/Contacto.css";
 
 function Contacto() {
+  const turnstileContainerRef = useRef(null);
+  const turnstileWidgetIdRef = useRef(null);
+  const isSubmittingRef = useRef(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   const [formData, setFormData] = useState({
     nombre: "",
     correo: "",
@@ -16,6 +22,75 @@ function Contacto() {
   const [status, setStatus] = useState({ loading: false, success: "", error: "" });
   
   const [showFeedback, setShowFeedback] = useState(false);
+
+  useEffect(() => {
+    if (!siteKey) {
+      setTurnstileError("La verificación antispam no está configurada.");
+      return undefined;
+    }
+
+    let cancelled = false;
+    const script = document.querySelector('script[data-turnstile-script]') || document.createElement("script");
+    const renderWidget = () => {
+      if (cancelled || !turnstileContainerRef.current || !window.turnstile) {
+        return;
+      }
+
+      try {
+        turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+          sitekey: siteKey,
+          theme: "auto",
+          callback: (token) => {
+            setTurnstileToken(token);
+            setTurnstileError("");
+          },
+          "expired-callback": () => {
+            setTurnstileToken("");
+            setTurnstileError("La verificación expiró. Complétala nuevamente.");
+            if (turnstileWidgetIdRef.current && window.turnstile) {
+              window.turnstile.reset(turnstileWidgetIdRef.current);
+            }
+          },
+          "error-callback": () => {
+            setTurnstileToken("");
+            setTurnstileError("No se pudo completar la verificación. Inténtalo nuevamente.");
+          },
+        });
+      } catch {
+        setTurnstileError("No se pudo cargar la verificación antispam. Inténtalo nuevamente más tarde.");
+      }
+    };
+    const handleScriptError = () => {
+      if (!cancelled) {
+        setTurnstileError("No se pudo cargar la verificación antispam. Inténtalo nuevamente más tarde.");
+      }
+    };
+
+    if (window.turnstile) {
+      renderWidget();
+    } else {
+      script.addEventListener("load", renderWidget);
+      script.addEventListener("error", handleScriptError);
+
+      if (!script.src) {
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        script.async = true;
+        script.defer = true;
+        script.dataset.turnstileScript = "true";
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", renderWidget);
+      script.removeEventListener("error", handleScriptError);
+      if (turnstileWidgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetIdRef.current);
+        turnstileWidgetIdRef.current = null;
+      }
+    };
+  }, [siteKey]);
 
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -74,12 +149,23 @@ function Contacto() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    if (!turnstileToken) {
+      setStatus({ loading: false, success: "", error: "Completa la verificación antispam antes de enviar el mensaje." });
+      setShowFeedback(true);
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setStatus({ loading: true, success: "", error: "" });
     setShowFeedback(false); 
 
@@ -90,6 +176,7 @@ function Contacto() {
         telefono: formData.telefono.trim(),
         tipoMensaje: formData.tipoMensaje,
         mensaje: formData.mensaje.trim(),
+        turnstileToken,
       });
 
       setStatus({ loading: false, success: "Mensaje enviado correctamente. Gracias por contactarnos.", error: "" });
@@ -125,6 +212,12 @@ function Contacto() {
           setStatus((prev) => ({ ...prev, error: "" }));
         }, 450);
       }, 3500);
+    } finally {
+      isSubmittingRef.current = false;
+      setTurnstileToken("");
+      if (turnstileWidgetIdRef.current && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetIdRef.current);
+      }
     }
   };
 
@@ -248,6 +341,12 @@ return (
             disabled={status.loading}
           />
           {errors.mensaje && <span className="contacto-form-field-error">{errors.mensaje}</span>}
+        </div>
+
+        <div className="contacto-form-group contacto-turnstile">
+          <span className="contacto-form-label">Verificación antispam *</span>
+          <div ref={turnstileContainerRef} />
+          {turnstileError && <span className="contacto-form-field-error" role="alert">{turnstileError}</span>}
         </div>
 
         <div className="contacto-form-actions">

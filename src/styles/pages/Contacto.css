@@ -242,6 +242,11 @@
   min-height: auto;
 }
 
+.contacto-turnstile > div {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .contacto-form-label {
   color: var(--primary-dark);
   font-weight: 600;
