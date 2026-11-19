@@ -20,13 +20,16 @@ export const AuthProvider = ({ children }) => {
 
   const loading = false;
 
-  const login = async (email, password) => {
+  const login = async (email, password, turnstileToken) => {
     try {
-      const data = await loginService(email, password);
+      const data = await loginService(email, password, turnstileToken);
       setUser({ token: data.token, rol: data.rol, nombre: data.nombre });
       return { success: true, rol: data.rol };
     } catch (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.mensaje || error.response?.data?.msg || error.message,
+      };
     }
   };
 

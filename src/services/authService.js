@@ -1,7 +1,7 @@
 import api from "./apiService";
 
-export const login = async (email, password) => {
-  const response = await api.post("/auth/login", { email, password });
+export const login = async (email, password, turnstileToken) => {
+  const response = await api.post("/auth/login", { email, password, turnstileToken });
   if (response.data.token) {
     sessionStorage.setItem("token", response.data.token);
     sessionStorage.setItem("nombre", response.data.nombre);
