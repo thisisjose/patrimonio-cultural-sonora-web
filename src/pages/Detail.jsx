@@ -1626,10 +1626,6 @@ const downloadPatrimonioPDF = async (
         }
       }
       currentY = rowY + imageHeight + gap + 15;
-      if (currentY > contentBottom - 40) {
-        doc.addPage();
-        currentY = margin;
-      }
     }
 
     // ===== FUENTES DE CONSULTA =====
