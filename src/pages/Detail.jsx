@@ -1042,7 +1042,14 @@ const downloadPatrimonioPDF = async (
       return lines;
     };
 
-    const renderLine = (lineWords, x, y, maxWidth, align = "left") => {
+    const renderLine = (
+      lineWords,
+      x,
+      y,
+      maxWidth,
+      align = "left",
+      isLastLine = false,
+    ) => {
       if (!lineWords || lineWords.length === 0) return;
 
       doc.setFontSize(10);
@@ -1059,13 +1066,49 @@ const downloadPatrimonioPDF = async (
         .toLowerCase()
         .trim();
 
+      const justifyGapIndexes = [];
+      let hasWordBefore = false;
+      for (let index = 0; index < lineWords.length; index += 1) {
+        const word = lineWords[index];
+        if (!word.whitespace) {
+          hasWordBefore = true;
+          continue;
+        }
+        if (!hasWordBefore) continue;
+
+        let nextWordIndex = index + 1;
+        while (
+          nextWordIndex < lineWords.length &&
+          lineWords[nextWordIndex].whitespace
+        ) {
+          nextWordIndex += 1;
+        }
+        if (nextWordIndex < lineWords.length) {
+          justifyGapIndexes.push(nextWordIndex - 1);
+          index = nextWordIndex - 1;
+        }
+      }
+
+      const wordCount = lineWords.filter(
+        (word) => !word.whitespace && word.text?.trim(),
+      ).length;
+      const shouldJustify =
+        cleanAlign === "justify" &&
+        !isLastLine &&
+        wordCount > 1 &&
+        justifyGapIndexes.length > 0;
+      const extraSpacePerGap = shouldJustify
+        ? Math.max(0, (maxWidth - totalLineWidth) / justifyGapIndexes.length)
+        : 0;
+      const justifyGapIndexSet = new Set(justifyGapIndexes);
+
       if (cleanAlign === "center") {
         currentX = x + Math.max(0, (maxWidth - totalLineWidth) / 2);
       } else if (cleanAlign === "right") {
         currentX = x + Math.max(0, maxWidth - totalLineWidth);
       }
 
-      lineWords.forEach((word) => {
+      lineWords.forEach((word, index) => {
         setDocFont(word.style);
         doc.setFontSize(10);
 
@@ -1092,6 +1135,9 @@ const downloadPatrimonioPDF = async (
         }
 
         currentX += textWidth;
+        if (shouldJustify && justifyGapIndexSet.has(index)) {
+          currentX += extraSpacePerGap;
+        }
       });
     };
 
@@ -1123,9 +1169,16 @@ const downloadPatrimonioPDF = async (
             "left";
           const lines = buildLines(block.segments, maxWidth);
 
-          lines.forEach((line) => {
+          lines.forEach((line, lineIndex) => {
             y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, x, y, maxWidth, align);
+            renderLine(
+              line,
+              x,
+              y,
+              maxWidth,
+              align,
+              lineIndex === lines.length - 1,
+            );
             y += lineHeight;
           });
           y += blockSpacing;
@@ -1146,9 +1199,16 @@ const downloadPatrimonioPDF = async (
           doc.setDrawColor(200, 200, 200);
           doc.line(borderX, y, borderX, y + totalHeight);
 
-          lines.forEach((line) => {
+          lines.forEach((line, lineIndex) => {
             y = ensureLocalPageSpace(lineHeight, y);
-            renderLine(line, textX, y, quoteWidth, align);
+            renderLine(
+              line,
+              textX,
+              y,
+              quoteWidth,
+              align,
+              lineIndex === lines.length - 1,
+            );
             y += lineHeight;
           });
           y += blockSpacing;
@@ -1175,8 +1235,15 @@ const downloadPatrimonioPDF = async (
             const bullet = block.ordered ? `${index + 1}.` : "•";
             doc.text(bullet, bulletX, y);
 
-            lines.forEach((line) => {
-              renderLine(line, textX, y, listWidth, align);
+            lines.forEach((line, lineIndex) => {
+              renderLine(
+                line,
+                textX,
+                y,
+                listWidth,
+                align,
+                lineIndex === lines.length - 1,
+              );
               y += lineHeight;
             });
 
