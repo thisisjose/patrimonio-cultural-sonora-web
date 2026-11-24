@@ -1395,6 +1395,7 @@ const downloadPatrimonioPDF = async (
       `Municipio: ${municipioNombre}`,
       localidadNombre && `Localidad: ${localidadNombre}`,
       `Categoría: ${item.categoria || "No especificada"}`,
+      ["Bienes muebles", "Bienes inmuebles"].includes(item.subcategoria) && item.subcategoria,
     ]
       .filter(Boolean)
       .join(" | ");
@@ -1825,6 +1826,13 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
     );
   };
 
+  const handleSubcategoryClick = (subcategoria) => {
+    if (!["Bienes muebles", "Bienes inmuebles"].includes(subcategoria)) return;
+    navigate(
+      `${adminBase}/explorar/subcategoria/${subcategoria.toLowerCase().replace(/\s+/g, "-")}`,
+    );
+  };
+
   const handleTagClick = (tag) => {
     const value = formatTag(tag).trim();
     if (!value) return;
@@ -2206,6 +2214,19 @@ function PatrimonioDetailEntry({ item, municipioNombre, detailPath, onOpenDetail
                 {displayCategoryLabel(item.categoria)}
               </button>
             </div>
+
+            {["Bienes muebles", "Bienes inmuebles"].includes(item.subcategoria) && (
+              <div className="detail-category-below">
+                Subcategoría:{" "}
+                <button
+                  type="button"
+                  className={`category-badge ${getCategoryClass(item.categoria)}`}
+                  onClick={() => handleSubcategoryClick(item.subcategoria)}
+                >
+                  {item.subcategoria}
+                </button>
+              </div>
+            )}
 
             <div className="detail-tags-below">
               {tags.length > 0 ? (

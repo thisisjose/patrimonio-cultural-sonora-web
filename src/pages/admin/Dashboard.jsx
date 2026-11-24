@@ -607,6 +607,7 @@ export default function AdminDashboard() {
     localidad: "",
     municipioId: "",
     categoria: "Material",
+    subcategoria: "",
     descripcion: "",
     descripcion_en: "",
     descripcion_indigena: "",
@@ -633,6 +634,7 @@ export default function AdminDashboard() {
     localidad: "",
     municipioId: "",
     categoria: "Material",
+    subcategoria: "",
     descripcion: "",
     descripcion_en: "",
     descripcion_indigena: "",
@@ -659,6 +661,7 @@ export default function AdminDashboard() {
     localidad: "",
     municipioId: "",
     categoria: "Material",
+    subcategoria: "",
     descripcion: "",
     descripcion_en: "",
     descripcion_indigena: "",
@@ -944,6 +947,7 @@ export default function AdminDashboard() {
       localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
       municipioId: item.municipioId,
       categoria: item.categoria,
+      subcategoria: item.subcategoria || "",
       descripcion: item.descripcion,
       descripcion_en: item.descripcion_en || "",
       descripcion_indigena: item.descripcion_indigena || "",
@@ -979,6 +983,7 @@ export default function AdminDashboard() {
       localidad: "",
       municipioId: "",
       categoria: "Material",
+      subcategoria: "",
       descripcion: "",
       descripcion_en: "",
       descripcion_indigena: "",
@@ -1265,6 +1270,7 @@ export default function AdminDashboard() {
       formData.append("nombre", formNuevo.nombre);
       formData.append("localidad", formNuevo.localidad);
       formData.append("categoria", formNuevo.categoria);
+      formData.append("subcategoria", formNuevo.subcategoria || "");
       formData.append("descripcion", formNuevo.descripcion);
       formData.append("descripcion_en", formNuevo.descripcion_en);
       formData.append("descripcion_indigena", formNuevo.descripcion_indigena);
@@ -1299,6 +1305,7 @@ export default function AdminDashboard() {
         localidad: "",
         municipioId: "",
         categoria: "Material",
+        subcategoria: "",
         descripcion: "",
         descripcion_en: "",
         descripcion_indigena: "",
@@ -1430,6 +1437,10 @@ export default function AdminDashboard() {
         fd.append("nombre", formEditar.nombre);
         fd.append("localidad", formEditar.localidad || "");
         fd.append("categoria", formEditar.categoria);
+        fd.append(
+          "subcategoria",
+          formEditar.categoria === "Material" ? formEditar.subcategoria || "" : "",
+        );
         fd.append("descripcion", formEditar.descripcion);
         fd.append("descripcion_en", formEditar.descripcion_en);
         fd.append("descripcion_indigena", formEditar.descripcion_indigena);
@@ -1464,6 +1475,10 @@ export default function AdminDashboard() {
           nombre: formEditar.nombre,
           localidad: formEditar.localidad || "",
           categoria: formEditar.categoria,
+          subcategoria:
+            formEditar.categoria === "Material"
+              ? formEditar.subcategoria || null
+              : null,
           descripcion: formEditar.descripcion,
           descripcion_en: formEditar.descripcion_en,
           descripcion_indigena: formEditar.descripcion_indigena,
@@ -1517,6 +1532,7 @@ export default function AdminDashboard() {
         nombre: item.nombre ?? "",
         localidad: typeof item.localidad === "string" ? item.localidad : item.localidad?.nombre || "",
         categoria: item.categoria ?? "Material",
+        subcategoria: item.subcategoria ?? "",
         descripcion: item.descripcion ?? "",
         descripcion_en: item.descripcion_en ?? "",
         descripcion_indigena: item.descripcion_indigena ?? "",
@@ -1955,10 +1971,13 @@ export default function AdminDashboard() {
                         className="form-input"
                         value={formNuevo.categoria}
                         onChange={(e) => {
-                          setFormNuevo({
-                            ...formNuevo,
-                            categoria: e.target.value,
-                          });
+                          const categoria = e.target.value;
+                          setFormNuevo((prev) => ({
+                            ...prev,
+                            categoria,
+                            subcategoria:
+                              categoria === "Material" ? prev.subcategoria : "",
+                          }));
                           limpiarErrorNuevo("categoria");
                           limpiarErrorNuevo("general");
                         }}
@@ -1973,6 +1992,27 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {formNuevo.categoria === "Material" && (
+                      <div className="form-section">
+                        <h4 className="section-title-small">Subcategoría</h4>
+                        <select
+                          className="form-input"
+                          value={formNuevo.subcategoria}
+                          onChange={(e) =>
+                            setFormNuevo((prev) => ({
+                              ...prev,
+                              subcategoria: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Selecciona una subcategoría</option>
+                          <option>Bienes muebles</option>
+                          <option>Bienes inmuebles</option>
+                          <option>Ninguna</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-section">
                       <h4 className="section-title-small">Tags</h4>
@@ -3030,18 +3070,42 @@ export default function AdminDashboard() {
                       <select
                         className="form-input"
                         value={formEditar.categoria || "Material"}
-                        onChange={(e) =>
-                          setFormEditar({
-                            ...formEditar,
-                            categoria: e.target.value,
-                          })
-                        }
+                        onChange={(e) => {
+                          const categoria = e.target.value;
+                          setFormEditar((prev) => ({
+                            ...prev,
+                            categoria,
+                            subcategoria:
+                              categoria === "Material" ? prev.subcategoria : "",
+                          }));
+                        }}
                       >
                         <option>Material</option>
                         <option>Inmaterial</option>
                         <option>Natural</option>
                       </select>
                     </div>
+
+                    {formEditar.categoria === "Material" && (
+                      <div className="form-section">
+                        <h4 className="section-title-small">Subcategoría</h4>
+                        <select
+                          className="form-input"
+                          value={formEditar.subcategoria}
+                          onChange={(e) =>
+                            setFormEditar((prev) => ({
+                              ...prev,
+                              subcategoria: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Selecciona una subcategoría</option>
+                          <option>Bienes muebles</option>
+                          <option>Bienes inmuebles</option>
+                          <option>Ninguna</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-section">
                       <h4 className="section-title-small">Tags</h4>

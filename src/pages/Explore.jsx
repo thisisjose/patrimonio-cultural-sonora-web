@@ -53,6 +53,14 @@ const displayCategoryLabel = (categoria) => {
   return getCategoryLabel(categoria);
 };
 
+const normalizeSubcategoryKey = (subcategoria) =>
+  String(subcategoria || "").trim().toLowerCase().replace(/\s+/g, "-");
+
+const SUBCATEGORY_LABELS = {
+  "bienes-muebles": "Bienes muebles",
+  "bienes-inmuebles": "Bienes inmuebles",
+};
+
 const getMunicipioName = (item, municipios) => {
   if (!item) return null;
   if (item.municipio && typeof item.municipio === "string") {
@@ -82,9 +90,18 @@ const getMunicipioName = (item, municipios) => {
 const filterByMode = (item, mode, value) => {
   if (!mode || !value) return false;
 
-  const normalizedValue = mode === "categoria" ? normalizeCategoryKey(value) : String(value).trim().toLowerCase();
+  const normalizedValue =
+    mode === "categoria"
+      ? normalizeCategoryKey(value)
+      : mode === "subcategoria"
+        ? normalizeSubcategoryKey(value)
+        : String(value).trim().toLowerCase();
   if (mode === "categoria") {
     return normalizeCategoryKey(item.categoria) === normalizedValue;
+  }
+
+  if (mode === "subcategoria") {
+    return normalizeSubcategoryKey(item.subcategoria) === normalizedValue;
   }
 
   if (mode === "tag") {
@@ -116,7 +133,9 @@ function Explore() {
   const normalizedValue = decodeURIComponent(value || "").trim();
   const titleValue = mode === "categoria"
     ? displayCategoryLabel(normalizedValue)
-    : normalizedValue;
+    : mode === "subcategoria"
+      ? SUBCATEGORY_LABELS[normalizeSubcategoryKey(normalizedValue)] || normalizedValue
+      : normalizedValue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -253,11 +272,19 @@ function Explore() {
     setMostrarBotonVolver(false);
   };
 
-  const validMode = mode === "categoria" || mode === "tag";
+  const normalizedSubcategoryValue = normalizeSubcategoryKey(normalizedValue);
+  const validMode =
+    mode === "categoria" ||
+    mode === "tag" ||
+    (mode === "subcategoria" &&
+      Object.prototype.hasOwnProperty.call(
+        SUBCATEGORY_LABELS,
+        normalizedSubcategoryValue,
+      ));
 
   return (
     <main className="page page-explore">
-      {mode === "tag" || !validMode ? (
+      {mode === "tag" || mode === "subcategoria" || !validMode ? (
         <nav className="breadcrumbs explore-breadcrumbs">
           <Link to="/">Inicio</Link>
           <span className="crumb-sep">›</span>
@@ -267,7 +294,9 @@ function Explore() {
             <span className="crumb-current">
               {mode === "categoria"
                 ? `Categoría: ${titleValue}`
-                : `Tag: ${titleValue}`}
+                : mode === "subcategoria"
+                  ? `Subcategoría: ${titleValue}`
+                  : `Tag: ${titleValue}`}
             </span>
           ) : (
             <span className="crumb-current">Explorar</span>
@@ -281,7 +310,9 @@ function Explore() {
             {validMode ? (
               mode === "categoria"
                 ? `Patrimonios de categoría: ${titleValue}`
-                : `Patrimonios con el tag: ${titleValue}`
+                : mode === "subcategoria"
+                  ? `Patrimonios de subcategoría: ${titleValue}`
+                  : `Patrimonios con el tag: ${titleValue}`
             ) : "Explorar patrimonios"}
           </h1>
           <p className="lead explore-summary">
@@ -369,7 +400,15 @@ function Explore() {
 
       {validMode && !loading && filteredPatrimonios.length === 0 && (
         <div className="explore-empty">
-          <p>No se encontraron patrimonios para {mode === "categoria" ? `la categoría ${titleValue}` : `el tag ${titleValue}`}.</p>
+          <p>
+            No se encontraron patrimonios para{" "}
+            {mode === "categoria"
+              ? `la categoría ${titleValue}`
+              : mode === "subcategoria"
+                ? `la subcategoría ${titleValue}`
+                : `el tag ${titleValue}`}
+            .
+          </p>
         </div>
       )}
 
