@@ -1,0 +1,122 @@
+.nosotros-page {
+  padding: 1rem 0 2.5rem;
+}
+
+.nosotros-header {
+  max-width: 760px;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+.nosotros-eyebrow {
+  margin-bottom: 0.5rem;
+  color: var(--accent-terracota);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nosotros-header .hero-title {
+  margin-bottom: 0.75rem;
+}
+
+.nosotros-intro {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
+
+.nosotros-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+}
+
+.nosotros-card {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.nosotros-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.nosotros-avatar {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  place-items: center;
+  border: 3px solid rgba(212, 165, 116, 0.65);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.nosotros-card-heading h2 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-sans);
+  font-size: 1.4rem;
+}
+
+.nosotros-role {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.nosotros-description {
+  margin: 1.25rem 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+.nosotros-contributions {
+  display: grid;
+  gap: 0.7rem;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.nosotros-contributions li::marker {
+  color: var(--accent-terracota);
+}
+
+.nosotros-contributions strong {
+  color: var(--primary-dark);
+}
+
+@media (max-width: 480px) {
+  .nosotros-page {
+    padding-top: 0.5rem;
+  }
+
+  .nosotros-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .nosotros-card-heading {
+    align-items: flex-start;
+  }
+
+  .nosotros-avatar {
+    width: 62px;
+    height: 62px;
+    flex-basis: 62px;
+    font-size: 1.15rem;
+  }
+
+  .nosotros-card-heading h2 {
+    font-size: 1.2rem;
+  }
+}

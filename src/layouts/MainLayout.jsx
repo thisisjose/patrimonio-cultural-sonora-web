@@ -1,29 +1,66 @@
-import { Outlet, Link, NavLink } from "react-router-dom";
+import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import logoPatrimonio from "../Icons/LogoPatrimonioSonorense-removebg-preview.png";
 
 function MainLayout() {
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
+  const [desktopAboutOpen, setDesktopAboutOpen] = useState(false);
   const headerRef = useRef(null);
+  const aboutMenuRef = useRef(null);
+  const desktopAboutButtonRef = useRef(null);
+  const mobileAboutButtonRef = useRef(null);
+  const mobileToggleRef = useRef(null);
+  const location = useLocation();
 
   const currentYear = new Date().getFullYear();
 
-  // Cerrar el menú si se hace clic fuera del header
   useEffect(() => {
-    function handleClickOutside(event) {
+    function handlePointerDown(event) {
+      if (aboutMenuRef.current && !aboutMenuRef.current.contains(event.target)) {
+        setDesktopAboutOpen(false);
+      }
+
       if (headerRef.current && !headerRef.current.contains(event.target)) {
-        setOpen(false);
+        setMobileOpen(false);
+        setMobileAboutOpen(false);
       }
     }
 
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
+    function handleKeyDown(event) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (desktopAboutOpen || mobileOpen || mobileAboutOpen) {
+        setDesktopAboutOpen(false);
+        setMobileOpen(false);
+        setMobileAboutOpen(false);
+
+        if (desktopAboutOpen) {
+          desktopAboutButtonRef.current?.focus();
+        } else if (mobileAboutOpen) {
+          mobileAboutButtonRef.current?.focus();
+        } else {
+          mobileToggleRef.current?.focus();
+        }
+      }
     }
 
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [desktopAboutOpen, mobileOpen, mobileAboutOpen]);
+
+  const isAboutActive = ["/acerca", "/acerca-del-proyecto", "/nosotros"].includes(location.pathname);
+  const closeMobileMenu = () => {
+    setMobileOpen(false);
+    setMobileAboutOpen(false);
+  };
 
   return (
     <div className="app-container">
@@ -40,7 +77,7 @@ function MainLayout() {
           </Link>
 
           {/* Navegación Desktop */}
-          <nav className="nav-links" role="navigation" aria-label="Main">
+          <nav className="nav-links" aria-label="Navegación principal">
             <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end>
               Inicio
             </NavLink>
@@ -53,9 +90,37 @@ function MainLayout() {
             <NavLink to="/festividades" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Festividades
             </NavLink>
-            <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-              Acerca
-            </NavLink>
+            <div
+              className={`about-dropdown ${desktopAboutOpen ? "is-open" : ""}`}
+              ref={aboutMenuRef}
+              onMouseEnter={() => setDesktopAboutOpen(true)}
+              onMouseLeave={() => setDesktopAboutOpen(false)}
+            >
+              <button
+                type="button"
+                className={`nav-link about-trigger ${isAboutActive ? "active" : ""}`}
+                ref={desktopAboutButtonRef}
+                aria-haspopup="true"
+                aria-expanded={desktopAboutOpen}
+                aria-controls="desktop-about-menu"
+                onClick={() => setDesktopAboutOpen(true)}
+              >
+                Acerca
+                <span className="about-chevron" aria-hidden="true">▾</span>
+              </button>
+              <div
+                className="about-submenu"
+                id="desktop-about-menu"
+                aria-hidden={!desktopAboutOpen}
+              >
+                <NavLink to="/acerca-del-proyecto" onClick={() => setDesktopAboutOpen(false)}>
+                  Acerca del proyecto
+                </NavLink>
+                <NavLink to="/nosotros" onClick={() => setDesktopAboutOpen(false)}>
+                  Nosotros
+                </NavLink>
+              </div>
+            </div>
             <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
               Contacto
             </NavLink>
@@ -64,9 +129,11 @@ function MainLayout() {
           {/* Botón Hamburguesa */}
           <button
             className="mobile-toggle"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Abrir menú"
+            ref={mobileToggleRef}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setMobileOpen((isOpen) => !isOpen)}
+            aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
           >
             <span></span>
             <span></span>
@@ -75,25 +142,47 @@ function MainLayout() {
         </div>
 
         {/* Desplegable Móvil */}
-        <div className={`mobile-menu ${open ? 'open' : ''}`}>
+        <div className={`mobile-menu ${mobileOpen ? 'open' : ''}`} id="mobile-navigation">
           <div className="mobile-menu-inner">
-            <nav className="mobile-menu-nav">
-              <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={() => setOpen(false)}>
+            <nav className="mobile-menu-nav" aria-label="Navegación móvil">
+              <NavLink to="/" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} end onClick={closeMobileMenu}>
                 Inicio
               </NavLink>
-              <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+              <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
                 Catálogo
               </NavLink>
-              <NavLink to="/efemerides" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+              <NavLink to="/efemerides" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
                 Efemérides
               </NavLink>
-              <NavLink to="/festividades" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+              <NavLink to="/festividades" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
                 Festividades
               </NavLink>
-              <NavLink to="/acerca" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
-                Acerca
-              </NavLink>
-              <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={() => setOpen(false)}>
+              <div className={`mobile-about ${mobileAboutOpen ? "is-open" : ""}`}>
+                <button
+                  type="button"
+                  className={`nav-link mobile-about-trigger ${isAboutActive ? "active" : ""}`}
+                  ref={mobileAboutButtonRef}
+                  aria-expanded={mobileAboutOpen}
+                  aria-controls="mobile-about-menu"
+                  onClick={() => setMobileAboutOpen((isOpen) => !isOpen)}
+                >
+                  Acerca
+                  <span className="about-chevron" aria-hidden="true">▾</span>
+                </button>
+                <div
+                  className="mobile-about-submenu"
+                  id="mobile-about-menu"
+                  hidden={!mobileAboutOpen}
+                >
+                  <NavLink to="/acerca-del-proyecto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
+                    Acerca del proyecto
+                  </NavLink>
+                  <NavLink to="/nosotros" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
+                    Nosotros
+                  </NavLink>
+                </div>
+              </div>
+              <NavLink to="/contacto" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"} onClick={closeMobileMenu}>
                 Contacto
               </NavLink>
             </nav>
@@ -132,7 +221,8 @@ function MainLayout() {
                 <li><NavLink to="/catalogo">Catálogo</NavLink></li>
                 <li><NavLink to="/efemerides">Efemérides</NavLink></li>
                 <li><NavLink to="/festividades">Festividades</NavLink></li>
-                <li><NavLink to="/acerca">Acerca</NavLink></li>
+                <li><NavLink to="/acerca-del-proyecto">Acerca del proyecto</NavLink></li>
+                <li><NavLink to="/nosotros">Nosotros</NavLink></li>
                 <li><NavLink to="/contacto">Contacto</NavLink></li>
               </ul>
             </div>

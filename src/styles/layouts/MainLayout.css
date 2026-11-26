@@ -135,6 +135,77 @@
   color: #fff;
 }
 
+.about-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.about-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.about-chevron {
+  display: inline-block;
+  font-size: 0.75em;
+  transition: transform var(--transition-fast);
+}
+
+.about-dropdown.is-open .about-chevron,
+.mobile-about.is-open .about-chevron {
+  transform: rotate(180deg);
+}
+
+.about-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1002;
+  min-width: 220px;
+  padding: 0.45rem;
+  border: 1px solid rgba(47, 95, 82, 0.12);
+  border-radius: var(--radius-base);
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-0.25rem);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+}
+
+.about-dropdown.is-open .about-submenu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.about-submenu a {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.about-submenu a:hover,
+.about-submenu a.active {
+  background: var(--glass-dark);
+  color: var(--primary-dark);
+}
+
 /* Menú móvil (Toggle Button) */
 .mobile-toggle {
   display: none;
@@ -364,7 +435,7 @@ footer {
   }
 
   .mobile-menu.open {
-    max-height: 320px !important;
+    max-height: 520px !important;
     opacity: 1;
     visibility: visible;
   }
@@ -406,6 +477,29 @@ footer {
 
   .mobile-menu .nav-link::after {
     display: none !important;
+  }
+
+  .mobile-about-trigger {
+    width: 100%;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-about-submenu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid rgba(212, 165, 116, 0.65);
+  }
+
+  .mobile-about-submenu[hidden] {
+    display: none;
+  }
+
+  .mobile-about-submenu .nav-link {
+    font-size: 0.9rem !important;
   }
 
   /* Footer Responsive */

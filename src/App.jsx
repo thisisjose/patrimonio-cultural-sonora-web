@@ -8,6 +8,7 @@ import AdminLayout from './layouts/AdminLayout';
 // PAGINAS PUBLICAS
 import Home from './pages/Home';
 import Acerca from './pages/Acerca';
+import Nosotros from './pages/Nosotros';
 import Contacto from './pages/Contacto';
 import Detail from './pages/Detail';
 import Explore from './pages/Explore';
@@ -41,6 +42,8 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
             <Route path="acerca" element={<Acerca />} />
+            <Route path="acerca-del-proyecto" element={<Acerca />} />
+            <Route path="nosotros" element={<Nosotros />} />
             <Route path="contacto" element={<Contacto />} />
             <Route path=":municipio/:localidad/:slug" element={<Detail />} />
             <Route path=":municipio/:slug" element={<Detail />} />
